@@ -1,0 +1,38 @@
+name: Fix UX batch routines calendar wellness
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Apply batch fixes
+        run: |
+          set -euo pipefail
+          git checkout -B fix/ux-batch-routines-calendar
+          python3 tools/fix_ux_batch.py
+          # syntax sanity on critical dart files (no flutter needed for paren check)
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in [
+            'apps/flutter/lib/data/database.dart',
+            'apps/flutter/lib/ui/screens/calendar_screen.dart',
+            'apps/flutter/lib/ui/screens/wellness_screen.dart',
+            'apps/flutter/lib/ui/screens/planning_screen.dart',
+            'apps/flutter/lib/ui/screens/note_detail_screen.dart',
+          ]:
+            s = Path(p).read_text()
+            assert s.count('(') == s.count(')'), (p, s.count('('), s.count(')'))
+            assert s.count('{') == s.count('}'), (p, s.count('{'), s.count('}'))
+            print(p, 'balanced')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status
+          git commit -m "fix: routines.archived_at, calendar null status, wellness unified save, day-plan errors"
+          git push -u origin HEAD:fix/ux-batch-routines-calendar --force
