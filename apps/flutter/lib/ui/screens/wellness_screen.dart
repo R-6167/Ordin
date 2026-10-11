@@ -22,6 +22,14 @@ class _WellnessScreenState extends State<WellnessScreen> {
   int _stress = 3;
   double _sleep = 7;
   bool _loading = true;
+  double? _draftWeight;
+  double? _draftSteps;
+  double? _draftExercise;
+  double? _draftWater;
+  String? _todayWeight;
+  String? _todaySteps;
+  String? _todayExercise;
+  String? _todayWater;
 
   @override
   void initState() {
@@ -35,6 +43,19 @@ class _WellnessScreenState extends State<WellnessScreen> {
       final week = await _repo.weeklySummary();
       final recent = await _repo.recentCheckins();
       if (!mounted) return;
+      final tw = await _repo.listMetrics('WEIGHT', limit: 1);
+      final ts = await _repo.listMetrics('STEPS', limit: 1);
+      final te = await _repo.listMetrics('EXERCISE_MINUTES', limit: 1);
+      final twa = await _repo.listMetrics('WATER_ML', limit: 1);
+      String? fmt(List<Map<String, Object?>> rows) {
+        if (rows.isEmpty) return null;
+        final v = rows.first['value'] as num?;
+        final u = rows.first['unit'] as String?;
+        if (v == null) return null;
+        final s = v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+        return (u == null || u.isEmpty) ? s : '$s $u';
+      }
+      if (!mounted) return;
       setState(() {
         _today = today;
         _week = week;
@@ -45,6 +66,10 @@ class _WellnessScreenState extends State<WellnessScreen> {
           _stress = (today['stress'] as int?) ?? 3;
           _sleep = (today['sleep_hours'] as num?)?.toDouble() ?? 7;
         }
+        _todayWeight = fmt(tw);
+        _todaySteps = fmt(ts);
+        _todayExercise = fmt(te);
+        _todayWater = fmt(twa);
         _loading = false;
       });
     } catch (e) {
@@ -57,18 +82,43 @@ class _WellnessScreenState extends State<WellnessScreen> {
   }
 
   Future<void> _saveCheckin() async {
-    await _repo.saveCheckin(
-      mood: _mood,
-      energy: _energy,
-      stress: _stress,
-      sleepHours: _sleep,
-    );
-    if (mounted) {
+    try {
+      await _repo.saveCheckin(
+        mood: _mood,
+        energy: _energy,
+        stress: _stress,
+        sleepHours: _sleep,
+      );
+      if (_draftWeight != null) {
+        await _repo.logMetric(type: 'WEIGHT', value: _draftWeight!, unit: 'kg');
+      }
+      if (_draftSteps != null) {
+        await _repo.logMetric(type: 'STEPS', value: _draftSteps!, unit: 'steps');
+      }
+      if (_draftExercise != null) {
+        await _repo.logMetric(type: 'EXERCISE_MINUTES', value: _draftExercise!, unit: 'min');
+      }
+      if (_draftWater != null) {
+        await _repo.logMetric(type: 'WATER_ML', value: _draftWater!, unit: 'ml');
+      }
+      if (mounted) {
+        setState(() {
+          _draftWeight = null;
+          _draftSteps = null;
+          _draftExercise = null;
+          _draftWater = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Check-in and metrics saved')),
+        );
+      }
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Wellness check-in saved')),
+        SnackBar(content: Text('Save failed: $e')),
       );
     }
-    await _load();
   }
 
   Future<void> _logMetric(String type, String label, String unit) async {
@@ -82,20 +132,36 @@ class _WellnessScreenState extends State<WellnessScreen> {
           controller: c,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(color: AppTheme.silver),
-          decoration: InputDecoration(labelText: unit),
+          decoration: InputDecoration(
+            labelText: unit,
+            helperText: 'Included when you tap Save check-in',
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Log')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
         ],
       ),
     );
     if (ok != true) return;
-    final v = double.tryParse(c.text.trim().replaceAll(',', ''));
+    final v = double.tryParse(c.text.trim());
     if (v == null) return;
-    await _repo.logMetric(type: type, value: v, unit: unit);
+    setState(() {
+      switch (type) {
+        case 'WEIGHT':
+          _draftWeight = v;
+        case 'STEPS':
+          _draftSteps = v;
+        case 'EXERCISE_MINUTES':
+          _draftExercise = v;
+        case 'WATER_ML':
+          _draftWater = v;
+      }
+    });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label logged')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$label $v $unit queued — tap Save check-in')),
+      );
     }
   }
 
@@ -133,7 +199,7 @@ class _WellnessScreenState extends State<WellnessScreen> {
                           activeColor: AppTheme.amber,
                           onChanged: (v) => setState(() => _sleep = v),
                         ),
-                        FilledButton(onPressed: _saveCheckin, child: const Text('Save check-in')),
+                        FilledButton(onPressed: _saveCheckin, child: const Text('Save check-in & metrics')),
                       ],
                     ),
                   ),
@@ -179,6 +245,38 @@ class _WellnessScreenState extends State<WellnessScreen> {
                       ),
                     ],
                   ),
+                  if (_draftWeight != null ||
+                      _draftSteps != null ||
+                      _draftExercise != null ||
+                      _draftWater != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Queued: ${[
+                          if (_draftWeight != null) 'Weight $_draftWeight kg',
+                          if (_draftSteps != null) 'Steps $_draftSteps',
+                          if (_draftExercise != null) 'Exercise $_draftExercise min',
+                          if (_draftWater != null) 'Water $_draftWater ml',
+                        ].join(' · ')}',
+                        style: TextStyle(color: AppTheme.amber.withValues(alpha: 0.9), fontSize: 12),
+                      ),
+                    ),
+                  if (_todayWeight != null ||
+                      _todaySteps != null ||
+                      _todayExercise != null ||
+                      _todayWater != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        'Latest saved: ${[
+                          if (_todayWeight != null) 'Weight $_todayWeight',
+                          if (_todaySteps != null) 'Steps $_todaySteps',
+                          if (_todayExercise != null) 'Exercise $_todayExercise',
+                          if (_todayWater != null) 'Water $_todayWater',
+                        ].join(' · ')}',
+                        style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.55), fontSize: 12),
+                      ),
+                    ),
                   const SizedBox(height: 16),
                   const Text('Recent check-ins',
                       style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
