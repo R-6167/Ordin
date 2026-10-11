@@ -28,6 +28,7 @@ import 'hubs/finance_hub.dart';
 import 'hubs/life_hub.dart';
 import 'hubs/more_hub.dart';
 import 'screens/planning_screen.dart';
+import 'screens/search_screen.dart';
 import 'screens/project_detail_screen.dart';
 import 'screens/task_detail_screen.dart';
 import 'settings_screen.dart';
@@ -135,7 +136,6 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
-  /// Reload only the listed domains — never the whole app by default.
   Future<void> _reload({
     Set<DataDomain>? domains,
     bool runMaintenance = false,
@@ -394,6 +394,15 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: 'Search',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SearchScreen()),
+                );
+              },
+              icon: const Icon(Icons.search),
+            ),
             IconButton(
               tooltip: 'Intelligence',
               onPressed: _openAssistant,
@@ -710,10 +719,7 @@ class _HomeShellState extends State<HomeShell> {
                       title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
                       subtitle: Text(
                         _taskStatusLine(t),
-                        style: TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 11,
-                        ),
+                        style: const TextStyle(color: Colors.redAccent, fontSize: 11),
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
