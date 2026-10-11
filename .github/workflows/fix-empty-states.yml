@@ -1,0 +1,36 @@
+name: Empty states day plan schedule
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Patch empty states
+        run: |
+          set -euo pipefail
+          git checkout -B fix/empty-states-plan-schedule
+          python3 tools/fix_empty_states.py
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in [
+            'apps/flutter/lib/ui/screens/planning_screen.dart',
+            'apps/flutter/lib/ui/screens/schedule_screen.dart',
+          ]:
+            s = Path(p).read_text()
+            assert s.count('(') == s.count(')'), (p, s.count('('), s.count(')'))
+            assert s.count('{') == s.count('}'), (p, s.count('{'), s.count('}'))
+            print(p, 'balanced')
+          assert 'Nothing on this day yet' in Path('apps/flutter/lib/ui/screens/planning_screen.dart').read_text()
+          assert 'No timed blocks yet' in Path('apps/flutter/lib/ui/screens/schedule_screen.dart').read_text()
+          print('content ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "ui: Day plan and Schedule empty states with clear CTAs"
+          git push -u origin HEAD:fix/empty-states-plan-schedule --force
