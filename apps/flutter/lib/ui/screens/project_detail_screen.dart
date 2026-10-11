@@ -280,6 +280,43 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+
+  List<Map<String, Object?>> _blockedOpen(ProjectWorkspace ws) {
+    final open = <Map<String, Object?>>[
+      ...ws.tasks,
+      ...ws.subtasks,
+    ].where((t) {
+      final s = dbStr(t['status']).toUpperCase();
+      return s != 'COMPLETED' && s != 'CANCELLED' && s != 'DONE';
+    }).toList();
+    final out = <Map<String, Object?>>[];
+    for (final t in open) {
+      final id = dbStr(t['id']);
+      final deps = ws.dependencies.where((d) => dbStr(d['task_id']) == id);
+      for (final d in deps) {
+        final st = dbStr(d['depends_on_status']).toUpperCase();
+        if (st != 'COMPLETED' && st != 'CANCELLED' && st != 'DONE') {
+          out.add(t);
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
+  String _blockedReason(ProjectWorkspace ws, String taskId) {
+    final titles = <String>[];
+    for (final d in ws.dependencies) {
+      if (dbStr(d['task_id']) != taskId) continue;
+      final st = dbStr(d['depends_on_status']).toUpperCase();
+      if (st == 'COMPLETED' || st == 'CANCELLED' || st == 'DONE') continue;
+      final title = dbStr(d['depends_on_title']);
+      if (title.isNotEmpty) titles.add(title);
+    }
+    if (titles.isEmpty) return 'Blocked by dependency';
+    return 'Waiting on: ${titles.take(2).join(', ')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading && _ws == null) {
@@ -426,6 +463,54 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ],
               ),
             ),
+            if (_blockedOpen(ws).isNotEmpty) ...[
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Blocked open work',
+                      style: TextStyle(
+                        color: Colors.orangeAccent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'These tasks wait on incomplete dependencies. Clear blockers first.',
+                      style: TextStyle(
+                        color: AppTheme.silver.withValues(alpha: 0.55),
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ..._blockedOpen(ws).take(6).map(
+                      (t) => ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          dbStr(t['title']),
+                          style: const TextStyle(color: AppTheme.silver, fontSize: 13),
+                        ),
+                        subtitle: Text(
+                          _blockedReason(ws, dbStr(t['id'])),
+                          style: TextStyle(
+                            color: Colors.orangeAccent.withValues(alpha: 0.8),
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: const Icon(Icons.chevron_right,
+                            color: AppTheme.silverMuted, size: 18),
+                        onTap: () => _openTaskDetails(dbStr(t['id'])),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             const SizedBox(height: 12),
 
             // —— Progress + deadline ——
