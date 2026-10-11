@@ -5,7 +5,15 @@ import '../../data/extended_repository.dart';
 import '../../services/backup_io.dart';
 import '../../services/integrity_service.dart';
 import '../screens/activity_screen.dart';
+import '../screens/goal_detail_screen.dart';
+import '../screens/habit_detail_screen.dart';
+import '../screens/life_area_detail_screen.dart';
+import '../screens/note_detail_screen.dart';
+import '../screens/project_detail_screen.dart';
 import '../screens/reminders_screen.dart';
+import '../screens/routine_detail_screen.dart';
+import '../screens/search_screen.dart';
+import '../screens/task_detail_screen.dart';
 import '../settings_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
@@ -38,6 +46,33 @@ class _MoreHubState extends State<MoreHub> {
     final hits = await ExtendedRepository(AppDatabase.instance).search(q.trim());
     if (!mounted) return;
     setState(() => _hits = hits);
+  }
+
+  void _openHit(Map<String, Object?> h) {
+    final kind = '${h['kind'] ?? ''}';
+    final id = '${h['id'] ?? ''}';
+    if (id.isEmpty) return;
+    final Widget? screen = switch (kind) {
+      'TASK' => TaskDetailScreen(taskId: id),
+      'NOTE' => NoteDetailScreen(noteId: id),
+      'GOAL' => GoalDetailScreen(goalId: id),
+      'PROJECT' => ProjectDetailScreen(projectId: id),
+      'HABIT' => HabitDetailScreen(habitId: id),
+      'ROUTINE' => RoutineDetailScreen(routineId: id),
+      'LIFE_AREA' => LifeAreaDetailScreen(lifeAreaId: id),
+      _ => null,
+    };
+    if (screen == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            kind == 'PERSON' ? 'People detail coming later' : 'No detail for $kind',
+          ),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
   Future<void> _export({bool encrypted = false}) async {
@@ -76,7 +111,9 @@ class _MoreHubState extends State<MoreHub> {
     if (!mounted) return;
     setState(() => _busy = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.ok ? (result.message ?? 'Exported') : (result.message ?? 'Export failed'))),
+      SnackBar(
+        content: Text(result.ok ? (result.message ?? 'Exported') : (result.message ?? 'Export failed')),
+      ),
     );
   }
 
@@ -87,7 +124,11 @@ class _MoreHubState extends State<MoreHub> {
     if (!mounted) return;
     setState(() => _busy = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.ok ? (result.message ?? 'Import complete') : (result.message ?? 'Import failed'))),
+      SnackBar(
+        content: Text(
+          result.ok ? (result.message ?? 'Import complete') : (result.message ?? 'Import failed'),
+        ),
+      ),
     );
     if (result.ok) await widget.onChanged?.call();
   }
@@ -109,9 +150,18 @@ class _MoreHubState extends State<MoreHub> {
         TextField(
           controller: _search,
           style: const TextStyle(color: AppTheme.silver),
-          decoration: const InputDecoration(
-            labelText: 'Search',
-            prefixIcon: Icon(Icons.search),
+          decoration: InputDecoration(
+            labelText: 'Search tasks, goals, notes…',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: IconButton(
+              tooltip: 'Full search',
+              icon: const Icon(Icons.open_in_new, size: 18),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SearchScreen()),
+                );
+              },
+            ),
           ),
           onChanged: _runSearch,
         ),
@@ -120,12 +170,22 @@ class _MoreHubState extends State<MoreHub> {
           ..._hits.map((h) => Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: GlassCard(
+                  onTap: () => _openHit(h),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: ListTile(
-                    title: Text('${h['label'] ?? h['title'] ?? h['name']}',
-                        style: const TextStyle(color: AppTheme.silver)),
-                    subtitle: Text('${h['kind'] ?? h['_table'] ?? ''}',
-                        style: TextStyle(
-                            color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11)),
+                    dense: true,
+                    title: Text(
+                      '${h['label'] ?? h['title'] ?? h['name'] ?? ''}',
+                      style: const TextStyle(color: AppTheme.silver),
+                    ),
+                    subtitle: Text(
+                      '${h['subtitle'] ?? h['kind'] ?? ''}',
+                      style: TextStyle(
+                        color: AppTheme.silver.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted, size: 18),
                   ),
                 ),
               )),
