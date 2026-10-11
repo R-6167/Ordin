@@ -609,11 +609,15 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             ),
                             child: GlassCard(
                               onTap: () {
-                                Navigator.of(context)
                                 final generationBefore = AppDataBus.instance.generation;
+                                Navigator.of(context)
                                     .push(MaterialPageRoute(
                                         builder: (_) => TaskDetailScreen(taskId: t.id)))
-                                    .then((_) async { if (AppDataBus.instance.generation != generationBefore) await _load(); });
+                                    .then((_) async {
+                                  if (AppDataBus.instance.generation != generationBefore) {
+                                    await _load();
+                                  }
+                                });
                               },
                               child: Row(
                                 children: [
