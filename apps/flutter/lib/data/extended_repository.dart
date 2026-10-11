@@ -403,22 +403,91 @@ class ExtendedRepository {
     });
   }
 
+  /// Cross-entity search. Each hit has kind, id, label, subtitle for open-detail.
   Future<List<Map<String, Object?>>> search(String q) async {
-    final like = '%${q.trim()}%';
+    final needle = q.trim();
+    if (needle.length < 2) return [];
+    final like = '%$needle%';
+    final ownerId = await _db.requireOwnerId();
     final db = await _db.database;
     final out = <Map<String, Object?>>[];
+
+    Future<void> addTitleHits({
+      required String table,
+      required String kind,
+      required String titleColumn,
+      String? extraWhere,
+      int limit = 12,
+    }) async {
+      try {
+        final where = extraWhere == null
+            ? 'owner_id = ? AND $titleColumn LIKE ?'
+            : 'owner_id = ? AND $titleColumn LIKE ? AND $extraWhere';
+        final rows = await db.query(
+          table,
+          where: where,
+          whereArgs: [ownerId, like],
+          limit: limit,
+        );
+        for (final r in rows) {
+          final label = '${r[titleColumn] ?? ''}'.trim();
+          if (label.isEmpty) continue;
+          out.add({
+            'kind': kind,
+            'id': r['id'],
+            'label': label,
+            'subtitle': kind,
+          });
+        }
+      } catch (_) {}
+    }
+
+    await addTitleHits(
+      table: 'tasks',
+      kind: 'TASK',
+      titleColumn: 'title',
+      extraWhere: 'archived_at IS NULL',
+    );
+    await addTitleHits(table: 'goals', kind: 'GOAL', titleColumn: 'title');
+    await addTitleHits(table: 'projects', kind: 'PROJECT', titleColumn: 'title');
+    await addTitleHits(table: 'habits', kind: 'HABIT', titleColumn: 'title');
+    await addTitleHits(table: 'routines', kind: 'ROUTINE', titleColumn: 'name');
+    await addTitleHits(
+      table: 'life_areas',
+      kind: 'LIFE_AREA',
+      titleColumn: 'title',
+      extraWhere: 'archived_at IS NULL',
+    );
+    await addTitleHits(table: 'people', kind: 'PERSON', titleColumn: 'name');
+
     try {
-      final tasks = await db.query('tasks', where: 'title LIKE ?', whereArgs: [like], limit: 20);
-      for (final t in tasks) {
-        out.add({'kind': 'TASK', ...t});
-      }
-    } catch (_) {}
-    try {
-      final notes = await db.query('notes', where: 'content LIKE ?', whereArgs: [like], limit: 10);
+      final notes = await db.query(
+        'notes',
+        where: 'owner_id = ? AND (title LIKE ? OR content LIKE ?)',
+        whereArgs: [ownerId, like, like],
+        limit: 12,
+      );
       for (final n in notes) {
-        out.add({'kind': 'NOTE', ...n});
+        final title = '${n['title'] ?? ''}'.trim();
+        final content = '${n['content'] ?? ''}'.trim();
+        String label;
+        if (title.isNotEmpty) {
+          label = title;
+        } else if (content.length > 72) {
+          label = '${content.substring(0, 72)}…';
+        } else {
+          label = content;
+        }
+        if (label.isEmpty) continue;
+        out.add({
+          'kind': 'NOTE',
+          'id': n['id'],
+          'label': label,
+          'subtitle': 'NOTE',
+        });
       }
     } catch (_) {}
+
     return out;
   }
 
