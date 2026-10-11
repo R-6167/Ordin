@@ -15,7 +15,6 @@ jobs:
           set -euo pipefail
           git checkout -B fix/ux-batch-routines-calendar
           python3 tools/fix_ux_batch.py
-          # syntax sanity on critical dart files (no flutter needed for paren check)
           python3 - <<'PY'
           from pathlib import Path
           for p in [
@@ -34,5 +33,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git status
-          git commit -m "fix: routines.archived_at, calendar null status, wellness unified save, day-plan errors"
+          git commit -m "fix: routines.archived_at, calendar events, wellness unified save, day-plan errors"
           git push -u origin HEAD:fix/ux-batch-routines-calendar --force
