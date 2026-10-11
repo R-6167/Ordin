@@ -1,0 +1,24 @@
+name: Polish life area overview
+on:
+  workflow_dispatch:
+jobs:
+  branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Branch from main with life area screen
+        run: |
+          set -euo pipefail
+          # Screen already on main from push_files; put on feature branch for PR
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B polish/life-area-overview
+          # ensure file is committed if only on main tip
+          git add apps/flutter/lib/ui/screens/life_area_detail_screen.dart
+          git status
+          git commit -m "feat(life-area): snapshot, next actions, attention signals" || true
+          git push -u origin HEAD:polish/life-area-overview --force
