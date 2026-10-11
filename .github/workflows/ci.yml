@@ -12,6 +12,226 @@ on:
   workflow_dispatch:
 
 jobs:
+  phase4-ui-patch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: phase4/ui-clean
+      - name: Apply Phase 4 UI patches
+        run: |
+          set -euo pipefail
+          python3 << 'PY'
+          from pathlib import Path
+
+          ep = Path('apps/flutter/lib/data/extended_repository.dart')
+          ext = ep.read_text()
+          if 'cancelRemindersForSource' not in ext:
+              marker = '  Future<void> deleteReminder(String id) => cancelReminder(id);'
+              assert marker in ext
+              method = '''  Future<void> cancelRemindersForSource({
+    required String sourceType,
+    required String sourceId,
+  }) async {
+    final ownerId = await _db.requireOwnerId();
+    final now = AppDatabase.nowMs();
+    await (await _db.database).update(
+      'reminders',
+      {'status': 'CANCELLED', 'updated_at': now},
+      where:
+          "owner_id = ? AND source_type = ? AND source_id = ? AND (status IS NULL OR status = 'PENDING' OR status = 'ACTIVE')",
+      whereArgs: [ownerId, sourceType, sourceId],
+    );
+  }
+
+  Future<void> deleteReminder(String id) => cancelReminder(id);'''
+              ep.write_text(ext.replace(marker, method, 1))
+              print('ext ok')
+
+          tp = Path('apps/flutter/lib/data/task_repository.dart')
+          tr = tp.read_text()
+          if "whereArgs: [ownerId, 'TASK', taskId]" not in tr:
+              anchor = "'Closed with task completion'"
+              assert anchor in tr
+              idx = tr.find(anchor)
+              end = tr.find("await txn.insert('activity_events'", idx)
+              assert end > 0
+              block = '''await txn.update(
+        'reminders',
+        {'status': 'CANCELLED', 'updated_at': now},
+        where:
+            "owner_id = ? AND source_type = ? AND source_id = ? AND (status IS NULL OR status = 'PENDING' OR status = 'ACTIVE')",
+        whereArgs: [ownerId, 'TASK', taskId],
+      );
+
+      '''
+              tp.write_text(tr[:end] + block + tr[end:])
+              print('tr ok')
+
+          hp = Path('apps/flutter/lib/ui/home_shell.dart')
+          hs = hp.read_text()
+          assert 'class HomeShell' in hs
+
+          if 'Set<String> _blockedIds' not in hs:
+              hs = hs.replace(
+                  '  List<Task> _scheduledToday = [];',
+                  '  List<Task> _scheduledToday = [];\n  Set<String> _blockedIds = {};',
+                  1,
+              )
+
+          if 'listBlockedTaskIds' not in hs:
+              old_load = '''    if (wantTasks || wantToday) {
+      futures.add(() async {
+        taskList =
+            await softFuture(_tasks.listOpen, fallback: <Task>[], label: 'tasks.open') ??
+                <Task>[];
+        overdue =
+            await softFuture(_tasks.listOverdue, fallback: <Task>[], label: 'tasks.overdue') ??
+                <Task>[];
+      }());
+    }'''
+              new_load = '''    Set<String>? blockedIds;
+    if (wantTasks || wantToday) {
+      futures.add(() async {
+        taskList =
+            await softFuture(_tasks.listOpen, fallback: <Task>[], label: 'tasks.open') ??
+                <Task>[];
+        overdue =
+            await softFuture(_tasks.listOverdue, fallback: <Task>[], label: 'tasks.overdue') ??
+                <Task>[];
+        blockedIds = await softFuture(
+              _tasks.listBlockedTaskIds,
+              fallback: <String>{},
+              label: 'tasks.blocked',
+            ) ??
+            <String>{};
+      }());
+    }'''
+              assert old_load in hs
+              hs = hs.replace(old_load, new_load, 1)
+              if 'if (overdue != null) _overdue = overdue!;' in hs:
+                  hs = hs.replace(
+                      'if (overdue != null) _overdue = overdue!;',
+                      'if (overdue != null) _overdue = overdue!;\n      if (blockedIds != null) _blockedIds = blockedIds!;',
+                      1,
+                  )
+              else:
+                  hs = hs.replace(
+                      'if (taskList != null) _taskList = taskList!;',
+                      'if (taskList != null) _taskList = taskList!;\n      if (blockedIds != null) _blockedIds = blockedIds!;',
+                      1,
+                  )
+
+          if '_openPlanItem(p)' not in hs:
+              old_plan = '''            ..._plan.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    child: Text(p.title,
+                        style:
+                            const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                  ),
+                )),'''
+              new_plan = '''            ..._plan.map((p) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    onTap: () => _openPlanItem(p),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.title,
+                            style: const TextStyle(
+                                color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(
+                          p.reason,
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.45),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),'''
+              assert old_plan in hs
+              hs = hs.replace(old_plan, new_plan, 1)
+
+          if '_taskStatusLine(t)' not in hs:
+              old_sub = '''            subtitle: Text(
+              t.isOverdue ? 'OVERDUE' : (t.isDueToday ? 'Due today' : t.status),
+              style: TextStyle(
+                color: t.isOverdue ? Colors.redAccent : AppTheme.silver.withValues(alpha: 0.4),
+                fontSize: 11,
+              ),
+            ),'''
+              new_sub = '''            subtitle: Text(
+              _taskStatusLine(t),
+              style: TextStyle(
+                color: t.isOverdue
+                    ? Colors.redAccent
+                    : (_blockedIds.contains(t.id)
+                        ? Colors.orangeAccent
+                        : AppTheme.silver.withValues(alpha: 0.4)),
+                fontSize: 11,
+              ),
+            ),'''
+              assert old_sub in hs
+              hs = hs.replace(old_sub, new_sub, 1)
+
+          if 'Future<void> _openPlanItem' not in hs:
+              helpers = '''
+  Future<void> _openPlanItem(PlanItem p) async {
+    switch (p.kind) {
+      case PlanItemKind.overdueTask:
+      case PlanItemKind.dueTodayTask:
+      case PlanItemKind.openTask:
+        final generationBefore = AppDataBus.instance.generation;
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: p.id)),
+        );
+        if (!mounted) return;
+        if (AppDataBus.instance.generation != generationBefore) {
+          await _reload(domains: {DataDomain.tasks, DataDomain.today});
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  String _taskStatusLine(Task t) {
+    final parts = <String>[];
+    if (t.isOverdue) {
+      parts.add('OVERDUE');
+    } else if (t.isDueToday) {
+      parts.add('Due today');
+    }
+    if (_blockedIds.contains(t.id)) parts.add('Blocked');
+    parts.add(t.status);
+    return parts.join(' · ');
+  }
+
+'''
+              marker = '  String _scheduledLabel(Task t) {'
+              assert marker in hs
+              hs = hs.replace(marker, helpers + marker, 1)
+
+          assert hs.count('(') == hs.count(')')
+          assert hs.count('{') == hs.count('}')
+          assert 'Future<void> _openPlanItem' in hs and 'String _taskStatusLine' in hs
+          hp.write_text(hs)
+          print('hs ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/data/task_repository.dart apps/flutter/lib/data/extended_repository.dart apps/flutter/lib/ui/home_shell.dart
+          git commit -m "feat(phase-4): blocked Today, plan→task, cancel task reminders" || echo nochange
+          git push origin HEAD:phase4/ui-clean
+
   analyze-and-test:
     runs-on: ubuntu-latest
     defaults:
