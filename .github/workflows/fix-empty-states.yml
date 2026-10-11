@@ -31,6 +31,6 @@ jobs:
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add apps/flutter/lib/ui/screens/planning_screen.dart apps/flutter/lib/ui/screens/schedule_screen.dart
           git commit -m "ui: Day plan and Schedule empty states with clear CTAs"
           git push -u origin HEAD:fix/empty-states-plan-schedule --force
