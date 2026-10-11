@@ -33,7 +33,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final end = DateTime(_month.year, _month.month + 1, 1);
     final events = await db.query(
       'calendar_events',
-      where: 'start_at >= ? AND start_at < ? AND status != ?',
+      where: 'start_at >= ? AND start_at < ? AND (status IS NULL OR status != ?)',
       whereArgs: [
         start.millisecondsSinceEpoch,
         end.millisecondsSinceEpoch,
@@ -122,6 +122,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       'title': title.text.trim(),
       'start_at': start.millisecondsSinceEpoch,
       'end_at': start.add(const Duration(hours: 1)).millisecondsSinceEpoch,
+      'status': 'ACTIVE',
       'created_at': now,
       'updated_at': now,
     });

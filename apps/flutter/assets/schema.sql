@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS habit_occurrences (
 CREATE TABLE IF NOT EXISTS routines (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
   estimated_minutes INTEGER, status TEXT,
+  archived_at INTEGER,
   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );

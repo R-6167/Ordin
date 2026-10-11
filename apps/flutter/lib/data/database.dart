@@ -15,7 +15,7 @@ class AppDatabase {
   static const _uuid = Uuid();
 
   // Bump whenever the database schema/migration contract changes.
-  static const schemaVersion = 27;
+  static const schemaVersion = 28;
 
   Future<Database> get database async {
     if (_db != null) return _db!;
@@ -86,6 +86,7 @@ class AppDatabase {
         await _migrateToV25(db);
         await _migrateToV26(db);
         await _migrateToV27(db);
+        await _migrateToV28(db);
         await _verifySchemaContract(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -111,6 +112,7 @@ class AppDatabase {
         if (oldVersion < 25) await _migrateToV25(db);
         if (oldVersion < 26) await _migrateToV26(db);
         if (oldVersion < 27) await _migrateToV27(db);
+        if (oldVersion < 28) await _migrateToV28(db);
         await _verifySchemaContract(db);
       },
       onOpen: (db) async {
@@ -180,6 +182,7 @@ CREATE TABLE IF NOT EXISTS users (
       'ALTER TABLE projects ADD COLUMN description TEXT',
       'ALTER TABLE projects ADD COLUMN target_date INTEGER',
       'ALTER TABLE habits ADD COLUMN archived_at INTEGER',
+      'ALTER TABLE routines ADD COLUMN archived_at INTEGER',
       'ALTER TABLE habits ADD COLUMN goal_id TEXT',
       'ALTER TABLE milestones ADD COLUMN completed_at INTEGER',
       'ALTER TABLE milestones ADD COLUMN position INTEGER DEFAULT 0',
@@ -394,6 +397,11 @@ CREATE TABLE IF NOT EXISTS health_metrics (
     """);
     await db.execute('CREATE INDEX IF NOT EXISTS idx_wellness_owner_day ON wellness_checkins(owner_id, day DESC)');
     await db.execute('CREATE INDEX IF NOT EXISTS idx_health_metrics_type ON health_metrics(owner_id, metric_type, measured_at DESC)');
+  }
+
+
+  Future<void> _migrateToV28(Database db) async {
+    await _executeIgnoringDuplicateColumn(db, 'ALTER TABLE routines ADD COLUMN archived_at INTEGER');
   }
 
   Future<void> _migrateToV24(Database db) async {

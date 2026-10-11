@@ -92,20 +92,28 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
   Future<void> _rebuild() async {
     setState(() => _building = true);
-    final built = await _engine.build(day: _day);
-    final n = await _engine.apply(built);
-    await _load();
-    if (!mounted) return;
-    setState(() => _building = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          n == 0
-              ? 'No new sessions applied (day may already be full or blocked)'
-              : 'Applied $n timed session${n == 1 ? '' : 's'}',
+    try {
+      final built = await _engine.build(day: _day);
+      final n = await _engine.apply(built);
+      await _load();
+      if (!mounted) return;
+      setState(() => _building = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            n == 0
+                ? 'No new sessions applied (day may already be full or blocked)'
+                : 'Applied $n timed session${n == 1 ? '' : 's'}',
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _building = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Build My Day failed: $e')),
+      );
+    }
   }
 
   void _shiftDay(int delta) {
