@@ -73,6 +73,7 @@ class _HomeShellState extends State<HomeShell> {
   List<Income> _incomeList = [];
   List<PlanItem> _plan = [];
   List<Task> _scheduledToday = [];
+  Set<String> _blockedIds = {};
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
 
@@ -186,6 +187,7 @@ class _HomeShellState extends State<HomeShell> {
     List<Income>? incomeList;
     List<PlanItem>? plan;
     int? freeMin;
+    Set<String>? blockedIds;
 
     if (wantTasks || wantToday) {
       futures.add(() async {
@@ -195,6 +197,12 @@ class _HomeShellState extends State<HomeShell> {
         overdue =
             await softFuture(_tasks.listOverdue, fallback: <Task>[], label: 'tasks.overdue') ??
                 <Task>[];
+        blockedIds = await softFuture(
+              _tasks.listBlockedTaskIds,
+              fallback: <String>{},
+              label: 'tasks.blocked',
+            ) ??
+            <String>{};
       }());
     }
     if (wantToday) {
@@ -268,6 +276,7 @@ class _HomeShellState extends State<HomeShell> {
     setState(() {
       if (taskList != null) _taskList = taskList!;
       if (overdue != null) _overdue = overdue!;
+      if (blockedIds != null) _blockedIds = blockedIds!;
       if (scheduled != null) _scheduledToday = scheduled!;
       if (habitList != null) _habitList = habitList!;
       if (goalList != null) _goalList = goalList!;
@@ -287,11 +296,40 @@ class _HomeShellState extends State<HomeShell> {
       _reload(domains: {DataDomain.tasks, DataDomain.today});
 
   Future<void> _openTask(Task t) async {
-    // TaskDetailScreen publishes task mutations through AppDataBus. Merely
-    // viewing a task should not reload the Tasks/Today feeds on return.
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: t.id)),
     );
+  }
+
+  Future<void> _openPlanItem(PlanItem p) async {
+    switch (p.kind) {
+      case PlanItemKind.overdueTask:
+      case PlanItemKind.dueTodayTask:
+      case PlanItemKind.openTask:
+        final generationBefore = AppDataBus.instance.generation;
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: p.id)),
+        );
+        if (!mounted) return;
+        if (AppDataBus.instance.generation != generationBefore) {
+          await _reload(domains: {DataDomain.tasks, DataDomain.today});
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  String _taskStatusLine(Task t) {
+    final parts = <String>[];
+    if (t.isOverdue) {
+      parts.add('OVERDUE');
+    } else if (t.isDueToday) {
+      parts.add('Due today');
+    }
+    if (_blockedIds.contains(t.id)) parts.add('Blocked');
+    parts.add(t.status);
+    return parts.join(' · ');
   }
 
   Future<void> _openAssistant() async {
@@ -313,7 +351,7 @@ class _HomeShellState extends State<HomeShell> {
       MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
     await UserPrefs.instance.load();
-    if (mounted) setState(() {}); // currency label may have changed
+    if (mounted) setState(() {});
   }
 
   Future<void> _add() async {
@@ -443,7 +481,6 @@ class _HomeShellState extends State<HomeShell> {
           projects: _projectList,
           routines: _routineList,
           onChanged: () async {
-            // AppDataBus is the single refresh path for domain mutations.
             AppDataBus.instance.lifeChanged();
           },
         ),
@@ -461,7 +498,6 @@ class _HomeShellState extends State<HomeShell> {
           },
         ),
         MoreHub(onChanged: () async {
-          // More spans multiple domains but still needs only one scoped reload.
           AppDataBus.instance.notifyDomains({
             DataDomain.life,
             DataDomain.finance,
@@ -552,77 +588,90 @@ class _HomeShellState extends State<HomeShell> {
             ..._plan.map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
-                    child: Text(p.title,
-                        style:
-                            const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                    onTap: () => _openPlanItem(p),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.title,
+                            style: const TextStyle(
+                                color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(
+                          p.reason,
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.45),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )),
           ],
           if (_overdue.isNotEmpty) ...[
             const SectionHeader('Overdue'),
-            ..._overdue.map((t) => _taskTile(t)),
-          ],
-          const SectionHeader('Tasks'),
-          if (_taskList.isEmpty)
-            Text('Nothing open — use Add when something appears.',
-                style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)))
-          else
-            ..._taskList.take(8).map(_taskTile),
-          const SectionHeader('Habits'),
-          if (_habitList.isEmpty)
-            Text('No habits yet.', style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)))
-          else
-            ..._habitList.map((h) => Padding(
+            ..._overdue.take(5).map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
-                      title: Text(h.title, style: const TextStyle(color: AppTheme.silver)),
+                      dense: true,
+                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                      subtitle: Text(
+                        _taskStatusLine(t),
+                        style: TextStyle(
+                          color: t.isOverdue
+                              ? Colors.redAccent
+                              : (_blockedIds.contains(t.id)
+                                  ? Colors.orangeAccent
+                                  : AppTheme.silver.withValues(alpha: 0.4)),
+                          fontSize: 11,
+                        ),
+                      ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.done_all, color: AppTheme.amber),
+                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                        tooltip: 'Complete',
                         onPressed: () async {
-                          await _habits.markDoneToday(h.id);
-                          HapticFeedback.selectionClick();
-                          AppDataBus.instance.lifeChanged();
+                          await _tasks.complete(t.id);
+                          AppDataBus.instance.tasksChanged();
                         },
                       ),
                     ),
                   ),
                 )),
-          const SectionHeader('Bills'),
-          if (_billOcc.isEmpty)
-            Text('No open bills.', style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)))
-          else
-            ..._billOcc.map((o) => Padding(
+          ],
+          if (_taskList.isNotEmpty) ...[
+            const SectionHeader('Open work'),
+            ..._taskList.take(8).map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
-                      title: Text(o.billName ?? 'Bill',
-                          style: const TextStyle(color: AppTheme.silver)),
-                      trailing: FilledButton(
+                      dense: true,
+                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                      subtitle: Text(
+                        _taskStatusLine(t),
+                        style: TextStyle(
+                          color: t.isOverdue
+                              ? Colors.redAccent
+                              : (_blockedIds.contains(t.id)
+                                  ? Colors.orangeAccent
+                                  : AppTheme.silver.withValues(alpha: 0.4)),
+                          fontSize: 11,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                        tooltip: 'Complete',
                         onPressed: () async {
-                          final paid = await promptAndPayBill(context, o);
-                          if (paid) {
-                            AppDataBus.instance.financeChanged();
-                          }
+                          await _tasks.complete(t.id);
+                          AppDataBus.instance.tasksChanged();
                         },
-                        child: const Text('Pay'),
                       ),
                     ),
-                  ),
-                )),
-          if (_projectList.isNotEmpty) ...[
-            const SectionHeader('Active projects'),
-            ..._projectList.take(6).map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GlassCard(
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ProjectDetailScreen(projectId: p.id),
-                      ));
-                    },
-                    child: Text(p.title, style: const TextStyle(color: AppTheme.silver)),
                   ),
                 )),
           ],
@@ -631,76 +680,90 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-
   String _scheduledLabel(Task t) {
     final start = t.scheduledStart;
     if (start == null) return t.status;
-    final d = DateTime.fromMillisecondsSinceEpoch(start);
-    final hh = d.hour.toString().padLeft(2, '0');
-    final mm = d.minute.toString().padLeft(2, '0');
-    return '$hh:$mm · ${t.status}';
+    final dt = DateTime.fromMillisecondsSinceEpoch(start);
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final blocked = _blockedIds.contains(t.id) ? ' · Blocked' : '';
+    return '$hh:$mm$blocked · ${t.status}';
   }
 
   Widget _tasksView() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            children: [
-              Text(
-                '${_taskList.length} open · tap to manage',
-                style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.5)),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () async {
-                  final ok = await showCreateForm(context, AddKind.task);
-                  if (ok) {
-                    AppDataBus.instance.tasksChanged();
-                  }
-                },
-                child: const Text('New task'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _taskList.isEmpty
-              ? Center(
-                  child: Text('No open tasks',
-                      style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35))))
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  children: _taskList.map(_taskTile).toList(),
-                ),
-        ),
-      ],
+    return RefreshIndicator(
+      color: AppTheme.amber,
+      onRefresh: _reloadTasks,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          if (_overdue.isNotEmpty) ...[
+            const SectionHeader('Overdue'),
+            ..._overdue.map((t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    onTap: () => _openTask(t),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                      subtitle: Text(
+                        _taskStatusLine(t),
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 11,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                        onPressed: () async {
+                          await _tasks.complete(t.id);
+                          AppDataBus.instance.tasksChanged();
+                        },
+                      ),
+                    ),
+                  ),
+                )),
+          ],
+          const SectionHeader('All open'),
+          if (_taskList.isEmpty)
+            GlassCard(
+              child: Text('No open tasks',
+                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.5))),
+            )
+          else
+            ..._taskList.map((t) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GlassCard(
+                    onTap: () => _openTask(t),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                      subtitle: Text(
+                        _taskStatusLine(t),
+                        style: TextStyle(
+                          color: t.isOverdue
+                              ? Colors.redAccent
+                              : (_blockedIds.contains(t.id)
+                                  ? Colors.orangeAccent
+                                  : AppTheme.silver.withValues(alpha: 0.4)),
+                          fontSize: 11,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                        onPressed: () async {
+                          await _tasks.complete(t.id);
+                          AppDataBus.instance.tasksChanged();
+                        },
+                      ),
+                    ),
+                  ),
+                )),
+        ],
+      ),
     );
   }
-
-  Widget _taskTile(Task t) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: GlassCard(
-          onTap: () => _openTask(t),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          child: ListTile(
-            title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-            subtitle: Text(
-              t.isOverdue ? 'OVERDUE' : (t.isDueToday ? 'Due today' : t.status),
-              style: TextStyle(
-                color: t.isOverdue ? Colors.redAccent : AppTheme.silver.withValues(alpha: 0.4),
-                fontSize: 11,
-              ),
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
-              onPressed: () async {
-                await _tasks.complete(t.id);
-                AppDataBus.instance.tasksChanged();
-              },
-            ),
-          ),
-        ),
-      );
 }
