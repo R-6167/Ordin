@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../services/app_data_bus.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
@@ -607,10 +609,15 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             ),
                             child: GlassCard(
                               onTap: () {
+                                final generationBefore = AppDataBus.instance.generation;
                                 Navigator.of(context)
                                     .push(MaterialPageRoute(
                                         builder: (_) => TaskDetailScreen(taskId: t.id)))
-                                    .then((_) => _load());
+                                    .then((_) async {
+                                  if (AppDataBus.instance.generation != generationBefore) {
+                                    await _load();
+                                  }
+                                });
                               },
                               child: Row(
                                 children: [
