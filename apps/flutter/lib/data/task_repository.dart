@@ -669,7 +669,7 @@ class TaskRepository with TaskDependencyMutations {
     );
   }
 
-  Future<void> archive(String taskId) async {
+  Future<void> delete(String taskId) async {
     final ownerId = await _db.requireOwnerId();
     final now = AppDatabase.nowMs();
     await AtomicWrite.run(
@@ -677,15 +677,19 @@ class TaskRepository with TaskDependencyMutations {
       state: (txn) async {
         final changed = await txn.update(
           'tasks',
-          {'archived_at': now, 'updated_at': now},
+          {
+            'status': EntityStatus.cancelled,
+            'archived_at': now,
+            'updated_at': now,
+          },
           where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
           whereArgs: [taskId, ownerId],
         );
         if (changed != 1) {
-          throw StateError('Task not found, already archived, or not owned by the current user: $taskId');
+          throw StateError('Task not found, archived, or not owned by the current user: $taskId');
         }
       },
-      eventType: 'TASK_ARCHIVED',
+      eventType: 'TASK_CANCELLED',
       entityType: 'TASK',
       entityId: taskId,
       occurredAt: now,
