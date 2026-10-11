@@ -73,6 +73,7 @@ class _HomeShellState extends State<HomeShell> {
   List<Income> _incomeList = [];
   List<PlanItem> _plan = [];
   List<Task> _scheduledToday = [];
+  Set<String> _blockedIds = {};
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
 
@@ -187,6 +188,7 @@ class _HomeShellState extends State<HomeShell> {
     List<PlanItem>? plan;
     int? freeMin;
 
+    Set<String>? blockedIds;
     if (wantTasks || wantToday) {
       futures.add(() async {
         taskList =
@@ -195,6 +197,12 @@ class _HomeShellState extends State<HomeShell> {
         overdue =
             await softFuture(_tasks.listOverdue, fallback: <Task>[], label: 'tasks.overdue') ??
                 <Task>[];
+        blockedIds = await softFuture(
+              _tasks.listBlockedTaskIds,
+              fallback: <String>{},
+              label: 'tasks.blocked',
+            ) ??
+            <String>{};
       }());
     }
     if (wantToday) {
@@ -267,6 +275,7 @@ class _HomeShellState extends State<HomeShell> {
     if (!mounted) return;
     setState(() {
       if (taskList != null) _taskList = taskList!;
+      if (blockedIds != null) _blockedIds = blockedIds!;
       if (overdue != null) _overdue = overdue!;
       if (scheduled != null) _scheduledToday = scheduled!;
       if (habitList != null) _habitList = habitList!;
@@ -552,9 +561,24 @@ class _HomeShellState extends State<HomeShell> {
             ..._plan.map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
-                    child: Text(p.title,
-                        style:
-                            const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                    onTap: () => _openPlanItem(p),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(p.title,
+                            style: const TextStyle(
+                                color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(
+                          p.reason,
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.45),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )),
           ],
@@ -687,9 +711,13 @@ class _HomeShellState extends State<HomeShell> {
           child: ListTile(
             title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
             subtitle: Text(
-              t.isOverdue ? 'OVERDUE' : (t.isDueToday ? 'Due today' : t.status),
+              _taskStatusLine(t),
               style: TextStyle(
-                color: t.isOverdue ? Colors.redAccent : AppTheme.silver.withValues(alpha: 0.4),
+                color: t.isOverdue
+                    ? Colors.redAccent
+                    : (_blockedIds.contains(t.id)
+                        ? Colors.orangeAccent
+                        : AppTheme.silver.withValues(alpha: 0.4)),
                 fontSize: 11,
               ),
             ),

@@ -604,6 +604,15 @@ class TaskRepository with TaskDependencyMutations {
         );
       }
 
+      // Cancel pending reminders tied to this task (calendar / notification sources).
+      await txn.update(
+        'reminders',
+        {'status': 'CANCELLED', 'updated_at': now},
+        where:
+            "owner_id = ? AND source_type = ? AND source_id = ? AND (status IS NULL OR status = 'PENDING' OR status = 'ACTIVE')",
+        whereArgs: [ownerId, 'TASK', taskId],
+      );
+
       await txn.insert('activity_events', {
         'id': AppDatabase.newId(),
         'owner_id': ownerId,

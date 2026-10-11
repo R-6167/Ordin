@@ -108,6 +108,22 @@ class ExtendedRepository {
     );
   }
 
+  /// Cancel pending reminders linked to a source entity (e.g. TASK).
+  Future<void> cancelRemindersForSource({
+    required String sourceType,
+    required String sourceId,
+  }) async {
+    final ownerId = await _db.requireOwnerId();
+    final now = AppDatabase.nowMs();
+    await (await _db.database).update(
+      'reminders',
+      {'status': 'CANCELLED', 'updated_at': now},
+      where:
+          "owner_id = ? AND source_type = ? AND source_id = ? AND (status IS NULL OR status = 'PENDING' OR status = 'ACTIVE')",
+      whereArgs: [ownerId, sourceType, sourceId],
+    );
+  }
+
   Future<void> deleteReminder(String id) => cancelReminder(id);
 
   Future<void> snoozeReminder(String id, {int minutes = 15}) async {
