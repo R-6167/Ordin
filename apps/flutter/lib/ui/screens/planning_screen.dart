@@ -12,6 +12,7 @@ import '../../services/build_my_day.dart';
 import '../../services/day_planner.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../forms/create_forms.dart';
 import 'task_detail_screen.dart';
 
 /// Payload for drag-and-drop scheduling.
@@ -34,7 +35,9 @@ class _DragPayload {
 }
 
 class PlanningScreen extends StatefulWidget {
-  const PlanningScreen({super.key});
+  const PlanningScreen({super.key, this.initialDay});
+
+  final DateTime? initialDay;
 
   @override
   State<PlanningScreen> createState() => _PlanningScreenState();
@@ -60,6 +63,10 @@ class _PlanningScreenState extends State<PlanningScreen> {
   @override
   void initState() {
     super.initState();
+    final seed = widget.initialDay;
+    if (seed != null) {
+      _day = DateTime(seed.year, seed.month, seed.day);
+    }
     _load();
   }
 
@@ -467,6 +474,29 @@ class _PlanningScreenState extends State<PlanningScreen> {
         ),
         body: (_loading && _built == null)
             ? const Center(child: CircularProgressIndicator(color: AppTheme.amber))
+            : (_built == null && !_loading)
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Could not load this day',
+                            style: TextStyle(
+                              color: AppTheme.silver.withValues(alpha: 0.85),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: _load,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
             : RefreshIndicator(
                 color: AppTheme.amber,
                 onRefresh: _load,
@@ -491,13 +521,89 @@ class _PlanningScreenState extends State<PlanningScreen> {
                         _unscheduled.isEmpty) ...[
                       const SizedBox(height: 8),
                       GlassCard(
-                        child: Text(
-                          'Nothing planned for this day yet.\n'
-                          'Add tasks or tap Build My Day when you have work to place.',
-                          style: TextStyle(
-                            color: AppTheme.silver.withValues(alpha: 0.7),
-                            height: 1.35,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Nothing on this day yet',
+                              style: TextStyle(
+                                color: AppTheme.silver,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Open tasks will appear here once you have some, '
+                              'or create a task and run Build My Day to place work into time slots.',
+                              style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.65),
+                                height: 1.4,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: FilledButton.icon(
+                                    onPressed: _building ? null : _rebuild,
+                                    icon: const Icon(Icons.auto_awesome, size: 18),
+                                    label: const Text('Build My Day'),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final ok = await showCreateForm(
+                                        context,
+                                        AddKind.task,
+                                      );
+                                      if (ok) await _load();
+                                    },
+                                    icon: const Icon(Icons.add_task, size: 18),
+                                    label: const Text('New task'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (built != null &&
+                        built.timeline.isEmpty &&
+                        _unscheduled.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_unscheduled.length} task${_unscheduled.length == 1 ? '' : 's'} waiting to be placed',
+                              style: const TextStyle(
+                                color: AppTheme.silver,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Nothing is timed yet. Tap Build My Day to fit open work into free hours.',
+                              style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.65),
+                                height: 1.4,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: _building ? null : _rebuild,
+                              icon: const Icon(Icons.auto_awesome, size: 18),
+                              label: const Text('Build My Day'),
+                            ),
+                          ],
                         ),
                       ),
                     ],

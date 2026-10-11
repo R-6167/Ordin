@@ -8,6 +8,7 @@ import '../../domain/models.dart';
 import '../../services/build_my_day.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import 'planning_screen.dart';
 import 'task_detail_screen.dart';
 
 class _SchedDrag {
@@ -168,6 +169,66 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ],
                     ),
                   ),
+                  if (built != null && built.timeline.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'No timed blocks yet',
+                            style: TextStyle(
+                              color: AppTheme.silver,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            trayHint == 0
+                                ? 'This day has an empty hour grid. Create open tasks, '
+                                    'then use Day plan and Build My Day to place them.'
+                                : 'You have $trayHint open task${trayHint == 1 ? '' : 's'}. '
+                                    'Open Day plan, Build My Day, then Apply here.',
+                            style: TextStyle(
+                              color: AppTheme.silver.withValues(alpha: 0.65),
+                              height: 1.4,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: () {
+                                    Navigator.of(context)
+                                        .push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            PlanningScreen(initialDay: _day),
+                                      ),
+                                    )
+                                        .then((_) => _load());
+                                  },
+                                  icon: const Icon(Icons.auto_awesome, size: 18),
+                                  label: const Text('Open Day plan'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _loading ? null : _load,
+                                  icon: const Icon(Icons.refresh, size: 18),
+                                  label: const Text('Refresh'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   for (var h = 8; h < 22; h++)
                     _hourRow(h, byHour[h] ?? const []),
