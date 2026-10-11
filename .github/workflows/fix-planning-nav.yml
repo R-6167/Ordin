@@ -16,55 +16,46 @@ jobs:
           python3 << 'PY'
           from pathlib import Path
           p = Path('apps/flutter/lib/ui/screens/planning_screen.dart')
-          s = p.read_text()
-          broken = '''                              onTap: () {
-                                Navigator.of(context)
-                                final generationBefore = AppDataBus.instance.generation;
-                                    .push(MaterialPageRoute(
-                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
-                                    .then((_) async { if (AppDataBus.instance.generation != generationBefore) await _load(); });
-                              },'''
-          fixed = '''                              onTap: () {
-                                final generationBefore = AppDataBus.instance.generation;
-                                Navigator.of(context)
-                                    .push(MaterialPageRoute(
-                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
-                                    .then((_) async {
-                                  if (AppDataBus.instance.generation != generationBefore) {
-                                    await _load();
-                                  }
-                                });
-                              },'''
-          if broken not in s:
-              # try looser match
-              if 'final generationBefore = AppDataBus.instance.generation;' in s and 'Navigator.of(context)\n                                final generationBefore' in s:
-                  s = s.replace(
-                      '''                                Navigator.of(context)
-                                final generationBefore = AppDataBus.instance.generation;
-                                    .push(MaterialPageRoute(
-                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
-                                    .then((_) async { if (AppDataBus.instance.generation != generationBefore) await _load(); });''',
-                      '''                                final generationBefore = AppDataBus.instance.generation;
-                                Navigator.of(context)
-                                    .push(MaterialPageRoute(
-                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
-                                    .then((_) async {
-                                  if (AppDataBus.instance.generation != generationBefore) {
-                                    await _load();
-                                  }
-                                });''',
-                      1,
-                  )
-                  print('fixed loose')
-              else:
-                  raise SystemExit('pattern not found')
-          else:
-              s = s.replace(broken, fixed, 1)
-              print('fixed exact')
-          assert s.count('(') == s.count(')'), (s.count('('), s.count(')'))
-          assert s.count('{') == s.count('}'), (s.count('{'), s.count('}'))
-          p.write_text(s)
-          print('ok')
+          lines = p.read_text().splitlines(keepends=True)
+          out = []
+          i = 0
+          fixed = False
+          while i < len(lines):
+              line = lines[i]
+              # Detect broken sequence starting at Navigator.of(context)
+              if (
+                  not fixed
+                  and 'Navigator.of(context)' in line
+                  and i + 1 < len(lines)
+                  and 'generationBefore' in lines[i + 1]
+              ):
+                  indent = '                                '
+                  out.append(indent + 'final generationBefore = AppDataBus.instance.generation;\n')
+                  out.append(indent + 'Navigator.of(context)\n')
+                  out.append(indent + '    .push(MaterialPageRoute(\n')
+                  out.append(indent + '        builder: (_) => TaskDetailScreen(taskId: t.id)))\n')
+                  out.append(indent + '    .then((_) async {\n')
+                  out.append(indent + '  if (AppDataBus.instance.generation != generationBefore) {\n')
+                  out.append(indent + '    await _load();\n')
+                  out.append(indent + '  }\n')
+                  out.append(indent + '});\n')
+                  # skip original broken lines until after the .then line
+                  i += 1
+                  while i < len(lines) and '.then(' not in lines[i]:
+                      i += 1
+                  if i < len(lines):
+                      i += 1  # skip .then line
+                  fixed = True
+                  continue
+              out.append(line)
+              i += 1
+          if not fixed:
+              raise SystemExit('did not find broken navigator block')
+          text = ''.join(out)
+          assert text.count('(') == text.count(')'), (text.count('('), text.count(')'))
+          assert text.count('{') == text.count('}'), (text.count('{'), text.count('}'))
+          p.write_text(text)
+          print('fixed')
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
