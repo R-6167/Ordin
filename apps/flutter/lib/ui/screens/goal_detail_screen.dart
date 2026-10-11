@@ -284,6 +284,49 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Progress evidence',
+                    style: TextStyle(
+                      color: AppTheme.woodLight,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Counts from linked work — not an arbitrary percentage.',
+                    style: TextStyle(
+                      color: AppTheme.silver.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _evidenceChip(
+                        '${t.projectsDone}/${t.projectsTotal} projects done',
+                      ),
+                      _evidenceChip(
+                        '${t.milestonesDone}/${t.milestonesTotal} milestones',
+                      ),
+                      _evidenceChip(
+                        '${t.tasksDone}/${t.tasksTotal} tasks',
+                      ),
+                      if (t.habitsActive > 0)
+                        _evidenceChip(
+                          '${t.habitsDoneToday}/${t.habitsActive} habits today',
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             if (t.nextMoves.isNotEmpty) ...[
               const SizedBox(height: 14),
               const Text('Next moves',
@@ -453,6 +496,25 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     );
   }
 }
+
+
+  Widget _evidenceChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppTheme.silver.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.silver.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppTheme.silver.withValues(alpha: 0.85),
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
 
 class _ProjectTreeCard extends StatelessWidget {
   const _ProjectTreeCard({
