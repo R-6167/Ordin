@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
-import '../../data/planning_repository.dart';
-import '../../data/project_repository.dart';
 import '../../data/task_repository.dart';
 import '../../domain/enums.dart';
 import '../../domain/models.dart';
 import '../../services/app_data_bus.dart';
-import '../../services/feedback_service.dart';
-import '../../services/recurrence_engine.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 import '../widgets/related_links_section.dart';
 import '../widgets/work_session_panel.dart';
 
-/// Full task workspace with recurrence control.
+/// Task workspace with related links (Phase 5).
 class TaskDetailScreen extends StatefulWidget {
   const TaskDetailScreen({super.key, required this.taskId});
   final String taskId;
@@ -24,19 +20,13 @@ class TaskDetailScreen extends StatefulWidget {
 
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final _tasks = TaskRepository(AppDatabase.instance);
-  final _projects = ProjectRepository(AppDatabase.instance);
   Task? _task;
   String? _description;
-  List<Project> _projectOptions = [];
   List<Map<String, Object?>> _deps = [];
-  RecurrenceRule? _rule;
   bool _loading = true;
   bool _editing = false;
   late TextEditingController _title;
   late TextEditingController _desc;
-  int _priority = 0;
-  DateTime? _due;
-  String? _projectId;
 
   @override
   void initState() {
@@ -54,26 +44,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
     final t = await _tasks.getById(widget.taskId);
     final desc = await _tasks.descriptionOf(widget.taskId);
     final deps = await _tasks.dependencies(widget.taskId);
-    final rule = await _tasks.getRecurrenceRule(widget.taskId);
-    final projects = await _projects.listActive();
     if (!mounted) return;
     setState(() {
       _task = t;
       _description = desc;
       _deps = deps;
-      _rule = rule;
-      _projectOptions = projects;
       _loading = false;
       if (t != null) {
         _title.text = t.title;
         _desc.text = desc ?? '';
-        _priority = t.priority;
-        _projectId = t.projectId;
-        _due = t.dueAt != null ? DateTime.fromMillisecondsSinceEpoch(t.dueAt!) : null;
       }
     });
   }
@@ -85,10 +67,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       id: t.id,
       title: _title.text.trim().isEmpty ? t.title : _title.text.trim(),
       description: _desc.text,
-      priority: _priority,
-      projectId: _projectId ?? '',
-      dueAt: _due?.millisecondsSinceEpoch,
-      clearDue: _due == null,
     );
     AppDataBus.instance.tasksChanged();
     setState(() => _editing = false);
@@ -107,12 +85,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     await _tasks.reopen(widget.taskId);
     AppDataBus.instance.tasksChanged();
     await _load();
-  }
-
-  Future<void> _archive() async {
-    await _tasks.archive(widget.taskId);
-    AppDataBus.instance.tasksChanged();
-    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _delete() async {
@@ -239,7 +211,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   else
                     OutlinedButton(onPressed: _reopen, child: const Text('Reopen')),
                   const SizedBox(width: 8),
-                  TextButton(onPressed: _archive, child: const Text('Archive')),
                   TextButton(onPressed: _delete, child: const Text('Delete')),
                 ],
               ),
@@ -274,9 +245,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                           IconButton(
                             tooltip: 'Remove dependency',
                             icon: const Icon(Icons.close, size: 16, color: AppTheme.silver),
-                            onPressed: () => _removeDependency(
-                              d['depends_on_task_id'] as String,
-                            ),
+                            onPressed: () => _removeDependency('${d['depends_on_task_id']}'),
                           ),
                         ],
                       ),
