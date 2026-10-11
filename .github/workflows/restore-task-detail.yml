@@ -1,0 +1,45 @@
+name: Restore task detail + Related
+on:
+  workflow_dispatch:
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase5/restore-task-detail
+          fetch-depth: 0
+      - name: Restore full task detail and inject Related
+        run: |
+          set -e
+          git show 9b77ad00c68fa9bf79c43a5bd17bf22755a22786:apps/flutter/lib/ui/screens/task_detail_screen.dart > apps/flutter/lib/ui/screens/task_detail_screen.dart
+          python3 << 'PY'
+          from pathlib import Path
+          p = Path('apps/flutter/lib/ui/screens/task_detail_screen.dart')
+          t = p.read_text()
+          imp = "import '../widgets/related_links_section.dart';"
+          if imp not in t:
+              t = t.replace(
+                  "import '../widgets/glass.dart';",
+                  "import '../widgets/glass.dart';\n" + imp,
+                  1,
+              )
+          marker = "              const SizedBox(height: 16),\n              WorkSessionPanel(taskId: t.id),"
+          if 'RelatedLinksSection' not in t:
+              if marker not in t:
+                  raise SystemExit('marker missing')
+              t = t.replace(
+                  marker,
+                  "              RelatedLinksSection(entityType: 'TASK', entityId: t.id),\n" + marker,
+                  1,
+              )
+          p.write_text(t)
+          print('ok', len(t))
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/ui/screens/task_detail_screen.dart
+          git commit -m "fix: restore full task detail + Related section" || echo "no change"
+          git push origin phase5/restore-task-detail
