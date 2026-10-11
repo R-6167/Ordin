@@ -1,0 +1,73 @@
+name: Fix planning navigator syntax
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/refresh-notes-finish
+      - name: Repair onTap Navigator chain
+        run: |
+          set -euo pipefail
+          python3 << 'PY'
+          from pathlib import Path
+          p = Path('apps/flutter/lib/ui/screens/planning_screen.dart')
+          s = p.read_text()
+          broken = '''                              onTap: () {
+                                Navigator.of(context)
+                                final generationBefore = AppDataBus.instance.generation;
+                                    .push(MaterialPageRoute(
+                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
+                                    .then((_) async { if (AppDataBus.instance.generation != generationBefore) await _load(); });
+                              },'''
+          fixed = '''                              onTap: () {
+                                final generationBefore = AppDataBus.instance.generation;
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(
+                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
+                                    .then((_) async {
+                                  if (AppDataBus.instance.generation != generationBefore) {
+                                    await _load();
+                                  }
+                                });
+                              },'''
+          if broken not in s:
+              # try looser match
+              if 'final generationBefore = AppDataBus.instance.generation;' in s and 'Navigator.of(context)\n                                final generationBefore' in s:
+                  s = s.replace(
+                      '''                                Navigator.of(context)
+                                final generationBefore = AppDataBus.instance.generation;
+                                    .push(MaterialPageRoute(
+                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
+                                    .then((_) async { if (AppDataBus.instance.generation != generationBefore) await _load(); });''',
+                      '''                                final generationBefore = AppDataBus.instance.generation;
+                                Navigator.of(context)
+                                    .push(MaterialPageRoute(
+                                        builder: (_) => TaskDetailScreen(taskId: t.id)))
+                                    .then((_) async {
+                                  if (AppDataBus.instance.generation != generationBefore) {
+                                    await _load();
+                                  }
+                                });''',
+                      1,
+                  )
+                  print('fixed loose')
+              else:
+                  raise SystemExit('pattern not found')
+          else:
+              s = s.replace(broken, fixed, 1)
+              print('fixed exact')
+          assert s.count('(') == s.count(')'), (s.count('('), s.count(')'))
+          assert s.count('{') == s.count('}'), (s.count('{'), s.count('}'))
+          p.write_text(s)
+          print('ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/ui/screens/planning_screen.dart
+          git commit -m "fix: repair planning task open Navigator chain"
+          git push origin HEAD:fix/refresh-notes-finish
