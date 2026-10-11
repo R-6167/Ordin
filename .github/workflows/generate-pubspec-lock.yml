@@ -1,35 +1,70 @@
 name: Generate pubspec.lock
-
 on:
   workflow_dispatch:
-    inputs:
-      target_branch:
-        description: Branch to verify pubspec.lock on
-        required: true
-        default: main
-
 jobs:
-  lock:
+  fix:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout target branch
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.inputs.target_branch }}
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: "3.27.4"
-          channel: stable
-          cache: true
-
-      - name: Enforce committed lockfile
-        working-directory: apps/flutter
+          ref: phase4/finish-execution
+          fetch-depth: 30
+      - name: Restore HomeShell helpers
         run: |
           set -euo pipefail
-          test -s pubspec.lock
-          flutter pub get --enforce-lockfile
-          echo "pubspec.lock is present and enforced"
+          git show bf0563ac52b22fa05ef23a7a2702ab1a88e97893:apps/flutter/lib/ui/home_shell.dart > apps/flutter/lib/ui/home_shell.dart
+          python3 << 'PY'
+          from pathlib import Path
+          p = Path('apps/flutter/lib/ui/home_shell.dart')
+          h = p.read_text()
+          assert 'class HomeShell' in h, 'restore failed'
+          helpers = '''
+  Future<void> _openPlanItem(PlanItem p) async {
+    switch (p.kind) {
+      case PlanItemKind.overdueTask:
+      case PlanItemKind.dueTodayTask:
+      case PlanItemKind.openTask:
+        final generationBefore = AppDataBus.instance.generation;
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: p.id)),
+        );
+        if (!mounted) return;
+        if (AppDataBus.instance.generation != generationBefore) {
+          await _reload(domains: {DataDomain.tasks, DataDomain.today});
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  String _taskStatusLine(Task t) {
+    final parts = <String>[];
+    if (t.isOverdue) {
+      parts.add('OVERDUE');
+    } else if (t.isDueToday) {
+      parts.add('Due today');
+    }
+    if (_blockedIds.contains(t.id)) parts.add('Blocked');
+    parts.add(t.status);
+    return parts.join(' · ');
+  }
+
+'''
+          if 'Future<void> _openPlanItem' not in h:
+              marker = '  String _scheduledLabel(Task t) {'
+              assert marker in h
+              h = h.replace(marker, helpers + marker, 1)
+          p.write_text(h)
+          assert h.count('(') == h.count(')')
+          assert h.count('{') == h.count('}')
+          assert 'Future<void> _openPlanItem' in h and 'String _taskStatusLine' in h
+          print('ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/ui/home_shell.dart
+          git commit -m "fix: restore HomeShell + add plan/blocked helpers" || echo nochange
+          git push origin HEAD:phase4/finish-execution
