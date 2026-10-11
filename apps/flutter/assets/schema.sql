@@ -245,14 +245,29 @@ CREATE TABLE IF NOT EXISTS shopping_items (
 );
 
 CREATE TABLE IF NOT EXISTS wellness_checkins (
-  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, mood INTEGER, notes TEXT,
-  occurred_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  day INTEGER NOT NULL,
+  mood INTEGER,
+  energy INTEGER,
+  stress INTEGER,
+  sleep_hours REAL,
+  notes TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  UNIQUE(owner_id, day),
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS health_metrics (
-  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, kind TEXT NOT NULL,
-  value_real REAL, occurred_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+  id TEXT PRIMARY KEY,
+  owner_id TEXT NOT NULL,
+  metric_type TEXT NOT NULL,
+  value REAL NOT NULL,
+  unit TEXT,
+  measured_at INTEGER NOT NULL,
+  notes TEXT,
+  created_at INTEGER NOT NULL,
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
