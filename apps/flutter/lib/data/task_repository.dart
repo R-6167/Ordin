@@ -556,6 +556,9 @@ class TaskRepository with TaskDependencyMutations {
         {
           'status': EntityStatus.completed,
           'completed_at': now,
+          // Clear schedule so Today / calendar / plan no longer show this task as on the clock.
+          'scheduled_start': null,
+          'scheduled_end': null,
           'updated_at': now,
         },
         where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
@@ -564,6 +567,43 @@ class TaskRepository with TaskDependencyMutations {
       if (changed != 1) {
         throw StateError('Task not found, archived, or not owned by the current user: $taskId');
       }
+
+      // Cancel remaining planned time blocks (Day plan / Schedule / calendar feed).
+      await txn.update(
+        'time_blocks',
+        {'status': 'CANCELLED', 'updated_at': now},
+        where: "task_id = ? AND owner_id = ? AND status = 'PLANNED'",
+        whereArgs: [taskId, ownerId],
+      );
+
+      // Close any open work sessions so session history matches task completion.
+      final openSessions = await txn.query(
+        'work_sessions',
+        columns: ['id', 'status', 'started_at', 'accumulated_ms'],
+        where: "task_id = ? AND owner_id = ? AND status IN ('RUNNING', 'PAUSED')",
+        whereArgs: [taskId, ownerId],
+      );
+      for (final s in openSessions) {
+        var acc = (s['accumulated_ms'] as int?) ?? 0;
+        if (s['status'] == 'RUNNING') {
+          final started = (s['started_at'] as int?) ?? now;
+          acc += now - started;
+        }
+        await txn.update(
+          'work_sessions',
+          {
+            'status': 'COMPLETED',
+            'ended_at': now,
+            'paused_at': null,
+            'accumulated_ms': acc,
+            'updated_at': now,
+            'note': 'Closed with task completion',
+          },
+          where: 'id = ?',
+          whereArgs: [s['id']],
+        );
+      }
+
       await txn.insert('activity_events', {
         'id': AppDatabase.newId(),
         'owner_id': ownerId,

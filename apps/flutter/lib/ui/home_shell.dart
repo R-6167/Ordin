@@ -524,9 +524,25 @@ class _HomeShellState extends State<HomeShell> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
                     onTap: () => _openTask(t),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
                       dense: true,
                       title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                      subtitle: Text(
+                        _scheduledLabel(t),
+                        style: TextStyle(
+                          color: AppTheme.silver.withValues(alpha: 0.45),
+                          fontSize: 11,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                        tooltip: 'Complete',
+                        onPressed: () async {
+                          await _tasks.complete(t.id);
+                          AppDataBus.instance.tasksChanged();
+                        },
+                      ),
                     ),
                   ),
                 )),
@@ -613,6 +629,16 @@ class _HomeShellState extends State<HomeShell> {
         ],
       ),
     );
+  }
+
+
+  String _scheduledLabel(Task t) {
+    final start = t.scheduledStart;
+    if (start == null) return t.status;
+    final d = DateTime.fromMillisecondsSinceEpoch(start);
+    final hh = d.hour.toString().padLeft(2, '0');
+    final mm = d.minute.toString().padLeft(2, '0');
+    return '$hh:$mm · ${t.status}';
   }
 
   Widget _tasksView() {
