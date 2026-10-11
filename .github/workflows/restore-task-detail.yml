@@ -1,5 +1,8 @@
 name: Restore task detail + Related
 on:
+  push:
+    branches:
+      - phase5/restore-task-detail
   workflow_dispatch:
 jobs:
   restore:
@@ -11,6 +14,7 @@ jobs:
         with:
           ref: phase5/restore-task-detail
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore full task detail and inject Related
         run: |
           set -e
@@ -41,5 +45,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add apps/flutter/lib/ui/screens/task_detail_screen.dart
-          git commit -m "fix: restore full task detail + Related section" || echo "no change"
-          git push origin phase5/restore-task-detail
+          if git diff --cached --quiet; then
+            echo "already restored"
+          else
+            git commit -m "fix: restore full task detail + Related section"
+            git push origin phase5/restore-task-detail
+          fi
