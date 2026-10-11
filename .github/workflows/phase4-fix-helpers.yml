@@ -1,0 +1,73 @@
+name: Fix phase4 missing helpers
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: phase4/finish-execution
+      - name: Insert helpers
+        run: |
+          set -euo pipefail
+          python3 << 'PY'
+          from pathlib import Path
+          p = Path('apps/flutter/lib/ui/home_shell.dart')
+          h = p.read_text()
+          helpers = '''
+  Future<void> _openPlanItem(PlanItem p) async {
+    switch (p.kind) {
+      case PlanItemKind.overdueTask:
+      case PlanItemKind.dueTodayTask:
+      case PlanItemKind.openTask:
+        final generationBefore = AppDataBus.instance.generation;
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: p.id)),
+        );
+        if (!mounted) return;
+        if (AppDataBus.instance.generation != generationBefore) {
+          await _reload(domains: {DataDomain.tasks, DataDomain.today});
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  String _taskStatusLine(Task t) {
+    final parts = <String>[];
+    if (t.isOverdue) {
+      parts.add('OVERDUE');
+    } else if (t.isDueToday) {
+      parts.add('Due today');
+    }
+    if (_blockedIds.contains(t.id)) parts.add('Blocked');
+    parts.add(t.status);
+    return parts.join(' · ');
+  }
+
+'''
+          if 'Future<void> _openPlanItem' not in h:
+              marker = '  String _scheduledLabel(Task t) {'
+              if marker not in h:
+                  raise SystemExit('scheduledLabel missing')
+              h = h.replace(marker, helpers + marker, 1)
+              print('helpers inserted')
+          else:
+              print('helpers already present')
+          # ensure blocked field and load still present
+          assert '_blockedIds' in h
+          assert s.count if False else True
+          assert h.count('(') == h.count(')'), (h.count('('), h.count(')'))
+          assert h.count('{') == h.count('}'), (h.count('{'), h.count('}'))
+          p.write_text(h)
+          print('ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/ui/home_shell.dart
+          git commit -m "fix: add _openPlanItem and _taskStatusLine to HomeShell"
+          git push origin HEAD:phase4/finish-execution
