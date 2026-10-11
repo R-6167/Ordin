@@ -53,10 +53,12 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
   }
 
   Future<void> _load() async {
-    if (mounted) setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final area = await _areas.getById(widget.lifeAreaId);
       final goals = await _goals.listByLifeArea(widget.lifeAreaId);
@@ -84,8 +86,12 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
     }
   }
 
-  List<Task> get _openTasks =>
-      _taskList.where((t) => t.status != EntityStatus.completed).toList();
+  bool _isOpen(Task t) {
+    final s = t.status.toUpperCase();
+    return s != 'COMPLETED' && s != 'CANCELLED' && s != 'DONE';
+  }
+
+  List<Task> get _openTasks => _taskList.where(_isOpen).toList();
 
   List<Task> get _overdue => _openTasks.where((t) => t.isOverdue).toList();
 
