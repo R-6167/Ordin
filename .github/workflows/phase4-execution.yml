@@ -1,0 +1,36 @@
+name: Phase 4 execution unify
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Apply
+        run: |
+          set -euo pipefail
+          git checkout -B phase4/execution-unify
+          python3 tools/phase4_execution_unify.py
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in [
+            'apps/flutter/lib/data/task_repository.dart',
+            'apps/flutter/lib/ui/home_shell.dart',
+          ]:
+            s = Path(p).read_text()
+            assert s.count('(') == s.count(')'), (p, s.count('('), s.count(')'))
+            assert s.count('{') == s.count('}'), (p, s.count('{'), s.count('}'))
+            print(p, 'balanced')
+          assert 'Closed with task completion' in Path('apps/flutter/lib/data/task_repository.dart').read_text()
+          assert '_scheduledLabel' in Path('apps/flutter/lib/ui/home_shell.dart').read_text()
+          print('content ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/data/task_repository.dart apps/flutter/lib/ui/home_shell.dart
+          git commit -m "feat(phase-4): unify task complete across Today, sessions, time blocks"
+          git push -u origin HEAD:phase4/execution-unify --force
