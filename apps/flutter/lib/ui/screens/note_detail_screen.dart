@@ -85,9 +85,8 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
       }
       _loading = false;
     });
-    if (n != null) {
-      await _scanMentions(content: n.content, title: n.title);
-    }
+    // Link scan is on-demand (auto_awesome) — avoids a surprise progress
+    // bar and full rebuild every time the note is opened.
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -139,7 +138,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
       content: _content.text.trim(),
     );
     AppDataBus.instance.lifeChanged();
-      setState(() => _editing = false);
+      setState(() { /* keep edit mode */ });
     try {
       await NoteIntelligence().autoLinkStrongMentions(
         noteId: widget.noteId,
@@ -355,16 +354,24 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
       if (l.type == 'GOAL') goalId ??= l.id;
     }
 
-    final n = await NoteIntelligence().createTasksFromNote(
-      noteId: widget.noteId,
-      titles: selected.toList(),
-      projectId: projectId,
-      goalId: goalId,
-    );
-    await _load();
-    if (mounted) {
+    try {
+      final n = await NoteIntelligence().createTasksFromNote(
+        noteId: widget.noteId,
+        titles: selected.toList(),
+        projectId: projectId,
+        goalId: goalId,
+      );
+      AppDataBus.instance.tasksChanged();
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Created $n task${n == 1 ? '' : 's'} from this note')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Created $n task${n == 1 ? '' : 's'} from this note')),
+        SnackBar(content: Text('Could not create tasks: $e')),
       );
     }
   }

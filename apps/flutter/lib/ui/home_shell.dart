@@ -632,7 +632,6 @@ class _HomeShellState extends State<HomeShell> {
                   final ok = await showCreateForm(context, AddKind.task);
                   if (ok) {
                     AppDataBus.instance.tasksChanged();
-                    await _reloadTasks();
                   }
                 },
                 child: const Text('New task'),
@@ -673,7 +672,6 @@ class _HomeShellState extends State<HomeShell> {
               onPressed: () async {
                 await _tasks.complete(t.id);
                 AppDataBus.instance.tasksChanged();
-                await _reloadTasks();
               },
             ),
           ),
