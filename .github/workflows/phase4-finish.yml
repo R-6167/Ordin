@@ -1,0 +1,40 @@
+name: Phase 4 finish
+on:
+  workflow_dispatch:
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Apply
+        run: |
+          set -euo pipefail
+          git checkout -B phase4/finish-execution
+          python3 tools/phase4_finish.py
+          python3 - <<'PY'
+          from pathlib import Path
+          files = [
+            'apps/flutter/lib/data/task_repository.dart',
+            'apps/flutter/lib/data/extended_repository.dart',
+            'apps/flutter/lib/ui/home_shell.dart',
+          ]
+          for p in files:
+            s = Path(p).read_text()
+            assert s.count('(') == s.count(')'), (p, s.count('('), s.count(')'))
+            assert s.count('{') == s.count('}'), (p, s.count('{'), s.count('}'))
+            print(p, 'ok')
+          h = Path('apps/flutter/lib/ui/home_shell.dart').read_text()
+          assert '_blockedIds' in h and '_openPlanItem' in h and '_taskStatusLine' in h
+          tr = Path('apps/flutter/lib/data/task_repository.dart').read_text()
+          assert "source_type = ?" in tr or 'TASK' in tr
+          print('content ok')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/data/task_repository.dart apps/flutter/lib/data/extended_repository.dart apps/flutter/lib/ui/home_shell.dart
+          git commit -m "feat(phase-4): blocked on Today, plan→task open, cancel task reminders"
+          git push -u origin HEAD:phase4/finish-execution --force
