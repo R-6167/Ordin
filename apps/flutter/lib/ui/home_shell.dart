@@ -50,6 +50,11 @@ class _HomeShellState extends State<HomeShell> {
   String? _error;
   bool _notifsSynced = false;
   int _busGen = 0;
+  /// Coalesce rapid AppDataBus events (mutations, pop-navigation).
+  Set<DataDomain> _pendingDomains = {};
+  Future<void>? _reloadInFlight;
+  bool _reloadQueued = false;
+
 
   final _tasks = TaskRepository(AppDatabase.instance);
   final _habits = HabitRepository(AppDatabase.instance);
@@ -99,9 +104,39 @@ class _HomeShellState extends State<HomeShell> {
     _busGen = gen;
     final dirty = AppDataBus.instance.takeDirty();
     if (dirty.isEmpty) return;
-    final domains = <DataDomain>{};
-    domains.addAll(dirty);
-    _reload(domains: domains);
+    _pendingDomains.addAll(dirty);
+    _scheduleReload();
+  }
+
+  /// Debounce + single-flight so bursts of notifyDomains do not thrash UI.
+  void _scheduleReload() {
+    if (_reloadQueued) return;
+    _reloadQueued = true;
+    Future<void>.delayed(const Duration(milliseconds: 80), () async {
+      _reloadQueued = false;
+      if (!mounted) return;
+      final domains = Set<DataDomain>.from(_pendingDomains);
+      _pendingDomains.clear();
+      if (domains.isEmpty) return;
+      if (_reloadInFlight != null) {
+        _pendingDomains.addAll(domains);
+        await _reloadInFlight;
+        if (!mounted) return;
+        if (_pendingDomains.isEmpty) return;
+        final more = Set<DataDomain>.from(_pendingDomains);
+        _pendingDomains.clear();
+        _reloadInFlight = _reload(domains: more);
+        await _reloadInFlight;
+        _reloadInFlight = null;
+        return;
+      }
+      _reloadInFlight = _reload(domains: domains);
+      await _reloadInFlight;
+      _reloadInFlight = null;
+      if (_pendingDomains.isNotEmpty && mounted) {
+        _scheduleReload();
+      }
+    });
   }
 
   Future<void> _boot() async {
@@ -481,9 +516,10 @@ class _HomeShellState extends State<HomeShell> {
     return IndexedStack(
       index: _tab,
       children: [
-        _today(),
-        _tasksView(),
+        KeyedSubtree(key: const ValueKey('tab-today'), child: _today()),
+        KeyedSubtree(key: const ValueKey('tab-tasks'), child: _tasksView()),
         LifeHub(
+          key: const ValueKey('tab-life'),
           goals: _goalList,
           habits: _habitList,
           notes: _noteList,
@@ -494,6 +530,7 @@ class _HomeShellState extends State<HomeShell> {
           },
         ),
         FinanceHub(
+          key: const ValueKey('tab-finance'),
           expenses: _expenseList,
           income: _incomeList,
           billOcc: _billOcc,
@@ -506,14 +543,17 @@ class _HomeShellState extends State<HomeShell> {
             AppDataBus.instance.financeChanged();
           },
         ),
-        MoreHub(onChanged: () async {
-          AppDataBus.instance.notifyDomains({
-            DataDomain.life,
-            DataDomain.finance,
-            DataDomain.today,
-            DataDomain.timeline,
-          });
-        }),
+        MoreHub(
+          key: const ValueKey('tab-more'),
+          onChanged: () async {
+            AppDataBus.instance.notifyDomains({
+              DataDomain.life,
+              DataDomain.finance,
+              DataDomain.today,
+              DataDomain.timeline,
+            });
+          },
+        ),
       ],
     );
   }
