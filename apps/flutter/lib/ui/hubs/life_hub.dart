@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
+import '../../services/app_data_bus.dart';
 import '../../data/extended_repository.dart';
 import '../../data/goal_repository.dart';
 import '../../data/habit_repository.dart';
@@ -66,6 +67,19 @@ class _LifeHubState extends State<LifeHub> {
     }
   }
 
+
+  /// Push a screen; only bubble [onChanged] if data actually mutated.
+  Future<void> _open(Widget page, {bool reloadPractical = false}) async {
+    final gen = AppDataBus.instance.generation;
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    if (!mounted) return;
+    if (reloadPractical) await _loadPractical();
+    if (AppDataBus.instance.generation != gen) {
+      await widget.onChanged();
+    }
+  }
+
+
   List<String> get _attention {
     final now = DateTime.now().millisecondsSinceEpoch;
     final week = now + const Duration(days: 28).inMilliseconds;
@@ -126,66 +140,43 @@ class _LifeHubState extends State<LifeHub> {
           icon: Icons.category_outlined,
           title: 'Life areas',
           subtitle: 'Configure domains of life',
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LifeAreasScreen()),
-            );
-          },
+          onTap: () => _open(const LifeAreasScreen()),
         ),
         _navCard(
           icon: Icons.priority_high,
           title: 'Needs attention',
           subtitle: 'Recurring + practical duties',
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const NeedsAttentionScreen()))
-                .then((_) => widget.onChanged());
-          },
+          onTap: () => _open(const NeedsAttentionScreen()),
         ),
         _navCard(
           icon: Icons.favorite_outline,
           title: 'Health & wellness',
           subtitle: 'Check-in · sleep · mood',
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WellnessScreen()));
-          },
+          onTap: () => _open(const WellnessScreen()),
         ),
         _navCard(
           icon: Icons.schedule,
           title: 'Schedule',
           subtitle: 'Day grid · drag & drop time',
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ScheduleScreen()));
-          },
+          onTap: () => _open(const ScheduleScreen()),
         ),
         _navCard(
           icon: Icons.view_timeline_outlined,
           title: 'Day plan',
           subtitle: 'Build my day · sessions',
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlanningScreen()));
-          },
+          onTap: () => _open(const PlanningScreen()),
         ),
         _navCard(
           icon: Icons.calendar_month,
           title: 'Calendar',
           subtitle: 'Events & month grid',
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CalendarScreen()));
-          },
+          onTap: () => _open(const CalendarScreen()),
         ),
         _navCard(
           icon: Icons.home_repair_service_outlined,
           title: 'Practical',
           subtitle: 'Documents · vehicle · shopping',
-          onTap: () {
-            Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => const PracticalLifeScreen()))
-                .then((_) {
-              _loadPractical();
-              return widget.onChanged();
-            });
-          },
+          onTap: () => _open(const PracticalLifeScreen(), reloadPractical: true),
         ),
         if (attention.isNotEmpty) ...[
           GlassCard(
@@ -210,11 +201,7 @@ class _LifeHubState extends State<LifeHub> {
           ...widget.goals.map((g) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
-                  onTap: () {
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (_) => GoalDetailScreen(goalId: g.id)))
-                        .then((_) => widget.onChanged());
-                  },
+                  onTap: () => _open(GoalDetailScreen(goalId: g.id)),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   child: ListTile(
                     title: Text(g.title, style: const TextStyle(color: AppTheme.silver)),
@@ -236,11 +223,7 @@ class _LifeHubState extends State<LifeHub> {
           ...widget.projects.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
-                  onTap: () {
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(projectId: p.id)))
-                        .then((_) => widget.onChanged());
-                  },
+                  onTap: () => _open(ProjectDetailScreen(projectId: p.id)),
                   child: Text(p.title, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
                 ),
               )),
@@ -252,11 +235,7 @@ class _LifeHubState extends State<LifeHub> {
           ...widget.habits.map((h) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
-                  onTap: () {
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (_) => HabitDetailScreen(habitId: h.id)))
-                        .then((_) => widget.onChanged());
-                  },
+                  onTap: () => _open(HabitDetailScreen(habitId: h.id)),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   child: ListTile(
                     title: Text(h.title, style: const TextStyle(color: AppTheme.silver)),
@@ -321,11 +300,7 @@ class _LifeHubState extends State<LifeHub> {
           ...widget.routines.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
-                  onTap: () {
-                    Navigator.of(context)
-                        .push(MaterialPageRoute(builder: (_) => RoutineDetailScreen(routineId: r.id)))
-                        .then((_) => widget.onChanged());
-                  },
+                  onTap: () => _open(RoutineDetailScreen(routineId: r.id)),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   child: ListTile(
                     title: Text(r.name, style: const TextStyle(color: AppTheme.silver)),
@@ -351,11 +326,7 @@ class _LifeHubState extends State<LifeHub> {
           ...widget.notes.map((n) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => NoteDetailScreen(noteId: n.id)),
-                    );
-                  },
+                  onTap: () => _open(NoteDetailScreen(noteId: n.id)),
                   child: Text(
                     n.content,
                     maxLines: 3,
