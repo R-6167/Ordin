@@ -95,7 +95,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         durationMinutes: dur,
       );
     } else {
-      await _plan.moveBlock(blockId: drag.id, start: start, durationMinutes: dur);
+      await _plan.addFocusBlock(
+        start: start,
+        durationMinutes: dur,
+        title: drag.title,
+      );
     }
     await _load();
   }
@@ -106,21 +110,35 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     final byHour = <int, List<DaySlot>>{};
     if (built != null) {
       for (final s in built.timeline) {
-        final h = s.start.hour;
-        byHour.putIfAbsent(h, () => []).add(s);
+        byHour.putIfAbsent(s.start.hour, () => []).add(s);
       }
     }
+
+    // Keep _open referenced so analyzer is clean if tray is restored later.
+    final trayHint = _open.isEmpty ? 0 : _open.length;
 
     return GlassBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text(DateFormat.yMMMd().format(_day)),
+          title: const Text('Schedule'),
           actions: [
+            if (trayHint > 0)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Center(
+                  child: Text(
+                    '$trayHint open',
+                    style: TextStyle(
+                      color: AppTheme.silver.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
             IconButton(
-              tooltip: 'Reload',
-              onPressed: _loading ? null : _load,
               icon: const Icon(Icons.refresh),
+              onPressed: _loading ? null : _load,
             ),
             TextButton(
               onPressed: built == null ? null : _apply,
@@ -133,21 +151,48 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                 children: [
-                  if (built == null)
+                  GlassCard(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            DateFormat.yMMMEd().format(_day),
+                            style: const TextStyle(
+                                color: AppTheme.silver, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        if (built != null)
+                          Text(
+                            '${built.plannedMinutes}m planned · ${built.freeMinutes}m free',
+                            style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.55), fontSize: 12),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (built != null && built.timeline.isEmpty) ...[
+                    const SizedBox(height: 12),
                     GlassCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'No plan for this day yet',
+                            'No timed blocks yet',
                             style: TextStyle(
-                                color: AppTheme.silver, fontWeight: FontWeight.w600),
+                              color: AppTheme.silver,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Open Day plan to build a schedule, or refresh after creating tasks.',
+                            trayHint == 0
+                                ? 'This day has an empty hour grid. Create open tasks, '
+                                    'then use Day plan and Build My Day to place them.'
+                                : 'You have $trayHint open task${trayHint == 1 ? '' : 's'}. '
+                                    'Open Day plan, Build My Day, then Apply here.',
                             style: TextStyle(
-                              color: AppTheme.silver.withValues(alpha: 0.5),
+                              color: AppTheme.silver.withValues(alpha: 0.65),
                               height: 1.4,
                               fontSize: 13,
                             ),
@@ -186,67 +231,67 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           ),
                         ],
                       ),
-                    )
-                  else ...[
-                    for (var hour = 6; hour <= 22; hour++)
-                      _hourRow(hour, byHour[hour] ?? const []),
-                    if (built.unplaced.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Text('Not on the plan',
-                          style: TextStyle(
-                              color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...built.unplaced.map((c) {
-                        final drag = _SchedDrag(
-                          id: c.id,
-                          title: c.title,
-                          kind: c.kind,
-                          durationMin: c.durationMin,
-                          fromTray: c.kind == DaySlotKind.task,
-                        );
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: LongPressDraggable<_SchedDrag>(
-                            data: drag,
-                            feedback: Material(
-                              color: Colors.transparent,
-                              child: GlassCard(
-                                child: Text(c.title,
-                                    style: const TextStyle(color: AppTheme.silver)),
-                              ),
-                            ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  for (var h = 8; h < 22; h++)
+                    _hourRow(h, byHour[h] ?? const []),
+                  if (built != null && built.unplaced.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const Text('Not on the plan',
+                        style: TextStyle(
+                            color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    ...built.unplaced.map((c) {
+                      final drag = _SchedDrag(
+                        id: c.id,
+                        title: c.title,
+                        kind: c.kind,
+                        durationMin: c.durationMin,
+                        fromTray: c.kind == DaySlotKind.task,
+                      );
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: LongPressDraggable<_SchedDrag>(
+                          data: drag,
+                          feedback: Material(
+                            color: Colors.transparent,
                             child: GlassCard(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(c.title,
-                                            style: const TextStyle(
-                                                color: AppTheme.silver,
-                                                fontWeight: FontWeight.w600)),
-                                        Text(
-                                          '${c.durationMin}m · ${c.reason}',
-                                          style: TextStyle(
-                                            color: c.reason.toLowerCase().contains('block')
-                                                ? Colors.orangeAccent
-                                                : c.reason.toLowerCase().contains('long')
-                                                    ? Colors.amber
-                                                    : Colors.redAccent.shade100,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              child: Text(c.title,
+                                  style: const TextStyle(color: AppTheme.silver)),
                             ),
                           ),
-                        );
-                      }),
-                    ],
+                          child: GlassCard(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(c.title,
+                                          style: const TextStyle(
+                                              color: AppTheme.silver,
+                                              fontWeight: FontWeight.w600)),
+                                      Text(
+                                        '${c.durationMin}m · ${c.reason}',
+                                        style: TextStyle(
+                                          color: c.reason.toLowerCase().contains('block')
+                                              ? Colors.orangeAccent
+                                              : c.reason.toLowerCase().contains('long')
+                                                  ? Colors.amber
+                                                  : Colors.redAccent.shade100,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                   ],
                 ],
               ),
@@ -256,17 +301,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Widget _hourRow(int hour, List<DaySlot> slots) {
     return DragTarget<_SchedDrag>(
-      onWillAcceptWithDetails: (_) => true,
       onAcceptWithDetails: (details) => _onDrop(details.data, hour),
       builder: (context, candidate, rejected) {
         final highlight = candidate.isNotEmpty;
         return Container(
           margin: const EdgeInsets.only(bottom: 4),
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
-            color: highlight
-                ? AppTheme.amber.withValues(alpha: 0.12)
-                : AppTheme.silver.withValues(alpha: 0.04),
+            color: highlight ? AppTheme.amber.withValues(alpha: 0.08) : null,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(

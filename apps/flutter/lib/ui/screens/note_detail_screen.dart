@@ -79,9 +79,12 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
       _links
         ..clear()
         ..addAll(resolved);
+      // Only overwrite fields when text differs — preserves cursor/focus while typing.
       if (n != null) {
-        _content.text = n.content;
-        _title.text = n.title ?? '';
+        final nextContent = n.content;
+        final nextTitle = n.title ?? '';
+        if (_content.text != nextContent) _content.text = nextContent;
+        if (_title.text != nextTitle) _title.text = nextTitle;
       }
       _loading = false;
     });
