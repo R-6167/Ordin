@@ -1,0 +1,36 @@
+name: Phase 7 LifeHub nav guard
+on:
+  push:
+    branches:
+      - phase7/life-hub-nav-guard
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase7/life-hub-nav-guard
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch LifeHub and cleanup leftover tools
+        run: |
+          set -e
+          git fetch origin main --depth=1 || true
+          python3 tools/phase7_life_hub_guard.py
+          rm -f tools/phase7_nav_reload_guard.py \
+                tools/phase7_life_hub_guard.py \
+                .github/workflows/phase7-nav-reload-guard.yml \
+                .github/workflows/phase7-life-hub-guard.yml
+          rmdir tools 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no change"
+          else
+            git commit -m "fix(phase-7): generation-gated LifeHub navigation + cleanup tools"
+            git push origin phase7/life-hub-nav-guard
+          fi
