@@ -1,14 +1,26 @@
 """Phase 7: generation-gated Schedule reloads + note field preserve."""
 from pathlib import Path
+import subprocess
 import sys
+
+
+def _show(ref: str, path: str) -> str:
+    return subprocess.check_output(['git', 'show', f'{ref}:{path}'], text=True)
+
+
+def _main_file(path: str) -> str:
+    for ref in ('origin/main', 'main'):
+        try:
+            return _show(ref, path)
+        except subprocess.CalledProcessError:
+            continue
+    subprocess.check_call(['git', 'fetch', 'origin', 'main', '--depth=1'])
+    return _show('origin/main', path)
 
 
 def patch_schedule() -> None:
     p = Path('apps/flutter/lib/ui/screens/schedule_screen.dart')
-    s = p.read_text()
-    if 'AppDataBus.instance.generation' in s and 'Open Day plan' in s:
-        # May already be partially patched; ensure both sites
-        pass
+    s = _main_file('apps/flutter/lib/ui/screens/schedule_screen.dart')
     if "import '../../services/app_data_bus.dart';" not in s:
         s = s.replace(
             "import '../../services/build_my_day.dart';",
@@ -42,7 +54,12 @@ def patch_schedule() -> None:
         '                                    }\n'
         '                                  },'
     )
-    if old_plan in s:
+    if old_plan not in s:
+        if 'AppDataBus.instance.generation' in s:
+            print('schedule plan nav already gated')
+        else:
+            sys.exit('schedule plan marker missing')
+    else:
         s = s.replace(old_plan, new_plan, 1)
     old_task = (
         '                        onTap: s.kind == DaySlotKind.task && s.entityId != null\n'
@@ -71,10 +88,13 @@ def patch_schedule() -> None:
         '                              }\n'
         '                            : null,'
     )
-    if old_task in s:
+    if old_task not in s:
+        if 'TaskDetailScreen(taskId: s.entityId!)' in s and 'AppDataBus.instance.generation' in s:
+            print('schedule task nav already gated')
+        else:
+            sys.exit('schedule task marker missing')
+    else:
         s = s.replace(old_task, new_task, 1)
-    if 'AppDataBus.instance.generation' not in s:
-        sys.exit('schedule patch failed — markers missing')
     p.write_text(s)
     print('schedule ok', len(s))
 
@@ -85,6 +105,12 @@ def patch_note() -> None:
     if 'Only overwrite fields when text differs' in n:
         print('note already patched')
         return
+    # Prefer main if note was not yet patched on branch
+    if 'Only overwrite' not in n:
+        try:
+            n = _main_file('apps/flutter/lib/ui/screens/note_detail_screen.dart')
+        except Exception:
+            pass
     old_set = (
         '    setState(() {\n'
         '      _note = n;\n'
@@ -122,32 +148,6 @@ def patch_note() -> None:
 
 
 def main() -> None:
-    # Restore schedule from main if our branch simplified it
-    import subprocess
-    sched = Path('apps/flutter/lib/ui/screens/schedule_screen.dart')
-    text = sched.read_text() if sched.exists() else ''
-    # Prefer main if branch version looks incomplete
-    main_text = subprocess.check_output(
-        ['git', 'show', 'origin/main:apps/flutter/lib/ui/screens/schedule_screen.dart'],
-        text=True,
-        stderr=subprocess.DEVNULL,
-    ) if True else text
-    try:
-        main_text = subprocess.check_output(
-            ['git', 'show', 'origin/main:apps/flutter/lib/ui/screens/schedule_screen.dart'],
-            text=True,
-        )
-    except Exception:
-        try:
-            main_text = subprocess.check_output(
-                ['git', 'show', 'main:apps/flutter/lib/ui/screens/schedule_screen.dart'],
-                text=True,
-            )
-        except Exception:
-            main_text = text
-    if len(main_text) > len(text) + 200:
-        sched.write_text(main_text)
-        print('restored schedule from main')
     patch_schedule()
     patch_note()
 
