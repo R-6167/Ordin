@@ -257,24 +257,23 @@ class _HomeShellState extends State<HomeShell> {
             0;
       }());
     }
-    if (wantLife || wantToday) {
+    // Phase7: life lists only when wantLife — Today does not need habits/goals.
+    if (wantLife) {
       futures.add(() async {
         habitList =
             await softFuture(_habits.listActive, fallback: <Habit>[], label: 'habits') ??
                 <Habit>[];
-        if (wantLife) {
-          goalList =
-              await softFuture(_goals.listActive, fallback: <Goal>[], label: 'goals') ??
-                  <Goal>[];
-          noteList =
-              await softFuture(_notes.list, fallback: <Note>[], label: 'notes') ?? <Note>[];
-          projectList =
-              await softFuture(_projects.listActive, fallback: <Project>[], label: 'projects') ??
-                  <Project>[];
-          routineList =
-              await softFuture(_routines.listActive, fallback: <Routine>[], label: 'routines') ??
-                  <Routine>[];
-        }
+        goalList =
+            await softFuture(_goals.listActive, fallback: <Goal>[], label: 'goals') ??
+                <Goal>[];
+        noteList =
+            await softFuture(_notes.list, fallback: <Note>[], label: 'notes') ?? <Note>[];
+        projectList =
+            await softFuture(_projects.listActive, fallback: <Project>[], label: 'projects') ??
+                <Project>[];
+        routineList =
+            await softFuture(_routines.listActive, fallback: <Routine>[], label: 'routines') ??
+                <Routine>[];
       }());
     }
     if (wantFinance || wantToday) {
