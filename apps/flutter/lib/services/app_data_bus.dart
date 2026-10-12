@@ -39,13 +39,14 @@ class AppDataBus extends ChangeNotifier {
   /// Convenience for a single domain.
   void notifyDomain(DataDomain domain) => notifyDomains({domain});
 
-  /// Tasks (+ today summary that shows open tasks).
-  void tasksChanged() => notifyDomains({DataDomain.tasks, DataDomain.today, DataDomain.timeline});
+  /// Tasks + Today summary (open/overdue/plan). Does not dirty life/timeline.
+  void tasksChanged() => notifyDomains({DataDomain.tasks, DataDomain.today});
 
-  void lifeChanged() => notifyDomains({DataDomain.life, DataDomain.today, DataDomain.timeline});
+  /// Life hub data + Today bits that surface life items.
+  void lifeChanged() => notifyDomains({DataDomain.life, DataDomain.today});
 
   void financeChanged() =>
-      notifyDomains({DataDomain.finance, DataDomain.today, DataDomain.timeline});
+      notifyDomains({DataDomain.finance, DataDomain.today});
 
   void allChanged() => notifyDomains(DataDomain.values.toSet());
 
