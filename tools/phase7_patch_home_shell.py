@@ -4,14 +4,30 @@ import subprocess
 import sys
 
 
+def _main_content() -> str:
+    for ref in ('origin/main', 'main'):
+        try:
+            return subprocess.check_output(
+                ['git', 'show', f'{ref}:apps/flutter/lib/ui/home_shell.dart'],
+                text=True,
+                stderr=subprocess.STDOUT,
+            )
+        except subprocess.CalledProcessError as e:
+            last = e
+    # Last resort: fetch then retry
+    subprocess.check_call(['git', 'fetch', 'origin', 'main', '--depth=1'])
+    return subprocess.check_output(
+        ['git', 'show', 'origin/main:apps/flutter/lib/ui/home_shell.dart'],
+        text=True,
+    )
+
+
 def main() -> None:
     p = Path('apps/flutter/lib/ui/home_shell.dart')
     raw = p.read_text() if p.exists() else ''
     if len(raw) < 1000 or raw.strip() == 'PLACEHOLDER' or '_reload' not in raw:
-        raw = subprocess.check_output(
-            ['git', 'show', 'main:apps/flutter/lib/ui/home_shell.dart'],
-            text=True,
-        )
+        print('loading home_shell from main…')
+        raw = _main_content()
     t = raw
     if '_scheduleReload' in t and "ValueKey('tab-life')" in t:
         print('already patched')
