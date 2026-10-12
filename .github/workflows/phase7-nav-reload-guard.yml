@@ -1,0 +1,32 @@
+name: Phase 7 nav reload guard
+on:
+  push:
+    branches:
+      - phase7/nav-reload-guard
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase7/nav-reload-guard
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply patches
+        run: |
+          set -e
+          git fetch origin main --depth=1 || true
+          python3 tools/phase7_nav_reload_guard.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/flutter/lib/ui/screens/schedule_screen.dart \
+                  apps/flutter/lib/ui/screens/note_detail_screen.dart
+          if git diff --cached --quiet; then
+            echo "no change"
+          else
+            git commit -m "fix(phase-7): generation-gated Schedule reload + note cursor preserve"
+            git push origin phase7/nav-reload-guard
+          fi
