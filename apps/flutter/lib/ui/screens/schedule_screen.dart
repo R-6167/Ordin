@@ -5,6 +5,7 @@ import '../../data/database.dart';
 import '../../data/planning_repository.dart';
 import '../../data/task_repository.dart';
 import '../../domain/models.dart';
+import '../../services/app_data_bus.dart';
 import '../../services/build_my_day.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
@@ -201,15 +202,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             children: [
                               Expanded(
                                 child: FilledButton.icon(
-                                  onPressed: () {
-                                    Navigator.of(context)
-                                        .push(
+                                  onPressed: () async {
+                                    final gen = AppDataBus.instance.generation;
+                                    await Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (_) =>
                                             PlanningScreen(initialDay: _day),
                                       ),
-                                    )
-                                        .then((_) => _load());
+                                    );
+                                    if (!mounted) return;
+                                    if (AppDataBus.instance.generation != gen) {
+                                      await _load();
+                                    }
                                   },
                                   icon: const Icon(Icons.auto_awesome, size: 18),
                                   label: const Text('Open Day plan'),
@@ -343,12 +347,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11),
                         ),
                         onTap: s.kind == DaySlotKind.task && s.entityId != null
-                            ? () => Navigator.of(context).push(
+                            ? () async {
+                                final gen = AppDataBus.instance.generation;
+                                await Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) =>
                                         TaskDetailScreen(taskId: s.entityId!),
                                   ),
-                                )
+                                );
+                                if (!mounted) return;
+                                if (AppDataBus.instance.generation != gen) {
+                                  await _load();
+                                }
+                              }
                             : null,
                       ),
                     ),
