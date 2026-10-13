@@ -4,7 +4,8 @@ import re
 import subprocess
 import sys
 
-HELPER = r'''
+# Dart helper source. Avoid nested triple-quotes in this Python string.
+HELPER = r"""
   /// Public for upgrade tests: ensure wellness/health match HealthRepository
   /// without discarding existing rows.
   @visibleForTesting
@@ -27,24 +28,21 @@ HELPER = r'''
   }
 
   Future<void> _ensureWellnessCheckinsTable(Database db) async {
-    const createBody = '''
-id TEXT PRIMARY KEY,
-  owner_id TEXT NOT NULL,
-  day INTEGER NOT NULL,
-  mood INTEGER,
-  energy INTEGER,
-  stress INTEGER,
-  sleep_hours REAL,
-  notes TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  UNIQUE(owner_id, day),
-  FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
-''';
+    const createSql =
+        'CREATE TABLE wellness_checkins ('
+        'id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, day INTEGER NOT NULL, '
+        'mood INTEGER, energy INTEGER, stress INTEGER, sleep_hours REAL, notes TEXT, '
+        'created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, '
+        'UNIQUE(owner_id, day), FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE)';
+    const createMigratingSql =
+        'CREATE TABLE wellness_checkins__migrating ('
+        'id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, day INTEGER NOT NULL, '
+        'mood INTEGER, energy INTEGER, stress INTEGER, sleep_hours REAL, notes TEXT, '
+        'created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, '
+        'UNIQUE(owner_id, day), FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE)';
+
     if (!await _tableExists(db, 'wellness_checkins')) {
-      await db.execute(
-        'CREATE TABLE wellness_checkins (' + createBody + ')',
-      );
+      await db.execute(createSql);
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_wellness_owner_day '
         'ON wellness_checkins(owner_id, day DESC)',
@@ -72,11 +70,8 @@ id TEXT PRIMARY KEY,
       return;
     }
 
-    // Rebuild with copy + validation (missing required `day` or shape mismatch).
     await db.execute('DROP TABLE IF EXISTS wellness_checkins__migrating');
-    await db.execute(
-      'CREATE TABLE wellness_checkins__migrating (' + createBody + ')',
-    );
+    await db.execute(createMigratingSql);
 
     final oldRows = await db.query('wellness_checkins');
     var attempted = 0;
@@ -139,19 +134,21 @@ id TEXT PRIMARY KEY,
   }
 
   Future<void> _ensureHealthMetricsTable(Database db) async {
-    const createBody = '''
-id TEXT PRIMARY KEY,
-  owner_id TEXT NOT NULL,
-  metric_type TEXT NOT NULL,
-  value REAL NOT NULL,
-  unit TEXT,
-  measured_at INTEGER NOT NULL,
-  notes TEXT,
-  created_at INTEGER NOT NULL,
-  FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
-''';
+    const createSql =
+        'CREATE TABLE health_metrics ('
+        'id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, metric_type TEXT NOT NULL, '
+        'value REAL NOT NULL, unit TEXT, measured_at INTEGER NOT NULL, notes TEXT, '
+        'created_at INTEGER NOT NULL, '
+        'FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE)';
+    const createMigratingSql =
+        'CREATE TABLE health_metrics__migrating ('
+        'id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, metric_type TEXT NOT NULL, '
+        'value REAL NOT NULL, unit TEXT, measured_at INTEGER NOT NULL, notes TEXT, '
+        'created_at INTEGER NOT NULL, '
+        'FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE)';
+
     if (!await _tableExists(db, 'health_metrics')) {
-      await db.execute('CREATE TABLE health_metrics (' + createBody + ')');
+      await db.execute(createSql);
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_health_metrics_type '
         'ON health_metrics(owner_id, metric_type, measured_at DESC)',
@@ -178,9 +175,7 @@ id TEXT PRIMARY KEY,
     }
 
     await db.execute('DROP TABLE IF EXISTS health_metrics__migrating');
-    await db.execute(
-      'CREATE TABLE health_metrics__migrating (' + createBody + ')',
-    );
+    await db.execute(createMigratingSql);
 
     final oldRows = await db.query('health_metrics');
     var attempted = 0;
@@ -232,21 +227,21 @@ id TEXT PRIMARY KEY,
     );
   }
 
-'''
+"""
 
-V26 = r'''  Future<void> _migrateToV26(Database db) async {
+V26 = """  Future<void> _migrateToV26(Database db) async {
     // Non-destructive: add columns or copy+validate before table replace.
     await _ensureWellnessCheckinsTable(db);
     await _ensureHealthMetricsTable(db);
   }
-'''
+"""
 
-V27 = r'''  Future<void> _migrateToV27(Database db) async {
+V27 = """  Future<void> _migrateToV27(Database db) async {
     // Idempotent repair of wellness/health contract (same non-destructive path).
     await _ensureWellnessCheckinsTable(db);
     await _ensureHealthMetricsTable(db);
   }
-'''
+"""
 
 
 def show(path: str) -> str:
@@ -277,14 +272,12 @@ def main() -> None:
     t = replace_method(t, '_migrateToV26', V26)
     t = replace_method(t, '_migrateToV27', V27)
 
-    # Insert helpers before _executeIgnoringDuplicateColumn
     marker = '  Future<void> _executeIgnoringDuplicateColumn(Database db, String sql) async {'
     if marker not in t:
         sys.exit('executeIgnoring marker missing')
     if '_ensureWellnessCheckinsTable' not in t:
         t = t.replace(marker, HELPER + marker, 1)
 
-    # Ensure ConflictAlgorithm / Sqflite imports via sqflite (already imported)
     Path(path).write_text(t)
     print('database.dart ok', 'DROP TABLE IF EXISTS wellness_checkins' in t)
 
