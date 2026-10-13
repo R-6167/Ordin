@@ -16,6 +16,7 @@ import '../../data/project_repository.dart';
 import '../../data/routine_repository.dart';
 import '../../data/task_repository.dart';
 import '../../domain/enums.dart';
+import '../../services/user_prefs.dart';
 import '../../services/notification_service.dart';
 import '../theme.dart';
 import '../screens/note_detail_screen.dart';
@@ -352,7 +353,7 @@ Future<bool> _moneyForm(BuildContext context, {required bool isIncome}) async {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(color: AppTheme.silver),
                 decoration: InputDecoration(
-                  labelText: 'Amount (${Defaults.currency}) *',
+                  labelText: 'Amount (${UserPrefs.instance.currency}) *',
                 ),
               ),
               if (!isIncome && categories.isNotEmpty) ...[
@@ -398,8 +399,19 @@ Future<bool> _moneyForm(BuildContext context, {required bool isIncome}) async {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           FilledButton(
             onPressed: () {
-              if (label.text.trim().isEmpty) return;
-              if (double.tryParse(amount.text.trim().replaceAll(',', '')) == null) return;
+              if (label.text.trim().isEmpty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(isIncome ? 'Enter a source' : 'Enter what the expense is for')),
+                );
+                return;
+              }
+              final parsed = double.tryParse(amount.text.trim().replaceAll(',', ''));
+              if (parsed == null || parsed <= 0) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid amount greater than 0')),
+                );
+                return;
+              }
               Navigator.pop(ctx, true);
             },
             child: const Text('Save'),
@@ -409,36 +421,56 @@ Future<bool> _moneyForm(BuildContext context, {required bool isIncome}) async {
     ),
   );
   if (ok != true) return false;
-  final a = double.parse(amount.text.trim().replaceAll(',', ''));
-  if (isIncome) {
-    await IncomeRepository(AppDatabase.instance).create(
-      source: label.text.trim(),
-      amountMajor: a,
-      accountId: accountId,
-    );
-  } else {
-    await ExpenseRepository(AppDatabase.instance).create(
-      description: label.text.trim(),
-      amountMajor: a,
-      accountId: accountId,
-      categoryId: categoryId,
-    );
-    final alerts =
-        await NotificationService.instance.checkCategoryAfterExpense(categoryId);
-    if (alerts.isNotEmpty && context.mounted) {
-      final b = alerts.first;
-      final exceeded = b.level == BudgetAlertLevel.exceeded;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            exceeded
-                ? 'Budget exceeded: ${b.categoryName ?? b.name}'
-                : 'Budget warning: ${b.categoryName ?? b.name}',
+  final a = double.tryParse(amount.text.trim().replaceAll(',', ''));
+  if (a == null || a <= 0) return false;
+  try {
+    if (isIncome) {
+      await IncomeRepository(AppDatabase.instance).create(
+        source: label.text.trim(),
+        amountMajor: a,
+        accountId: accountId,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Income recorded: ${label.text.trim()}')),
+        );
+      }
+    } else {
+      await ExpenseRepository(AppDatabase.instance).create(
+        description: label.text.trim(),
+        amountMajor: a,
+        accountId: accountId,
+        categoryId: categoryId,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Expense saved: ${label.text.trim()}')),
+        );
+      }
+      final alerts =
+          await NotificationService.instance.checkCategoryAfterExpense(categoryId);
+      if (alerts.isNotEmpty && context.mounted) {
+        final b = alerts.first;
+        final exceeded = b.level == BudgetAlertLevel.exceeded;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              exceeded
+                  ? 'Budget exceeded: ${b.categoryName ?? b.name}'
+                  : 'Budget warning: ${b.categoryName ?? b.name}',
+            ),
+            backgroundColor: exceeded ? Colors.redAccent : Colors.orangeAccent,
           ),
-          backgroundColor: exceeded ? Colors.redAccent : Colors.orangeAccent,
-        ),
+        );
+      }
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save: $e')),
       );
     }
+    return false;
   }
   return true;
 }
