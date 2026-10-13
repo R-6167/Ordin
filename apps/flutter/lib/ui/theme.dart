@@ -28,9 +28,7 @@ class AppTheme {
 
   /// Compatibility aliases for existing screens. New code should use
   /// brandBlue / brandBlueDeep.
-  @Deprecated('Use brandBlue')
   static const amber = brandBlue;
-  @Deprecated('Use brandBlueDeep')
   static const amberDeep = brandBlueDeep;
 
   static const seed = brandBlue;
