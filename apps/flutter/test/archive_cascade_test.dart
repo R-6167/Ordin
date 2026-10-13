@@ -171,6 +171,68 @@ void main() {
     expect(row.first['archived_at'], isNotNull);
   });
 
+  test('archiveImpact counts only non-terminal, non-archived tasks', () async {
+    final app = AppDatabase.instance;
+    final projects = ProjectRepository(app);
+    final tasks = TaskRepository(app);
+
+    final p = await projects.create(title: 'Impact');
+    final open = await tasks.create(title: 'Open', projectId: p.id);
+    final completed = await tasks.create(title: 'Completed', projectId: p.id);
+    final cancelled = await tasks.create(title: 'Cancelled', projectId: p.id);
+    final alreadyArchived =
+        await tasks.create(title: 'Archived', projectId: p.id);
+    final legacyNullStatus =
+        await tasks.create(title: 'Legacy null status', projectId: p.id);
+
+    final db = await app.database;
+    await tasks.complete(completed.id);
+    await db.update(
+      'tasks',
+      {'status': EntityStatus.cancelled},
+      where: 'id = ?',
+      whereArgs: [cancelled.id],
+    );
+    await db.update(
+      'tasks',
+      {'archived_at': AppDatabase.nowMs()},
+      where: 'id = ?',
+      whereArgs: [alreadyArchived.id],
+    );
+    await db.update(
+      'tasks',
+      {'status': null},
+      where: 'id = ?',
+      whereArgs: [legacyNullStatus.id],
+    );
+
+    final impact = await projects.archiveImpact(p.id);
+    expect(impact['openTasks'], 2);
+    expect(impact['milestones'], 0);
+
+    await projects.archive(p.id, cascade: ArchiveCascade.withOpenTasks);
+
+    final rows = await db.query(
+      'tasks',
+      where: 'id IN (?, ?, ?, ?, ?)',
+      whereArgs: [
+        open.id,
+        completed.id,
+        cancelled.id,
+        alreadyArchived.id,
+        legacyNullStatus.id,
+      ],
+    );
+    final archivedById = {
+      for (final row in rows) row['id']: row['archived_at'],
+    };
+    expect(archivedById[open.id], isNotNull);
+    expect(archivedById[completed.id], isNull);
+    expect(archivedById[cancelled.id], isNull);
+    expect(archivedById[alreadyArchived.id], isNotNull);
+    expect(archivedById[legacyNullStatus.id], isNotNull);
+  });
+
   test('project archive withOpenTasks soft-archives open tasks', () async {
     final app = AppDatabase.instance;
     final projects = ProjectRepository(app);
