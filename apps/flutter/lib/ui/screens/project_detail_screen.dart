@@ -685,6 +685,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         title: Text(dbStr(m['title']), style: const TextStyle(color: AppTheme.silver)),
                         subtitle: Builder(builder: (_) {
                           final mid = dbStr(m['id']);
+                          final msDone =
+                              dbStr(m['status']).toUpperCase() == 'COMPLETED';
                           final msTasks = [
                             ...ws.tasks.where((x) => dbStrOrNull(x['milestone_id']) == mid),
                             ...ws.subtasks.where((x) => dbStrOrNull(x['milestone_id']) == mid),
@@ -692,33 +694,59 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           final doneN = msTasks
                               .where((x) => dbStr(x['status']).toUpperCase() == 'COMPLETED')
                               .length;
-                          final status = dbStr(m['status']);
+                          final total = msTasks.length;
+                          // Milestone marked complete counts as full bar even with no tasks.
+                          final ratio = msDone
+                              ? 1.0
+                              : (total == 0 ? 0.0 : doneN / total);
+                          final label = msDone
+                              ? (total == 0
+                                  ? 'Completed'
+                                  : 'Completed · $doneN/$total tasks')
+                              : (total == 0
+                                  ? 'No tasks yet'
+                                  : '$doneN of $total tasks');
                           final dueRaw = m['due_at'];
-                          String? dueLabel;
                           var overdue = false;
+                          var dueExtra = '';
                           if (dueRaw is int) {
                             final d = DateTime.fromMillisecondsSinceEpoch(dueRaw);
-                            dueLabel =
-                                'Due ${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+                            dueExtra =
+                                ' · Due ${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
                             final today = DateTime.now();
                             final day = DateTime(d.year, d.month, d.day);
                             final start = DateTime(today.year, today.month, today.day);
-                            overdue = status.toUpperCase() != 'COMPLETED' &&
-                                day.isBefore(start);
+                            overdue = !msDone && day.isBefore(start);
                           }
-                          final parts = <String>[status];
-                          if (msTasks.isNotEmpty) {
-                            parts.add('$doneN/${msTasks.length} tasks');
-                          }
-                          if (dueLabel != null) parts.add(dueLabel);
-                          return Text(
-                            parts.join(' · '),
-                            style: TextStyle(
-                              color: overdue
-                                  ? Colors.orangeAccent
-                                  : AppTheme.silver.withValues(alpha: 0.4),
-                              fontSize: 11,
-                            ),
+                          final displayLabel = '$label$dueExtra';
+                          final barColor = msDone
+                              ? const Color(0xFF6BCB77)
+                              : AppTheme.amber;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: ratio,
+                                  minHeight: 6,
+                                  backgroundColor:
+                                      AppTheme.silver.withValues(alpha: 0.12),
+                                  color: barColor,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                displayLabel,
+                                style: TextStyle(
+                                  color: overdue
+                                      ? Colors.orangeAccent
+                                      : AppTheme.silver.withValues(alpha: 0.45),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           );
                         }),
                         trailing: Row(
