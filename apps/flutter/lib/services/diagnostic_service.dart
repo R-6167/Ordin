@@ -43,6 +43,8 @@ class DiagnosticService {
     Map<String, Object?> details = const {},
   }) async {
     if (!enabled) return;
+    // Release builds retain only error-level events; verbose tracing is debug/profile-only.
+    if (kReleaseMode && severity != 'error' && severity != 'fatal') return;
     final now = AppDatabase.nowMs();
     final event = <String, Object?>{
       'id': AppDatabase.newId(),
@@ -69,6 +71,11 @@ class DiagnosticService {
         _memoryFallback.removeAt(0);
       }
     }
+  }
+
+  @visibleForTesting
+  static Map<String, Object?> sanitizeDetailsForTesting(Map<String, Object?> details) {
+    return DiagnosticService._()._safeDetails(details);
   }
 
   Map<String, Object?> _safeDetails(Map<String, Object?> details) {
