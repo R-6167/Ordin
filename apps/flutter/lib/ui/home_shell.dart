@@ -626,6 +626,7 @@ class _HomeShellState extends State<HomeShell> {
             ..._scheduledToday.map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    key: ValueKey('task-${t.id}'),
                     onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
@@ -655,6 +656,7 @@ class _HomeShellState extends State<HomeShell> {
             ..._plan.map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    key: ValueKey('plan-${p.id}'),
                     onTap: () => _openPlanItem(p),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     child: Column(
@@ -681,6 +683,7 @@ class _HomeShellState extends State<HomeShell> {
             ..._overdue.take(5).map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    key: ValueKey('task-${t.id}'),
                     onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
@@ -714,6 +717,7 @@ class _HomeShellState extends State<HomeShell> {
             ..._taskList.take(8).map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    key: ValueKey('task-${t.id}'),
                     onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
@@ -770,6 +774,7 @@ class _HomeShellState extends State<HomeShell> {
             ..._overdue.map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    key: ValueKey('task-${t.id}'),
                     onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
@@ -800,6 +805,7 @@ class _HomeShellState extends State<HomeShell> {
             ..._taskList.map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
+                    key: ValueKey('task-${t.id}'),
                     onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(

@@ -1,7 +1,7 @@
 # Personal Life OS — Remaining work
 
 **Current:** Flutter offline client · Ordin  
-**Last updated:** 2026-10-13 — W4 record expense in progress
+**Last updated:** 2026-10-13 — W1–W5 merged; stable list keys
 
 Keep this list ordered by **impact**. Check items off when merged to `main`.
 
@@ -14,7 +14,7 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 - [x] FAB `+ Add` uses **domain-scoped** notify (not `allChanged`) (#62)
 - [x] Finance **Record expense** refreshes only on successful save (#62)
 - [x] Schedule / Day plan: fix **unmodifiable list** (`Cannot add to an unmodifiable list`) (#62)
-- [ ] Stable list keys on Tasks rows (follow-up if flash remains)
+- [x] Stable list keys on Tasks / plan rows
 
 ### W2 — Day plan / Schedule reliability
 - [x] Unmodifiable list crash fixed (#62) — primary load failure
@@ -22,9 +22,9 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 - [ ] Build My Day succeeds on a normal day with open tasks (verify on device)
 
 ### W3 — Notes writer path
-- [ ] Life / + Add note opens **note editor** (not single-line popup)
-- [ ] Multiline body + Enter creates real lines
-- [ ] Turn lines → tasks respects paragraphs / bullets
+- [x] Life / + Add note opens **note editor** (not single-line popup) (#63)
+- [x] Multiline body + Enter creates real lines (#63)
+- [x] Turn lines → tasks splits on newlines (#63)
 
 ### W4 — Finance expense path
 - [x] Validation feedback when amount/description missing
@@ -34,11 +34,11 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 - [ ] Device confirm: expense appears on Recent ledger
 
 ### W5 — More → Timeline
-- [ ] Rename/repurpose More tab as **Timeline**
-- [ ] Chronological activity (tasks, expenses, notes, habits, …)
+- [x] Rename/repurpose More tab as **Timeline** (#65)
+- [x] Chronological activity chips (#65)
 - [ ] AI / intelligence suggestions on same screen
-- [ ] Settings / backup only under Settings (AppBar)
-- [ ] Remove duplicate search field (AppBar search only)
+- [x] Settings / backup only under Settings (AppBar) (#65)
+- [x] Remove duplicate search field (AppBar search only) (#65)
 
 ### Phase 7 (scoped refresh) — engineering done, verify on device
 - [x] Debounce + stable tab keys (#57)
