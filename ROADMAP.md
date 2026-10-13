@@ -27,8 +27,8 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 - [ ] Turn lines → tasks respects paragraphs / bullets
 
 ### W4 — Finance expense path
-- [ ] Record expense saves and shows on ledger
-- [ ] Confirmation snackbar; no refresh on cancel
+- [ ] Record expense saves and shows on ledger (in progress)
+- [ ] Confirmation snackbar; no refresh on cancel (in progress)
 
 ### W5 — More → Timeline
 - [ ] Rename/repurpose More tab as **Timeline**
