@@ -6,9 +6,11 @@ import '../../data/milestone_repository.dart';
 import '../../services/app_data_bus.dart';
 import '../../data/project_repository.dart';
 import '../../data/task_repository.dart';
+import '../../domain/archive_cascade.dart';
 import '../../domain/db_map.dart';
 import '../../services/project_workspace.dart';
 import '../theme.dart';
+import '../widgets/archive_sheet.dart';
 import '../widgets/glass.dart';
 import '../widgets/life_chain.dart';
 import 'goal_detail_screen.dart';
@@ -459,14 +461,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 if (v == 'resource') await _addResource();
                 if (v == 'complete') {
                   await _projects.complete(widget.projectId);
+                  AppDataBus.instance.lifeChanged();
                   if (mounted) Navigator.pop(context);
                 }
+                if (v == 'archive') await _archiveProject();
               },
               itemBuilder: (_) => const [
                 PopupMenuItem(value: 'deadline', child: Text('Set deadline')),
                 PopupMenuItem(value: 'note', child: Text('Add note')),
                 PopupMenuItem(value: 'resource', child: Text('Add resource')),
                 PopupMenuItem(value: 'complete', child: Text('Mark project complete')),
+                PopupMenuItem(value: 'archive', child: Text('Archive project…')),
               ],
             ),
           ],
@@ -1015,5 +1020,41 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         ),
       ),
     );
+  
+}
+
+  Future<void> _archiveProject() async {
+    final impact = await _projects.archiveImpact(widget.projectId);
+    if (!mounted) return;
+    final result = await showArchiveSheet(
+      context: context,
+      title: 'Archive this project?',
+      impact: {
+        'open tasks': impact['openTasks'] ?? 0,
+        'milestones': impact['milestones'] ?? 0,
+      },
+      options: const [
+        (
+          mode: ArchiveCascade.parentOnly,
+          label: 'Archive project only',
+          subtitle: 'Tasks stay linked but leave the main Tasks list.',
+        ),
+        (
+          mode: ArchiveCascade.detachChildren,
+          label: 'Detach tasks, then archive',
+          subtitle: 'Open work becomes independent; project is archived.',
+        ),
+        (
+          mode: ArchiveCascade.withOpenTasks,
+          label: 'Archive project and open tasks',
+          subtitle: 'Open tasks are soft-archived; completed history stays.',
+        ),
+      ],
+    );
+    if (result == null || !mounted) return;
+    await _projects.archive(widget.projectId, cascade: result.cascade);
+    AppDataBus.instance.lifeChanged();
+    AppDataBus.instance.tasksChanged();
+    if (mounted) Navigator.pop(context);
   }
 }
