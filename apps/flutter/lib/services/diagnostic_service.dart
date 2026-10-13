@@ -96,7 +96,7 @@ class DiagnosticService {
       value.length <= max ? value : value.substring(0, max);
 
   Future<List<Map<String, Object?>>> recent({int limit = 200}) async {
-    final safeLimit = limit.clamp(1, maxPersistedEvents);
+    final safeLimit = limit.clamp(1, maxPersistedEvents).toInt();
     try {
       final db = await AppDatabase.instance.database;
       return db.query(
