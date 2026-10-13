@@ -34,3 +34,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/schema.sql
+    - assets/ordin_logo.png.png
