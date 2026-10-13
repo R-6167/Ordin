@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../data/database.dart';
@@ -41,6 +42,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] ProjectDetail initState projectId=${widget.projectId}');
+    }
     _load();
   }
 
@@ -67,6 +71,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   Future<void> _load() async {
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] ProjectDetail load start projectId=${widget.projectId}');
+    }
     // Show a blocking loader only before the first successful workspace load.
     // Refreshes must keep the existing route, scroll position, and content alive.
     final initialLoad = _ws == null;
@@ -79,6 +86,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     try {
       final ws = await _workspace.load(widget.projectId);
       if (!mounted) return;
+      if (kDebugMode) {
+        debugPrint('[RefreshTrace] ProjectDetail load complete projectId=${widget.projectId}');
+      }
       setState(() {
         _ws = ws;
         _loading = false;

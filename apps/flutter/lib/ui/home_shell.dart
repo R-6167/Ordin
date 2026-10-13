@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -88,12 +89,14 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) debugPrint('[RefreshTrace] HomeShell initState');
     AppDataBus.instance.addListener(_onBus);
     _boot();
   }
 
   @override
   void dispose() {
+    if (kDebugMode) debugPrint('[RefreshTrace] HomeShell dispose');
     AppDataBus.instance.removeListener(_onBus);
     super.dispose();
   }
@@ -182,6 +185,10 @@ class _HomeShellState extends State<HomeShell> {
     final want = domains == null || domains.isEmpty
         ? DataDomain.values.toSet()
         : domains;
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] HomeShell reload start '
+          'domains=${want.map((d) => d.name).join(',')} maintenance=$runMaintenance');
+    }
 
     final wantTasks = want.contains(DataDomain.tasks);
     final wantLife = want.contains(DataDomain.life);
@@ -328,6 +335,10 @@ class _HomeShellState extends State<HomeShell> {
       if (plan != null) _plan = plan!;
       if (freeMin != null) _freeMinutes = freeMin!;
     });
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] HomeShell reload complete '
+          'domains=${want.map((d) => d.name).join(',')}');
+    }
   }
 
   Future<void> _reloadTasks() =>
