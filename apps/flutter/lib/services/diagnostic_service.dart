@@ -64,7 +64,7 @@ class DiagnosticService {
       _remember(event);
       return;
     }
-    await _persist(event);
+    if (!await _persist(event)) _remember(event);
   }
 
   void _remember(Map<String, Object?> event) {
@@ -85,7 +85,6 @@ class DiagnosticService {
       );
       return true;
     } catch (_) {
-      _remember(event);
       return false;
     }
   }
