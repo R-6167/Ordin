@@ -23,13 +23,10 @@ jobs:
           python3 tools/rebase_due_on_main.py
           rm -f tools/rebase_due_on_main.py .github/workflows/merge-main-due.yml
           rmdir tools 2>/dev/null || true
-          # touch to ensure flutter path triggers APK on PR
-          echo "// due-dates merge $(date -u +%Y%m%d%H%M%S)" >> apps/flutter/lib/data/milestone_repository.dart
-          # remove the touch comment line we just added if file ends oddly — keep setDue
           git add -A
-          if git diff --cached --quiet; then
-            echo no change
-          else
-            git commit -m "fix: merge main + due dates with progress bars (no onLongPress)"
-            git push origin feature/milestone-due-dates
+          if test -f .git/MERGE_HEAD; then
+            git commit -m "merge main; due dates + progress bars (no onLongPress)" || true
+          elif ! git diff --cached --quiet; then
+            git commit -m "fix: due dates with progress bars (no onLongPress)"
           fi
+          git push origin feature/milestone-due-dates
