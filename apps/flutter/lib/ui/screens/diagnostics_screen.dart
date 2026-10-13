@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../services/diagnostic_service.dart';
+import '../../services/error_log_service.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
@@ -14,6 +16,7 @@ class DiagnosticsScreen extends StatefulWidget {
 
 class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   List<Map<String, Object?>> _events = const [];
+  List<Map<String, Object?>> _errors = const [];
   bool _loading = true;
   bool _busy = false;
 
@@ -25,9 +28,13 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
 
   Future<void> _load() async {
     final events = await DiagnosticService.instance.recent(limit: 200);
+    final errors = kReleaseMode
+        ? <Map<String, Object?>>[]
+        : await ErrorLogService.instance.recent(limit: 30);
     if (!mounted) return;
     setState(() {
       _events = events;
+      _errors = errors;
       _loading = false;
     });
   }
@@ -47,6 +54,20 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _shareDetailedErrors() async {
+    if (kReleaseMode || _errors.isEmpty) return;
+    final buffer = StringBuffer('Ordin development error log\\n');
+    for (final error in _errors) {
+      buffer.writeln('---');
+      buffer.writeln('Level: ${error['level']}');
+      buffer.writeln('Time: ${error['occurred_at']}');
+      buffer.writeln('Message: ${error['message']}');
+      if (error['context'] != null) buffer.writeln('Context: ${error['context']}');
+      if (error['stack'] != null) buffer.writeln('${error['stack']}');
+    }
+    await Share.share(buffer.toString(), subject: 'Ordin development error log');
   }
 
   Future<void> _clear() async {
@@ -125,6 +146,40 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 ))
               else if (_events.isEmpty)
                 const GlassCard(child: Text('No diagnostic events recorded yet.'))
+              if (!kReleaseMode) ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('Detailed development errors',
+                          style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                    ),
+                    if (_errors.isNotEmpty)
+                      TextButton(onPressed: _shareDetailedErrors, child: const Text('Share log')),
+                  ],
+                ),
+                if (_errors.isEmpty)
+                  Text('No detailed errors recorded.',
+                      style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.55)))
+                else
+                  ..._errors.map((error) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${error['level']} · ${error['occurred_at']}',
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          Text('${error['message']}',
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: AppTheme.silver, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  )),
+              ],
               else
                 ..._events.map((event) {
                   final name = event['event_name']?.toString() ?? 'event';
