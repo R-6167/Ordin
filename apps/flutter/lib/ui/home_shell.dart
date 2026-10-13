@@ -17,6 +17,7 @@ import '../data/task_repository.dart';
 import '../domain/models.dart';
 import '../services/app_data_bus.dart';
 import '../services/day_planner.dart';
+import '../services/diagnostic_service.dart';
 import '../services/error_log_service.dart';
 import '../services/local_analytics.dart';
 import '../services/notification_service.dart';
@@ -90,6 +91,7 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     if (kDebugMode) debugPrint('[RefreshTrace] HomeShell initState');
+    DiagnosticService.instance.record('home_shell_init', category: 'lifecycle', details: {'widget': 'HomeShell'});
     AppDataBus.instance.addListener(_onBus);
     _boot();
   }
@@ -97,6 +99,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     if (kDebugMode) debugPrint('[RefreshTrace] HomeShell dispose');
+    DiagnosticService.instance.record('home_shell_dispose', category: 'lifecycle', details: {'widget': 'HomeShell'});
     AppDataBus.instance.removeListener(_onBus);
     super.dispose();
   }
@@ -182,9 +185,11 @@ class _HomeShellState extends State<HomeShell> {
     Set<DataDomain>? domains,
     bool runMaintenance = false,
   }) async {
+    final startedAt = DateTime.now();
     final want = domains == null || domains.isEmpty
         ? DataDomain.values.toSet()
         : domains;
+    DiagnosticService.instance.record('home_reload_started', category: 'refresh', details: {'domain': want.map((d) => d.name).join(',')});
     if (kDebugMode) {
       debugPrint('[RefreshTrace] HomeShell reload start '
           'domains=${want.map((d) => d.name).join(',')} maintenance=$runMaintenance');
@@ -335,6 +340,13 @@ class _HomeShellState extends State<HomeShell> {
       if (plan != null) _plan = plan!;
       if (freeMin != null) _freeMinutes = freeMin!;
     });
+    final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+    DiagnosticService.instance.record(
+      'home_reload_completed',
+      category: 'refresh',
+      durationMs: elapsedMs,
+      details: {'domain': want.map((d) => d.name).join(','), 'duration_ms': elapsedMs},
+    );
     if (kDebugMode) {
       debugPrint('[RefreshTrace] HomeShell reload complete '
           'domains=${want.map((d) => d.name).join(',')}');
