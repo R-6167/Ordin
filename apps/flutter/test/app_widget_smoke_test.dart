@@ -37,7 +37,8 @@ void main() {
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.text('Today'), findsWidgets);
 
-    for (final destination in ['Tasks', 'Life', 'Finance', 'More']) {
+    // W5: bottom tab "More" renamed to "Timeline".
+    for (final destination in ['Tasks', 'Life', 'Finance', 'Timeline']) {
       await tester.tap(find.text(destination).last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
