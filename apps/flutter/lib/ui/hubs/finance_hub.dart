@@ -868,7 +868,10 @@ class _FinanceHubState extends State<FinanceHub> {
               )),
         const SizedBox(height: 12),
         TextButton.icon(
-          onPressed: () => showCreateForm(context, AddKind.expense).then((_) => _refresh()),
+          onPressed: () async {
+            final ok = await showCreateForm(context, AddKind.expense);
+            if (ok) await _refresh();
+          },
           icon: const Icon(Icons.add),
           label: const Text('Record expense'),
         ),

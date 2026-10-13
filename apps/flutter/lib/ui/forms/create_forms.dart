@@ -34,7 +34,8 @@ enum AddKind {
   reminder,
 }
 
-Future<bool> showUniversalAdd(BuildContext context) async {
+/// Returns the created [AddKind] on success, or null if cancelled.
+Future<AddKind?> showUniversalAdd(BuildContext context) async {
   final kind = await showModalBottomSheet<AddKind>(
     context: context,
     backgroundColor: AppTheme.metal,
@@ -97,8 +98,9 @@ Future<bool> showUniversalAdd(BuildContext context) async {
       ),
     ),
   );
-  if (kind == null || !context.mounted) return false;
-  return showCreateForm(context, kind);
+  if (kind == null || !context.mounted) return null;
+  final ok = await showCreateForm(context, kind);
+  return ok ? kind : null;
 }
 
 Future<bool> showCreateForm(BuildContext context, AddKind kind) async {

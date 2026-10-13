@@ -389,10 +389,26 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _add() async {
-    final ok = await showUniversalAdd(context);
-    if (ok) {
-      HapticFeedback.lightImpact();
-      AppDataBus.instance.allChanged();
+    final kind = await showUniversalAdd(context);
+    if (kind == null) return;
+    HapticFeedback.lightImpact();
+    // Domain-scoped notify — avoid allChanged() full-tab blast.
+    switch (kind) {
+      case AddKind.task:
+      case AddKind.event:
+      case AddKind.reminder:
+        AppDataBus.instance.tasksChanged();
+      case AddKind.expense:
+      case AddKind.income:
+      case AddKind.bill:
+        AppDataBus.instance.financeChanged();
+      case AddKind.project:
+      case AddKind.goal:
+      case AddKind.habit:
+      case AddKind.routine:
+      case AddKind.note:
+      case AddKind.person:
+        AppDataBus.instance.lifeChanged();
     }
   }
 
