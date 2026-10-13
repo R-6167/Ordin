@@ -59,6 +59,11 @@ class ErrorLogService {
           'context': context,
           'occurred_at': AppDatabase.nowMs(),
         });
+        await db.rawDelete(
+          'DELETE FROM error_logs WHERE id IN '
+          '(SELECT id FROM error_logs ORDER BY occurred_at DESC LIMIT -1 OFFSET ?)',
+          [500],
+        );
       } catch (_) {}
   
     }
