@@ -1,0 +1,32 @@
+name: Dependency UX
+on:
+  push:
+    branches:
+      - feature/dependency-ux
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/dependency-ux
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply
+        run: |
+          set -e
+          git fetch origin main --depth=1 || true
+          python3 tools/dependency_ux.py
+          rm -f tools/dependency_ux.py .github/workflows/dependency-ux.yml
+          rmdir tools 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo no change
+          else
+            git commit -m "feat: dependency UX — status, open blocker, search, unlocks count"
+            git push origin feature/dependency-ux
+          fi
