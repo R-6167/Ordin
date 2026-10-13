@@ -11,15 +11,15 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 
 ### W1 — Refresh honesty
 - [x] Root cause map: shell `setState` + over-broad `AppDataBus` notifies
-- [ ] FAB `+ Add` uses **domain-scoped** notify (not `allChanged`)
-- [ ] Finance **Record expense** refreshes only on successful save
-- [ ] Schedule / Day plan: fix **unmodifiable list** (`Cannot add to an unmodifiable list`)
+- [x] FAB `+ Add` uses **domain-scoped** notify (not `allChanged`) (#62)
+- [x] Finance **Record expense** refreshes only on successful save (#62)
+- [x] Schedule / Day plan: fix **unmodifiable list** (`Cannot add to an unmodifiable list`) (#62)
 - [ ] Stable list keys on Tasks rows (follow-up if flash remains)
 
 ### W2 — Day plan / Schedule reliability
-- [ ] Empty day = empty state, not hard failure
-- [ ] Surface real engine errors cleanly
-- [ ] Build My Day succeeds on a normal day with open tasks
+- [x] Unmodifiable list crash fixed (#62) — primary load failure
+- [ ] Empty day = empty state, not hard failure (verify on device)
+- [ ] Build My Day succeeds on a normal day with open tasks (verify on device)
 
 ### W3 — Notes writer path
 - [ ] Life / + Add note opens **note editor** (not single-line popup)
