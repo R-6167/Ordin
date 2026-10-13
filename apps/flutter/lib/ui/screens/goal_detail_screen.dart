@@ -553,6 +553,7 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     AppDataBus.instance.lifeChanged();
     if (mounted) Navigator.pop(context);
   }
+}
 
 class _ProjectTreeCard extends StatelessWidget {
   const _ProjectTreeCard({
