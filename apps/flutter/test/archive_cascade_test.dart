@@ -142,6 +142,35 @@ void main() {
     expect((await tasks.listOpen()).any((x) => x.id == t.id), isTrue);
   });
 
+  test('project archive withOpenTasks also archives legacy tasks with null status',
+      () async {
+    final app = AppDatabase.instance;
+    final projects = ProjectRepository(app);
+    final tasks = TaskRepository(app);
+
+    final p = await projects.create(title: 'P');
+    final legacy = await tasks.create(title: 'Legacy status', projectId: p.id);
+    await (await app.database).update(
+      'tasks',
+      {'status': null},
+      where: 'id = ?',
+      whereArgs: [legacy.id],
+    );
+
+    final impact = await projects.archiveImpact(p.id);
+    expect(impact['openTasks'], 1);
+
+    await projects.archive(p.id, cascade: ArchiveCascade.withOpenTasks);
+
+    final row = await (await app.database).query(
+      'tasks',
+      where: 'id = ?',
+      whereArgs: [legacy.id],
+      limit: 1,
+    );
+    expect(row.first['archived_at'], isNotNull);
+  });
+
   test('project archive withOpenTasks soft-archives open tasks', () async {
     final app = AppDatabase.instance;
     final projects = ProjectRepository(app);
