@@ -54,7 +54,7 @@ void main() {
     expect(task.goalId, goalA.id);
   });
 
-  test('reassigning task project rejects stale goal', () async {
+  test('reassigning task project auto-aligns goal to the new project', () async {
     final app = AppDatabase.instance;
     final goals = GoalRepository(app);
     final projects = ProjectRepository(app);
@@ -71,18 +71,9 @@ void main() {
       goalId: goalA.id,
     );
 
-    // Reassign project to B while leaving goal A → inconsistent graph.
-    await expectLater(
-      tasks.update(id: task.id, projectId: projectB.id),
-      throwsA(isA<StateError>()),
-    );
+    // Project-only reassignment: goal is realigned to project B's goal.
+    await tasks.update(id: task.id, projectId: projectB.id);
 
-    // Explicit aligned reassignment succeeds.
-    await tasks.update(
-      id: task.id,
-      projectId: projectB.id,
-      goalId: goalB.id,
-    );
     final rows = await (await app.database).query(
       'tasks',
       where: 'id = ?',
@@ -91,6 +82,16 @@ void main() {
     );
     expect(rows.first['project_id'], projectB.id);
     expect(rows.first['goal_id'], goalB.id);
+
+    // Explicit mismatched goal on update still rejected.
+    await expectLater(
+      tasks.update(
+        id: task.id,
+        projectId: projectA.id,
+        goalId: goalB.id,
+      ),
+      throwsA(isA<StateError>()),
+    );
   });
 
   test('milestone must stay under task project (and goal when set)', () async {
