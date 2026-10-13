@@ -743,11 +743,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                               icon: const Icon(Icons.add_task, color: AppTheme.silverMuted),
                               onPressed: () => _addTask(milestoneId: dbStr(m['id'])),
                             ),
-                            IconButton(
+                            PopupMenuButton<String>(
                               tooltip: 'Due date',
-                              icon: const Icon(Icons.event_outlined, color: AppTheme.silverMuted, size: 18),
-                              onPressed: () => _setMilestoneDue(m),
-                              onLongPress: () => _clearMilestoneDue(m),
+                              icon: const Icon(Icons.event_outlined,
+                                  color: AppTheme.silverMuted, size: 18),
+                              color: AppTheme.metalDeep,
+                              onSelected: (v) async {
+                                if (v == 'set') await _setMilestoneDue(m);
+                                if (v == 'clear') await _clearMilestoneDue(m);
+                              },
+                              itemBuilder: (_) => [
+                                const PopupMenuItem(
+                                  value: 'set',
+                                  child: Text('Set due date'),
+                                ),
+                                if (m['due_at'] != null)
+                                  const PopupMenuItem(
+                                    value: 'clear',
+                                    child: Text('Clear due date'),
+                                  ),
+                              ],
                             ),
                             IconButton(
                               tooltip: 'Rename',
