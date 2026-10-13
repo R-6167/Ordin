@@ -98,15 +98,19 @@ class _HomeShellState extends State<HomeShell> {
     super.dispose();
   }
 
-  void _onBus() {
+  /// Single place that moves bus dirty → pending (never discard without queueing).
+  void _consumeDirtyFromBus() {
     final gen = AppDataBus.instance.generation;
-    if (gen == _busGen) return;
-    _busGen = gen;
+    if (gen != _busGen) {
+      _busGen = gen;
+    }
     final dirty = AppDataBus.instance.takeDirty();
     if (dirty.isEmpty) return;
     _pendingDomains.addAll(dirty);
     _scheduleReload();
   }
+
+  void _onBus() => _consumeDirtyFromBus();
 
   /// Debounce + single-flight so bursts of notifyDomains do not thrash UI.
   void _scheduleReload() {
@@ -373,11 +377,16 @@ class _HomeShellState extends State<HomeShell> {
     );
     if (!mounted) return;
     if (AppDataBus.instance.generation == generationBefore) return;
-    final dirty = AppDataBus.instance.takeDirty();
-    final domains = dirty.isEmpty
-        ? {DataDomain.tasks, DataDomain.life, DataDomain.finance, DataDomain.today}
-        : dirty;
-    await _reload(domains: domains);
+    // The bus listener may already have consumed dirty domains into
+    // [_pendingDomains] while the assistant route was open. Never invent a
+    // full-domain reload when the residual dirty set is empty.
+    _consumeDirtyFromBus();
+    if (_pendingDomains.isNotEmpty) {
+      _scheduleReload();
+    }
+    if (_reloadInFlight != null) {
+      await _reloadInFlight;
+    }
   }
 
   Future<void> _openSettings() async {
