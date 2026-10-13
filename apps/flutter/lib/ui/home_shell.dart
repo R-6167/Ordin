@@ -91,7 +91,6 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     if (kDebugMode) debugPrint('[RefreshTrace] HomeShell initState');
-    DiagnosticService.instance.record('home_shell_init', category: 'lifecycle', details: {'widget': 'HomeShell'});
     AppDataBus.instance.addListener(_onBus);
     _boot();
   }
@@ -99,7 +98,6 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     if (kDebugMode) debugPrint('[RefreshTrace] HomeShell dispose');
-    DiagnosticService.instance.record('home_shell_dispose', category: 'lifecycle', details: {'widget': 'HomeShell'});
     AppDataBus.instance.removeListener(_onBus);
     super.dispose();
   }
@@ -190,7 +188,7 @@ class _HomeShellState extends State<HomeShell> {
     final want = domains == null || domains.isEmpty
         ? DataDomain.values.toSet()
         : domains;
-    DiagnosticService.instance.record('home_reload_started', category: 'refresh', correlationId: reloadId, details: {'domain': want.map((d) => d.name).join(',')});
+    await DiagnosticService.instance.record('home_reload_started', category: 'refresh', correlationId: reloadId, details: {'domain': want.map((d) => d.name).join(',')});
     if (kDebugMode) {
       debugPrint('[RefreshTrace] HomeShell reload start '
           'domains=${want.map((d) => d.name).join(',')} maintenance=$runMaintenance');
@@ -342,7 +340,7 @@ class _HomeShellState extends State<HomeShell> {
       if (freeMin != null) _freeMinutes = freeMin!;
     });
     final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
-    DiagnosticService.instance.record(
+    await DiagnosticService.instance.record(
       'home_reload_completed',
       category: 'refresh',
       durationMs: elapsedMs,
