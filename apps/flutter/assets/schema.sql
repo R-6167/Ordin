@@ -342,3 +342,19 @@ CREATE TABLE IF NOT EXISTS work_sessions (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+
+-- Bounded local diagnostic trace; separate from app_usage_events analytics.
+CREATE TABLE IF NOT EXISTS diagnostic_events (
+  id TEXT PRIMARY KEY,
+  event_name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  severity TEXT NOT NULL DEFAULT 'info',
+  occurred_at INTEGER NOT NULL,
+  duration_ms INTEGER,
+  correlation_id TEXT,
+  details TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS idx_diagnostic_events_occurred
+  ON diagnostic_events(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_diagnostic_events_category
+  ON diagnostic_events(category, occurred_at DESC);

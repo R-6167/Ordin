@@ -9,6 +9,7 @@ import '../services/security_service.dart';
 import '../services/user_prefs.dart';
 import 'app_meta.dart';
 import 'screens/ai_settings_screen.dart';
+import 'screens/diagnostics_screen.dart';
 import 'theme.dart';
 import 'widgets/glass.dart';
 
@@ -491,6 +492,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             );
                             if (next != null) await _saveProfile(weekStart: next);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Diagnostics', style: Theme.of(context).textTheme.titleMedium),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.monitor_heart_outlined, color: AppTheme.seed),
+                          title: const Text('Diagnostic events'),
+                          subtitle: const Text('Review local traces and export a report'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const DiagnosticsScreen()),
+                            );
                           },
                         ),
                       ],

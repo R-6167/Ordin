@@ -17,6 +17,7 @@ import '../data/task_repository.dart';
 import '../domain/models.dart';
 import '../services/app_data_bus.dart';
 import '../services/day_planner.dart';
+import '../services/diagnostic_service.dart';
 import '../services/error_log_service.dart';
 import '../services/local_analytics.dart';
 import '../services/notification_service.dart';
@@ -182,9 +183,12 @@ class _HomeShellState extends State<HomeShell> {
     Set<DataDomain>? domains,
     bool runMaintenance = false,
   }) async {
+    final startedAt = DateTime.now();
+    final reloadId = AppDatabase.newId();
     final want = domains == null || domains.isEmpty
         ? DataDomain.values.toSet()
         : domains;
+    await DiagnosticService.instance.record('home_reload_started', category: 'refresh', correlationId: reloadId, details: {'domain': want.map((d) => d.name).join(',')});
     if (kDebugMode) {
       debugPrint('[RefreshTrace] HomeShell reload start '
           'domains=${want.map((d) => d.name).join(',')} maintenance=$runMaintenance');
@@ -335,6 +339,14 @@ class _HomeShellState extends State<HomeShell> {
       if (plan != null) _plan = plan!;
       if (freeMin != null) _freeMinutes = freeMin!;
     });
+    final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+    await DiagnosticService.instance.record(
+      'home_reload_completed',
+      category: 'refresh',
+      durationMs: elapsedMs,
+      correlationId: reloadId,
+      details: {'domain': want.map((d) => d.name).join(','), 'duration_ms': elapsedMs},
+    );
     if (kDebugMode) {
       debugPrint('[RefreshTrace] HomeShell reload complete '
           'domains=${want.map((d) => d.name).join(',')}');
