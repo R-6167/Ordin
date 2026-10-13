@@ -499,8 +499,6 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
       ),
     );
   }
-}
-
 
   Widget _evidenceChip(String label) {
     return Container(
