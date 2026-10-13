@@ -281,6 +281,60 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
 
+  Future<void> _renameMilestone(Map<String, Object?> m) async {
+    final c = TextEditingController(text: dbStr(m['title']));
+    final title = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.metal,
+        title: const Text('Rename milestone', style: TextStyle(color: AppTheme.silver)),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          style: const TextStyle(color: AppTheme.silver),
+          decoration: const InputDecoration(labelText: 'Title *'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (title == null || title.isEmpty) return;
+    try {
+      await _milestonesRepo.rename(id: dbStr(m['id']), title: title);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not rename: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleMilestoneComplete(Map<String, Object?> m) async {
+    final id = dbStr(m['id']);
+    final done = dbStr(m['status']).toUpperCase() == 'COMPLETED';
+    try {
+      if (done) {
+        await _milestonesRepo.reopen(id);
+      } else {
+        await _milestonesRepo.complete(id);
+      }
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not update milestone: $e')),
+        );
+      }
+    }
+  }
+
   List<Map<String, Object?>> _blockedOpen(ProjectWorkspace ws) {
     final open = <Map<String, Object?>>[
       ...ws.tasks,
@@ -575,8 +629,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               ],
             ),
             if (ws.milestones.isEmpty)
-              Text('Stages toward finishing this project.',
-                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)))
+              Text(
+                  'Break the project into stages. Add a milestone, then attach tasks to it.',
+                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)),
+                )
             else
               ...ws.milestones.asMap().entries.map((entry) {
               final index = entry.key;
@@ -587,8 +643,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       child: ListTile(
                         title: Text(dbStr(m['title']), style: const TextStyle(color: AppTheme.silver)),
-                        subtitle: Text(dbStr(m['status']),
-                            style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11)),
+                        subtitle: Builder(builder: (_) {
+                          final mid = dbStr(m['id']);
+                          final msTasks = [
+                            ...ws.tasks.where((x) => dbStrOrNull(x['milestone_id']) == mid),
+                            ...ws.subtasks.where((x) => dbStrOrNull(x['milestone_id']) == mid),
+                          ];
+                          final doneN = msTasks
+                              .where((x) => dbStr(x['status']).toUpperCase() == 'COMPLETED')
+                              .length;
+                          final status = dbStr(m['status']);
+                          final progress = msTasks.isEmpty
+                              ? status
+                              : '$status · $doneN/${msTasks.length} tasks';
+                          return Text(
+                            progress,
+                            style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11),
+                          );
+                        }),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -611,17 +684,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                               icon: const Icon(Icons.add_task, color: AppTheme.silverMuted),
                               onPressed: () => _addTask(milestoneId: dbStr(m['id'])),
                             ),
-                            if (dbStr(m['status']) != 'COMPLETED')
-                              IconButton(
-                                tooltip: 'Complete milestone',
-                                icon: const Icon(Icons.flag, color: AppTheme.amber),
-                                onPressed: () async {
-                                  await _milestonesRepo.complete(dbStr(m['id']));
-                                  await _load();
-                                },
-                              )
-                            else
-                              const Icon(Icons.flag, color: AppTheme.amber),
+                            IconButton(
+                              tooltip: 'Rename',
+                              icon: const Icon(Icons.edit_outlined, color: AppTheme.silverMuted, size: 18),
+                              onPressed: () => _renameMilestone(m),
+                            ),
+                            IconButton(
+                              tooltip: dbStr(m['status']) == 'COMPLETED' ? 'Reopen' : 'Complete milestone',
+                              icon: Icon(
+                                dbStr(m['status']) == 'COMPLETED' ? Icons.flag : Icons.flag_outlined,
+                                color: AppTheme.amber,
+                              ),
+                              onPressed: () => _toggleMilestoneComplete(m),
+                            ),
                           ],
                         ),
                       ),
