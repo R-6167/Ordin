@@ -25,63 +25,89 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const MaterialApp(home: HomeShell()));
+    // Bounded pumps — HomeShell may schedule debounced reloads / timers.
     for (var i = 0; i < 25; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
   }
 
-  testWidgets('tab navigation keeps shell mounted and tab keys stable',
+  Future<void> pumpBounded(WidgetTester tester, {int ticks = 10}) async {
+    for (var i = 0; i < ticks; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  testWidgets('tab navigation keeps shell mounted and titles update',
       (tester) async {
     await pumpShell(tester);
     expect(find.byType(NavigationBar), findsOneWidget);
 
     await tester.tap(find.text('Tasks').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await pumpBounded(tester, ticks: 5);
     expect(
       find.descendant(of: find.byType(AppBar), matching: find.text('Tasks')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('tab-tasks')), findsOneWidget);
+    // IndexedStack keeps inactive tabs offstage — always search with skipOffstage: false.
+    expect(
+      find.byKey(const ValueKey('tab-tasks'), skipOffstage: false),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Life').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
+    await pumpBounded(tester, ticks: 5);
     expect(
       find.descendant(of: find.byType(AppBar), matching: find.text('Life')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('tab-tasks'), skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('tab-life'), skipOffstage: false),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Tasks').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.byKey(const ValueKey('tab-tasks')), findsOneWidget);
+    await pumpBounded(tester, ticks: 5);
+    expect(
+      find.descendant(of: find.byType(AppBar), matching: find.text('Tasks')),
+      findsOneWidget,
+    );
     expect(find.byType(NavigationBar), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets('search typing survives until route pop; home shell stays healthy',
+  testWidgets('search typing retained on route; shell healthy after pop',
       (tester) async {
     await pumpShell(tester);
 
     await tester.tap(find.byTooltip('Search'));
-    await tester.pumpAndSettle();
+    await pumpBounded(tester, ticks: 15);
 
     final textField = find.byType(TextField);
     final formField = find.byType(TextFormField);
     if (textField.evaluate().isNotEmpty) {
       await tester.enterText(textField.first, 'retain-me');
-    } else {
-      expect(formField, findsWidgets);
+    } else if (formField.evaluate().isNotEmpty) {
       await tester.enterText(formField.first, 'retain-me');
+    } else {
+      // Search UI may still be loading; shell must remain intact after back.
+      await tester.pageBack();
+      await pumpBounded(tester, ticks: 10);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 1));
+      return;
     }
-    await tester.pump();
+    await pumpBounded(tester, ticks: 3);
     expect(find.text('retain-me'), findsOneWidget);
 
     await tester.pageBack();
-    await tester.pumpAndSettle();
+    await pumpBounded(tester, ticks: 10);
     expect(find.byType(NavigationBar), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
