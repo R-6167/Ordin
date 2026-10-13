@@ -317,7 +317,7 @@ class TaskRepository with TaskDependencyMutations {
     final db = await _db.database;
     try {
       return await db.rawQuery(
-        'SELECT d.id, d.depends_on_task_id, t.title AS depends_on_title '
+        'SELECT d.id, d.depends_on_task_id, t.title AS depends_on_title, t.status AS depends_on_status '
         'FROM task_dependencies d '
         'INNER JOIN tasks source ON source.id = d.task_id AND source.owner_id = ? '
         'INNER JOIN tasks t ON t.id = d.depends_on_task_id AND t.owner_id = ? AND t.archived_at IS NULL '
