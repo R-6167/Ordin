@@ -19,14 +19,14 @@ jobs:
         run: |
           set -e
           git fetch origin main --depth=1 || true
-          python3 tools/milestone_ux_patcher.py
-          rm -f tools/milestone_ux_patcher.py tools/milestone_repo_extra.dart .github/workflows/milestone-ux.yml
+          python3 tools/milestone_ux_apply.py
+          rm -f tools/milestone_ux_apply.py tools/milestone_repo_extra.dart tools/ms_helpers.dartfrag tools/milestone_ux_patcher.py tools/ms_section.dartfrag .github/workflows/milestone-ux.yml
           rmdir tools 2>/dev/null || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then echo no change
           else
-            git commit -m "feat: milestone UX — stages, nested tasks, rename, reopen"
+            git commit -m "feat: milestone UX — rename, reopen, task progress on stages"
             git push origin feature/milestone-ux
           fi
