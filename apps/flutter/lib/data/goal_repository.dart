@@ -11,10 +11,11 @@ class GoalRepository {
 
   Future<List<Goal>> listActive() async {
     final db = await _db.database;
+    final ownerId = await _db.requireOwnerId();
     final rows = await db.query(
       'goals',
-      where: 'status = ? AND archived_at IS NULL',
-      whereArgs: [EntityStatus.active],
+      where: 'owner_id = ? AND status = ? AND archived_at IS NULL',
+      whereArgs: [ownerId, EntityStatus.active],
       orderBy: 'created_at DESC',
     );
     return rows.map(Goal.fromMap).toList();
