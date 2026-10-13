@@ -18,6 +18,7 @@ import '../../data/task_repository.dart';
 import '../../domain/enums.dart';
 import '../../services/notification_service.dart';
 import '../theme.dart';
+import '../screens/note_detail_screen.dart';
 
 enum AddKind {
   task,
@@ -162,14 +163,8 @@ Future<bool> showCreateForm(BuildContext context, AddKind kind) async {
         },
       );
     case AddKind.note:
-      return _simpleText(
-        context,
-        title: 'New note',
-        fields: const ['Content'],
-        onSave: (v) async {
-          await NoteRepository(AppDatabase.instance).create(content: v[0]);
-        },
-      );
+      // Full note editor (multiline + links + turn-to-tasks), not a one-line dialog.
+      return _openNewNoteEditor(context);
     case AddKind.expense:
       return _moneyForm(context, isIncome: false);
     case AddKind.income:
@@ -198,6 +193,16 @@ Future<bool> showCreateForm(BuildContext context, AddKind kind) async {
         },
       );
   }
+}
+
+
+Future<bool> _openNewNoteEditor(BuildContext context) async {
+  final note = await NoteRepository(AppDatabase.instance).create(content: '');
+  if (!context.mounted) return false;
+  await Navigator.of(context).push(
+    MaterialPageRoute(builder: (_) => NoteDetailScreen(noteId: note.id)),
+  );
+  return true;
 }
 
 Future<bool> _taskForm(BuildContext context) async {

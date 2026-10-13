@@ -470,12 +470,15 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _content,
-                maxLines: 14,
+                maxLines: null,
+                minLines: 8,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
                 style: const TextStyle(color: AppTheme.silver, height: 1.45),
                 decoration: const InputDecoration(
                   labelText: 'Note',
                   alignLabelWithHint: true,
-                  hintText: 'Mention Project Alpha, @Amina, electricity bill…',
+                  hintText: 'One idea per line · bullets, TODO:, or [ ] for tasks',
                 ),
               ),
             ] else ...[
