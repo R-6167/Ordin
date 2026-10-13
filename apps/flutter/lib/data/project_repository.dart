@@ -236,7 +236,7 @@ class ProjectRepository {
     final db = await _db.database;
     final openTasks = await db.rawQuery(
       "SELECT COUNT(*) AS c FROM tasks WHERE owner_id = ? AND project_id = ? "
-      "AND archived_at IS NULL AND status NOT IN (?, ?)",
+      "AND archived_at IS NULL AND COALESCE(status, '') NOT IN (?, ?)",
       [ownerId, projectId, EntityStatus.completed, EntityStatus.cancelled],
     );
     final milestones = await db.rawQuery(
@@ -282,7 +282,7 @@ class ProjectRepository {
             {'archived_at': now, 'updated_at': now},
             where:
                 'project_id = ? AND owner_id = ? AND archived_at IS NULL '
-                'AND status NOT IN (?, ?)',
+                "AND COALESCE(status, '') NOT IN (?, ?)",
             whereArgs: [
               id,
               ownerId,

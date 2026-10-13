@@ -11,10 +11,11 @@ class GoalRepository {
 
   Future<List<Goal>> listActive() async {
     final db = await _db.database;
+    final ownerId = await _db.requireOwnerId();
     final rows = await db.query(
       'goals',
-      where: 'status = ? AND archived_at IS NULL',
-      whereArgs: [EntityStatus.active],
+      where: 'owner_id = ? AND status = ? AND archived_at IS NULL',
+      whereArgs: [ownerId, EntityStatus.active],
       orderBy: 'created_at DESC',
     );
     return rows.map(Goal.fromMap).toList();
@@ -34,14 +35,25 @@ class GoalRepository {
 
   Future<Goal?> getById(String id) async {
     final db = await _db.database;
-    final rows = await db.query('goals', where: 'id = ?', whereArgs: [id], limit: 1);
+    final ownerId = await _db.requireOwnerId();
+    final rows = await db.query(
+      'goals',
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [id, ownerId],
+      limit: 1,
+    );
     if (rows.isEmpty) return null;
     return Goal.fromMap(rows.first);
   }
 
   Future<Map<String, Object?>?> rawById(String id) async {
-    final rows =
-        await (await _db.database).query('goals', where: 'id = ?', whereArgs: [id], limit: 1);
+    final ownerId = await _db.requireOwnerId();
+    final rows = await (await _db.database).query(
+      'goals',
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [id, ownerId],
+      limit: 1,
+    );
     return rows.isEmpty ? null : rows.first;
   }
 
@@ -82,6 +94,7 @@ required String title, String? description, int? targetDate, int priority = 0, S
     String? description,
   }) async {
     final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
     await (await _db.database).update(
       'goals',
       {
@@ -90,8 +103,8 @@ required String title, String? description, int? targetDate, int priority = 0, S
         if (description != null) 'description': description,
         'updated_at': now,
       },
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [id, ownerId],
     );
   }
 
@@ -208,33 +221,58 @@ required String title, String? description, int? targetDate, int priority = 0, S
   }
 
   Future<List<Map<String, Object?>>> listLinkedHabits(String goalId) async {
+    final ownerId = await _db.requireOwnerId();
     return (await _db.database).query(
       'habits',
-      where: 'goal_id = ? AND archived_at IS NULL',
-      whereArgs: [goalId],
+      where: 'owner_id = ? AND goal_id = ? AND archived_at IS NULL',
+      whereArgs: [ownerId, goalId],
       orderBy: 'created_at DESC',
     );
   }
 
   Future<void> linkHabit(String habitId, String goalId) async {
-    await (await _db.database).update(
+    final db = await _db.database;
+    final ownerId = await _db.requireOwnerId();
+    final goal = await db.query(
+      'goals',
+      columns: ['id'],
+      where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+      whereArgs: [goalId, ownerId],
+      limit: 1,
+    );
+    if (goal.isEmpty) {
+      throw StateError('Goal not found or not accessible: $goalId');
+    }
+    await db.update(
       'habits',
       {'goal_id': goalId, 'updated_at': AppDatabase.nowMs()},
-      where: 'id = ?',
-      whereArgs: [habitId],
+      where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+      whereArgs: [habitId, ownerId],
     );
   }
 
   Future<void> unlinkHabit(String habitId) async {
+    final ownerId = await _db.requireOwnerId();
     await (await _db.database).update(
       'habits',
       {'goal_id': null, 'updated_at': AppDatabase.nowMs()},
-      where: 'id = ?',
-      whereArgs: [habitId],
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [habitId, ownerId],
     );
   }
 
   Future<void> addReflection(String goalId, String content) async {
+    final ownerId = await _db.requireOwnerId();
+    final goal = await (await _db.database).query(
+      'goals',
+      columns: ['id'],
+      where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+      whereArgs: [goalId, ownerId],
+      limit: 1,
+    );
+    if (goal.isEmpty) {
+      throw StateError('Goal not found or not accessible: $goalId');
+    }
     await (await _db.database).insert('goal_reflections', {
       'id': AppDatabase.newId(),
       'goal_id': goalId,
@@ -244,6 +282,15 @@ required String title, String? description, int? targetDate, int priority = 0, S
   }
 
   Future<List<Map<String, Object?>>> listReflections(String goalId, {int limit = 20}) async {
+    final ownerId = await _db.requireOwnerId();
+    final goal = await (await _db.database).query(
+      'goals',
+      columns: ['id'],
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [goalId, ownerId],
+      limit: 1,
+    );
+    if (goal.isEmpty) return [];
     return (await _db.database).query(
       'goal_reflections',
       where: 'goal_id = ?',
@@ -255,18 +302,22 @@ required String title, String? description, int? targetDate, int priority = 0, S
 
   Future<void> complete(String id) async {
     final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
     await AtomicWrite.run(
       db: _db,
       state: (txn) async {
-        await txn.update(
+        final changed = await txn.update(
           'goals',
           {
             'status': EntityStatus.completed,
             'updated_at': now,
           },
-          where: 'id = ?',
-          whereArgs: [id],
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [id, ownerId],
         );
+        if (changed != 1) {
+          throw StateError('Goal not found or not accessible: $id');
+        }
       },
       eventType: 'GOAL_COMPLETED',
       entityType: 'GOAL',
