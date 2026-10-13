@@ -335,6 +335,46 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+
+  Future<void> _setMilestoneDue(Map<String, Object?> m) async {
+    final existing = m['due_at'];
+    final initial = existing is int
+        ? DateTime.fromMillisecondsSinceEpoch(existing)
+        : DateTime.now().add(const Duration(days: 7));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    final ms = DateTime(picked.year, picked.month, picked.day, 23, 59)
+        .millisecondsSinceEpoch;
+    try {
+      await _milestonesRepo.setDue(id: dbStr(m['id']), dueAtMs: ms);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not set due date: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearMilestoneDue(Map<String, Object?> m) async {
+    try {
+      await _milestonesRepo.setDue(id: dbStr(m['id']), dueAtMs: null);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not clear due date: $e')),
+        );
+      }
+    }
+  }
+
   List<Map<String, Object?>> _blockedOpen(ProjectWorkspace ws) {
     final open = <Map<String, Object?>>[
       ...ws.tasks,
@@ -653,13 +693,32 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                               .where((x) => dbStr(x['status']).toUpperCase() == 'COMPLETED')
                               .length;
                           final status = dbStr(m['status']);
-                          final progress = msTasks.isEmpty
-                              ? status
-                              : '$status · $doneN/${msTasks.length} tasks';
+                          final dueRaw = m['due_at'];
+                          String? dueLabel;
+                          var overdue = false;
+                          if (dueRaw is int) {
+                            final d = DateTime.fromMillisecondsSinceEpoch(dueRaw);
+                            dueLabel =
+                                'Due ${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+                            final today = DateTime.now();
+                            final day = DateTime(d.year, d.month, d.day);
+                            final start = DateTime(today.year, today.month, today.day);
+                            overdue = status.toUpperCase() != 'COMPLETED' &&
+                                day.isBefore(start);
+                          }
+                          final parts = <String>[status];
+                          if (msTasks.isNotEmpty) {
+                            parts.add('$doneN/${msTasks.length} tasks');
+                          }
+                          if (dueLabel != null) parts.add(dueLabel);
                           return Text(
-                            progress,
+                            parts.join(' · '),
                             style: TextStyle(
-                                color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11),
+                              color: overdue
+                                  ? Colors.orangeAccent
+                                  : AppTheme.silver.withValues(alpha: 0.4),
+                              fontSize: 11,
+                            ),
                           );
                         }),
                         trailing: Row(
@@ -683,6 +742,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                               tooltip: 'Add task to milestone',
                               icon: const Icon(Icons.add_task, color: AppTheme.silverMuted),
                               onPressed: () => _addTask(milestoneId: dbStr(m['id'])),
+                            ),
+                            IconButton(
+                              tooltip: 'Due date',
+                              icon: const Icon(Icons.event_outlined, color: AppTheme.silverMuted, size: 18),
+                              onPressed: () => _setMilestoneDue(m),
+                              onLongPress: () => _clearMilestoneDue(m),
                             ),
                             IconButton(
                               tooltip: 'Rename',

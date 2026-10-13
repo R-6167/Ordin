@@ -249,4 +249,44 @@ class MilestoneRepository {
       occurredAt: now,
     );
   }
+
+  /// Set or clear the milestone target date ([dueAtMs] null clears).
+  Future<void> setDue({required String id, int? dueAtMs}) async {
+    final ownerId = await _db.requireOwnerId();
+    final now = AppDatabase.nowMs();
+    await AtomicWrite.run(
+      db: _db,
+      state: (txn) async {
+        final rows = await txn.query(
+          'milestones',
+          columns: ['id', 'project_id'],
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [id, ownerId],
+          limit: 1,
+        );
+        if (rows.isEmpty) {
+          throw StateError('Milestone not found or not owned: $id');
+        }
+        await RelationshipValidator.validateProject(
+          txn,
+          ownerId: ownerId,
+          projectId: rows.first['project_id'] as String,
+        );
+        final changed = await txn.update(
+          'milestones',
+          {'due_at': dueAtMs, 'updated_at': now},
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [id, ownerId],
+        );
+        if (changed != 1) {
+          throw StateError('Milestone not found or not owned: $id');
+        }
+      },
+      eventType: 'MILESTONE_DUE_SET',
+      entityType: 'MILESTONE',
+      entityId: id,
+      occurredAt: now,
+      metadata: dueAtMs == null ? '{"cleared":true}' : '{"dueAt":$dueAtMs}',
+    );
+  }
 }

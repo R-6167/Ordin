@@ -47,7 +47,8 @@ CREATE TABLE IF NOT EXISTS projects (
 
 CREATE TABLE IF NOT EXISTS milestones (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, project_id TEXT, title TEXT NOT NULL,
-  status TEXT, position INTEGER DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+  status TEXT, position INTEGER DEFAULT 0, due_at INTEGER, completed_at INTEGER,
+  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

@@ -97,6 +97,7 @@ class Milestone {
   final String title;
   final String status;
   final int position;
+  final int? dueAt;
   final int createdAt;
   final int updatedAt;
 
@@ -106,6 +107,7 @@ class Milestone {
     required this.title,
     required this.status,
     this.position = 0,
+    this.dueAt,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -116,6 +118,7 @@ class Milestone {
         title: dbStr(m['title']),
         status: dbStr(m['status'], 'PLANNED'),
         position: dbIntOr(m['position']),
+        dueAt: m['due_at'] == null ? null : dbIntOr(m['due_at']),
         createdAt: dbIntOr(m['created_at']),
         updatedAt: dbIntOr(m['updated_at']),
       );
