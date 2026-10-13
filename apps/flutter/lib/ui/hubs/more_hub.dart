@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
-import '../../data/extended_repository.dart';
-import '../../services/backup_io.dart';
-import '../../services/integrity_service.dart';
-import '../screens/activity_screen.dart';
+import '../../data/task_repository.dart';
+import '../../data/bill_repository.dart';
+import '../../services/activity_timeline.dart';
 import '../screens/goal_detail_screen.dart';
 import '../screens/habit_detail_screen.dart';
-import '../screens/life_area_detail_screen.dart';
 import '../screens/note_detail_screen.dart';
 import '../screens/project_detail_screen.dart';
 import '../screens/reminders_screen.dart';
 import '../screens/routine_detail_screen.dart';
-import '../screens/search_screen.dart';
 import '../screens/task_detail_screen.dart';
-import '../settings_screen.dart';
+import '../assistant_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
+/// Tab 5: Timeline — chronological life activity + offline suggestions.
+/// Settings / backup / search live on the AppBar (Search + Settings).
 class MoreHub extends StatefulWidget {
   const MoreHub({super.key, this.onChanged});
 
@@ -27,245 +26,322 @@ class MoreHub extends StatefulWidget {
   State<MoreHub> createState() => _MoreHubState();
 }
 
+class _Suggestion {
+  const _Suggestion({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    this.onTap,
+  });
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback? onTap;
+}
+
 class _MoreHubState extends State<MoreHub> {
-  final _search = TextEditingController();
-  List<Map<String, Object?>> _hits = [];
-  bool _busy = false;
+  final _timeline = ActivityTimelineService();
+  List<TimelineDayGroup> _groups = [];
+  List<_Suggestion> _suggestions = [];
+  bool _loading = true;
 
   @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _load();
   }
 
-  Future<void> _runSearch(String q) async {
-    if (q.trim().length < 2) {
-      setState(() => _hits = []);
-      return;
-    }
-    final hits = await ExtendedRepository(AppDatabase.instance).search(q.trim());
+  Future<void> _load() async {
+    if (mounted) setState(() => _loading = true);
+    final entries = await _timeline.build(limit: 80);
+    final groups = _timeline.groupByDay(entries);
+    final suggestions = await _buildSuggestions();
     if (!mounted) return;
-    setState(() => _hits = hits);
+    setState(() {
+      _groups = groups;
+      _suggestions = suggestions;
+      _loading = false;
+    });
   }
 
-  void _openHit(Map<String, Object?> h) {
-    final kind = '${h['kind'] ?? ''}';
-    final id = '${h['id'] ?? ''}';
-    if (id.isEmpty) return;
-    final Widget? screen = switch (kind) {
-      'TASK' => TaskDetailScreen(taskId: id),
-      'NOTE' => NoteDetailScreen(noteId: id),
-      'GOAL' => GoalDetailScreen(goalId: id),
-      'PROJECT' => ProjectDetailScreen(projectId: id),
-      'HABIT' => HabitDetailScreen(habitId: id),
-      'ROUTINE' => RoutineDetailScreen(routineId: id),
-      'LIFE_AREA' => LifeAreaDetailScreen(lifeAreaId: id),
-      _ => null,
-    };
+  Future<List<_Suggestion>> _buildSuggestions() async {
+    final out = <_Suggestion>[];
+    try {
+      final overdue = await TaskRepository(AppDatabase.instance).listOverdue();
+      if (overdue.isNotEmpty) {
+        final first = overdue.first;
+        out.add(_Suggestion(
+          title: '${overdue.length} overdue task${overdue.length == 1 ? '' : 's'}',
+          subtitle: first.title,
+          icon: Icons.warning_amber_rounded,
+          onTap: () => _openEntity('TASK', first.id),
+        ));
+      }
+    } catch (_) {}
+    try {
+      final bills = await BillRepository(AppDatabase.instance).listOpenOccurrences();
+      if (bills.isNotEmpty) {
+        out.add(_Suggestion(
+          title: '${bills.length} bill${bills.length == 1 ? '' : 's'} open',
+          subtitle: 'Review payments in Finance',
+          icon: Icons.receipt_long,
+        ));
+      }
+    } catch (_) {}
+    out.add(_Suggestion(
+      title: out.isEmpty ? 'Ask intelligence' : 'More insights',
+      subtitle: 'Priorities, blockers, and next moves',
+      icon: Icons.auto_awesome,
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const AssistantScreen()),
+        );
+      },
+    ));
+    return out;
+  }
+
+  void _openEntity(String entityType, String entityId) {
+    if (entityId.isEmpty) return;
+    final Widget? screen = () {
+      switch (entityType) {
+        case 'TASK':
+          return TaskDetailScreen(taskId: entityId);
+        case 'NOTE':
+          return NoteDetailScreen(noteId: entityId);
+        case 'GOAL':
+          return GoalDetailScreen(goalId: entityId);
+        case 'PROJECT':
+          return ProjectDetailScreen(projectId: entityId);
+        case 'HABIT':
+          return HabitDetailScreen(habitId: entityId);
+        case 'ROUTINE':
+          return RoutineDetailScreen(routineId: entityId);
+        default:
+          return null;
+      }
+    }();
     if (screen == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            kind == 'PERSON' ? 'People detail coming later' : 'No detail for $kind',
-          ),
-        ),
+        SnackBar(content: Text('Open $entityType from its hub for full detail')),
       );
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen))
+        .then((_) {
+      if (mounted) _load();
+    });
   }
 
-  Future<void> _export({bool encrypted = false}) async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    String? passphrase;
-    if (encrypted) {
-      final ctrl = TextEditingController();
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppTheme.metal,
-          title: const Text('Encrypt backup'),
-          content: TextField(
-            controller: ctrl,
-            obscureText: true,
-            style: const TextStyle(color: AppTheme.silver),
-            decoration: const InputDecoration(labelText: 'Passphrase'),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Encrypt')),
-          ],
-        ),
-      );
-      if (ok != true || ctrl.text.isEmpty) {
-        setState(() => _busy = false);
-        return;
-      }
-      passphrase = ctrl.text;
+  Color _dotColor(String eventType) {
+    if (eventType.contains('COMPLETED') ||
+        eventType.contains('PAID') ||
+        eventType.contains('REACHED')) {
+      return const Color(0xFF6BCB77);
     }
-    final result = await BackupIo(AppDatabase.instance).exportToFile(
-      encrypted: encrypted,
-      passphrase: passphrase,
-    );
-    if (!mounted) return;
-    setState(() => _busy = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result.ok ? (result.message ?? 'Exported') : (result.message ?? 'Export failed')),
-      ),
-    );
-  }
-
-  Future<void> _import() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    final result = await BackupIo(AppDatabase.instance).importFromFile();
-    if (!mounted) return;
-    setState(() => _busy = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.ok ? (result.message ?? 'Import complete') : (result.message ?? 'Import failed'),
-        ),
-      ),
-    );
-    if (result.ok) await widget.onChanged?.call();
-  }
-
-  Future<void> _integrity() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    final report = await IntegrityService().run(repair: true);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(report.summary)));
+    if (eventType.contains('MISSED') ||
+        eventType.contains('DELETED') ||
+        eventType.contains('SKIPPED')) {
+      return Colors.orangeAccent;
+    }
+    if (eventType.contains('EXPENSE') ||
+        eventType.contains('BILL') ||
+        eventType.contains('DEBT')) {
+      return AppTheme.woodLight;
+    }
+    if (eventType.contains('WORK_') || eventType.contains('SESSION')) {
+      return AppTheme.amber;
+    }
+    return AppTheme.silver.withValues(alpha: 0.5);
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-      children: [
-        TextField(
-          controller: _search,
-          style: const TextStyle(color: AppTheme.silver),
-          decoration: InputDecoration(
-            labelText: 'Search tasks, goals, notes…',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: IconButton(
-              tooltip: 'Full search',
-              icon: const Icon(Icons.open_in_new, size: 18),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SearchScreen()),
-                );
-              },
-            ),
-          ),
-          onChanged: _runSearch,
-        ),
-        if (_hits.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          ..._hits.map((h) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: GlassCard(
-                  onTap: () => _openHit(h),
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  child: ListTile(
-                    dense: true,
-                    title: Text(
-                      '${h['label'] ?? h['title'] ?? h['name'] ?? ''}',
-                      style: const TextStyle(color: AppTheme.silver),
-                    ),
-                    subtitle: Text(
-                      '${h['subtitle'] ?? h['kind'] ?? ''}',
-                      style: TextStyle(
-                        color: AppTheme.silver.withValues(alpha: 0.4),
-                        fontSize: 11,
-                      ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted, size: 18),
+    if (_loading && _groups.isEmpty) {
+      return const Center(child: CircularProgressIndicator(color: AppTheme.amber));
+    }
+
+    return RefreshIndicator(
+      color: AppTheme.amber,
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Suggestions',
+                  style: TextStyle(
+                    color: AppTheme.woodLight,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
                   ),
                 ),
-              )),
-        ],
-        const SizedBox(height: 12),
-        GlassCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.auto_stories_outlined, color: AppTheme.amber),
-                title: const Text('Your Life Timeline', style: TextStyle(color: AppTheme.silver)),
-                subtitle: Text(
-                  'What you did — personal history',
-                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11),
-                ),
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ActivityScreen()),
-                  );
-                },
               ),
-              ListTile(
-                leading: const Icon(Icons.alarm, color: AppTheme.amber),
-                title: const Text('Reminders', style: TextStyle(color: AppTheme.silver)),
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
-                onTap: () {
+              TextButton.icon(
+                onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const RemindersScreen()),
                   );
                 },
+                icon: const Icon(Icons.alarm, size: 18),
+                label: const Text('Reminders'),
               ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined, color: AppTheme.amber),
-                title: const Text('Settings', style: TextStyle(color: AppTheme.silver)),
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ..._suggestions.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GlassCard(
+                onTap: s.onTap,
+                child: Row(
+                  children: [
+                    Icon(s.icon, color: AppTheme.amber),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s.title,
+                            style: const TextStyle(
+                              color: AppTheme.silver,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            s.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppTheme.silver.withValues(alpha: 0.5),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (s.onTap != null)
+                      const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Activity',
+            style: TextStyle(
+              color: AppTheme.woodLight,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Everything worth remembering — tap a chip to open it.',
+            style: TextStyle(
+              color: AppTheme.silver.withValues(alpha: 0.4),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (_groups.isEmpty)
+            GlassCard(
+              child: Text(
+                'No activity yet. Complete a task, log an expense, or write a note — it will show up here.',
+                style: TextStyle(
+                  color: AppTheme.silver.withValues(alpha: 0.55),
+                  height: 1.4,
+                ),
+              ),
+            )
+          else
+            ..._groups.expand((g) {
+              return [
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  child: Text(
+                    g.label,
+                    style: const TextStyle(
+                      color: AppTheme.woodLight,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                ...g.entries.map((e) {
+                  final time = ActivityTimelineService.formatTime(e.occurredAt);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GlassCard(
+                      onTap: () => _openEntity(e.entityType, e.entityId),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: _dotColor(e.eventType),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  e.headline,
+                                  style: const TextStyle(
+                                    color: AppTheme.silver,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.35,
+                                  ),
+                                ),
+                                if (e.detail != null && e.detail!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    e.detail!,
+                                    style: TextStyle(
+                                      color: AppTheme.silver.withValues(alpha: 0.45),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            time,
+                            style: TextStyle(
+                              color: AppTheme.silver.withValues(alpha: 0.35),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   );
-                },
-              ),
-            ],
+                }),
+              ];
+            }),
+          const SizedBox(height: 16),
+          Text(
+            'Search is on the top bar · Settings holds backup & integrity',
+            style: TextStyle(
+              color: AppTheme.silver.withValues(alpha: 0.35),
+              fontSize: 11,
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        GlassCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.upload_file, color: AppTheme.amber),
-                title: const Text('Export backup', style: TextStyle(color: AppTheme.silver)),
-                onTap: _busy ? null : () => _export(),
-              ),
-              ListTile(
-                leading: const Icon(Icons.lock_outline, color: AppTheme.amber),
-                title: const Text('Export encrypted backup', style: TextStyle(color: AppTheme.silver)),
-                onTap: _busy ? null : () => _export(encrypted: true),
-              ),
-              ListTile(
-                leading: const Icon(Icons.download, color: AppTheme.amber),
-                title: const Text('Import backup', style: TextStyle(color: AppTheme.silver)),
-                onTap: _busy ? null : _import,
-              ),
-              ListTile(
-                leading: const Icon(Icons.health_and_safety_outlined, color: AppTheme.amber),
-                title: const Text('Integrity check + repair', style: TextStyle(color: AppTheme.silver)),
-                onTap: _busy ? null : _integrity,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Ordin is fully offline. Your data stays on this device.',
-          style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 12),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
