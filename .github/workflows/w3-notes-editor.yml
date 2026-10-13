@@ -1,0 +1,33 @@
+name: W3 notes editor
+on:
+  push:
+    branches:
+      - fix/w3-notes-editor
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/w3-notes-editor
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply W3 patches
+        run: |
+          set -e
+          git fetch origin main --depth=1 || true
+          python3 tools/w3_notes_editor.py
+          rm -f tools/w3_notes_editor.py .github/workflows/w3-notes-editor.yml
+          rmdir tools 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo no change
+          else
+            git commit -m "fix(w3): Add note opens full editor; multiline body field"
+            git push origin fix/w3-notes-editor
+          fi
