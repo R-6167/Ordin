@@ -186,10 +186,11 @@ class _HomeShellState extends State<HomeShell> {
     bool runMaintenance = false,
   }) async {
     final startedAt = DateTime.now();
+    final reloadId = AppDatabase.newId();
     final want = domains == null || domains.isEmpty
         ? DataDomain.values.toSet()
         : domains;
-    DiagnosticService.instance.record('home_reload_started', category: 'refresh', details: {'domain': want.map((d) => d.name).join(',')});
+    DiagnosticService.instance.record('home_reload_started', category: 'refresh', correlationId: reloadId, details: {'domain': want.map((d) => d.name).join(',')});
     if (kDebugMode) {
       debugPrint('[RefreshTrace] HomeShell reload start '
           'domains=${want.map((d) => d.name).join(',')} maintenance=$runMaintenance');
@@ -345,6 +346,7 @@ class _HomeShellState extends State<HomeShell> {
       'home_reload_completed',
       category: 'refresh',
       durationMs: elapsedMs,
+      correlationId: reloadId,
       details: {'domain': want.map((d) => d.name).join(','), 'duration_ms': elapsedMs},
     );
     if (kDebugMode) {
