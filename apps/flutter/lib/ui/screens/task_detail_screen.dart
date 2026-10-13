@@ -43,6 +43,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] TaskDetail initState taskId=${widget.taskId}');
+    }
     _title = TextEditingController();
     _desc = TextEditingController();
     _load();
@@ -50,12 +53,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   @override
   void dispose() {
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] TaskDetail dispose taskId=${widget.taskId}');
+    }
     _title.dispose();
     _desc.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] TaskDetail load start taskId=${widget.taskId}');
+    }
     final t = await _tasks.getById(widget.taskId);
     final d = await _tasks.descriptionOf(widget.taskId);
     final projects = await _projects.listActive();
@@ -64,6 +73,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         .countDependentsWaiting(widget.taskId);
     final rule = await _tasks.getRecurrenceRule(widget.taskId);
     if (!mounted) return;
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] TaskDetail load complete taskId=${widget.taskId}');
+    }
     setState(() {
       _task = t;
       _description = d;
