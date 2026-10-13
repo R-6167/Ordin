@@ -4,6 +4,7 @@ import '../../data/database.dart';
 import '../../data/planning_repository.dart';
 import '../../data/project_repository.dart';
 import '../../data/task_repository.dart';
+import '../../data/task_dependency_queries.dart';
 import '../../domain/enums.dart';
 import '../../domain/models.dart';
 import '../../services/app_data_bus.dart';
@@ -29,6 +30,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   String? _description;
   List<Project> _projectOptions = [];
   List<Map<String, Object?>> _deps = [];
+  int _unlocksCount = 0;
   RecurrenceRule? _rule;
   bool _loading = true;
   bool _editing = false;
@@ -58,6 +60,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     final d = await _tasks.descriptionOf(widget.taskId);
     final projects = await _projects.listActive();
     final deps = await _tasks.dependencies(widget.taskId);
+    final unlocks = await TaskDependencyQueries(AppDatabase.instance)
+        .countDependentsWaiting(widget.taskId);
     final rule = await _tasks.getRecurrenceRule(widget.taskId);
     if (!mounted) return;
     setState(() {
@@ -65,6 +69,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       _description = d;
       _projectOptions = projects;
       _deps = deps;
+      _unlocksCount = unlocks;
       _rule = rule;
       if (t != null) {
         _title.text = t.title;
@@ -413,48 +418,118 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       for (final d in _deps) d['depends_on_task_id'] as String?,
     };
     final options = [
-      for (final t in candidates)
-        if (t.id != widget.taskId && !existing.contains(t.id)) t,
+      for (final task in candidates)
+        if (task.id != widget.taskId && !existing.contains(task.id)) task,
     ];
     if (!mounted) return;
     if (options.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No other tasks available to depend on.')),
+        const SnackBar(content: Text('No other open tasks to depend on.')),
       );
       return;
     }
     final chosen = await showModalBottomSheet<Task>(
       context: context,
       backgroundColor: AppTheme.metalDeep,
-      builder: (ctx) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('Blocked by which task?',
-                  style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
-            ),
-            ...options.map(
-              (t) => ListTile(
-                title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-                onTap: () => Navigator.pop(ctx, t),
+      isScrollControlled: true,
+      builder: (ctx) {
+        var filter = '';
+        return StatefulBuilder(
+          builder: (ctx, setLocal) {
+            final filtered = [
+              for (final task in options)
+                if (filter.isEmpty ||
+                    task.title.toLowerCase().contains(filter.toLowerCase()))
+                  task,
+            ];
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+                ),
+                child: SizedBox(
+                  height: MediaQuery.sizeOf(ctx).height * 0.55,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          'This task is blocked until…',
+                          style: TextStyle(
+                            color: AppTheme.silver,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TextField(
+                          autofocus: true,
+                          style: const TextStyle(color: AppTheme.silver),
+                          decoration: const InputDecoration(
+                            hintText: 'Search tasks',
+                            prefixIcon:
+                                Icon(Icons.search, color: AppTheme.silverMuted),
+                          ),
+                          onChanged: (v) => setLocal(() => filter = v),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No matches',
+                                  style: TextStyle(
+                                    color:
+                                        AppTheme.silver.withValues(alpha: 0.45),
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: filtered.length,
+                                itemBuilder: (_, i) {
+                                  final task = filtered[i];
+                                  return ListTile(
+                                    title: Text(
+                                      task.title,
+                                      style: const TextStyle(
+                                          color: AppTheme.silver),
+                                    ),
+                                    onTap: () => Navigator.pop(ctx, task),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
     if (chosen == null) return;
     try {
-      await _tasks.addDependency(taskId: widget.taskId, dependsOnTaskId: chosen.id);
+      await _tasks.addDependency(
+        taskId: widget.taskId,
+        dependsOnTaskId: chosen.id,
+      );
       AppDataBus.instance.tasksChanged();
       await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Blocked by "${chosen.title}"')),
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not add dependency: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not add dependency: $e')),
+        );
+      }
     }
   }
 
@@ -624,30 +699,89 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                   ),
                 ],
               ),
+              if (_unlocksCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'Completing this unlocks $_unlocksCount other task${_unlocksCount == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      color: AppTheme.amber.withValues(alpha: 0.85),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
               if (_deps.isEmpty)
-                Text('No blockers · this task can be scheduled freely',
-                    style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45), fontSize: 12))
+                Text(
+                  'No blockers · this task can be scheduled freely. Tap Add to require another task first.',
+                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45), fontSize: 12),
+                )
               else
-                ..._deps.map((d) => Padding(
-                      padding: const EdgeInsets.only(top: 4),
+                ..._deps.map((d) {
+                  final depId = '${d['depends_on_task_id'] ?? ''}';
+                  final title = '${d['depends_on_title'] ?? depId}';
+                  final status = '${d['depends_on_status'] ?? ''}'.toUpperCase();
+                  final open = status.isNotEmpty &&
+                      status != 'COMPLETED' &&
+                      status != 'CANCELLED';
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: GlassCard(
+                      onTap: depId.isEmpty
+                          ? null
+                          : () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      TaskDetailScreen(taskId: depId),
+                                ),
+                              );
+                              if (mounted) await _load();
+                            },
                       child: Row(
                         children: [
+                          Icon(
+                            open ? Icons.lock_outline : Icons.lock_open,
+                            size: 18,
+                            color: open
+                                ? Colors.orangeAccent
+                                : const Color(0xFF6BCB77),
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: Text(
-                              '• ${d['depends_on_title'] ?? d['depends_on_task_id']}',
-                              style: const TextStyle(color: AppTheme.silver),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    color: AppTheme.silver,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  open
+                                      ? 'Still open · blocks this task'
+                                      : 'Done · no longer blocking',
+                                  style: TextStyle(
+                                    color: AppTheme.silver.withValues(alpha: 0.45),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           IconButton(
                             tooltip: 'Remove dependency',
-                            icon: const Icon(Icons.close, size: 16, color: AppTheme.silver),
-                            onPressed: () => _removeDependency(
-                              d['depends_on_task_id'] as String,
-                            ),
+                            icon: const Icon(Icons.close,
+                                size: 16, color: AppTheme.silver),
+                            onPressed: () => _removeDependency(depId),
                           ),
                         ],
                       ),
-                    )),
+                    ),
+                  );
+                }),
               RelatedLinksSection(entityType: 'TASK', entityId: t.id),
               const SizedBox(height: 16),
               WorkSessionPanel(taskId: t.id),

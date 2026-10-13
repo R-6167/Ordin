@@ -719,15 +719,40 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               const Text('Dependencies',
                   style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              ...ws.dependencies.map((d) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: GlassCard(
-                      child: Text(
-                        'Blocked by: ${dbStr(d['depends_on_title'])} (${dbStr(d['depends_on_status'])})',
-                        style: const TextStyle(color: AppTheme.silver, fontSize: 13),
-                      ),
+              ...ws.dependencies.map((d) {
+                final taskId = dbStr(d['task_id']);
+                final depTitle = dbStr(d['depends_on_title']);
+                final st = dbStr(d['depends_on_status']).toUpperCase();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: GlassCard(
+                    onTap: taskId.isEmpty ? null : () => _openTaskDetails(taskId),
+                    child: Row(
+                      children: [
+                        Icon(
+                          st == 'COMPLETED' || st == 'CANCELLED'
+                              ? Icons.lock_open
+                              : Icons.lock_outline,
+                          size: 18,
+                          color: st == 'COMPLETED' || st == 'CANCELLED'
+                              ? const Color(0xFF6BCB77)
+                              : Colors.orangeAccent,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Waits on $depTitle · $st',
+                            style: const TextStyle(
+                                color: AppTheme.silver, fontSize: 13),
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right,
+                            color: AppTheme.silverMuted, size: 18),
+                      ],
                     ),
-                  )),
+                  ),
+                );
+              }),
             ],
 
             // —— Scheduled sessions ——
