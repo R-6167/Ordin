@@ -83,7 +83,7 @@ class _HomeShellState extends State<HomeShell> {
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
 
-  static const _titles = ['Today', 'Tasks', 'Life', 'Finance', 'More'];
+  static const _titles = ['Today', 'Tasks', 'Life', 'Finance', 'Timeline'];
 
   @override
   void initState() {
@@ -520,7 +520,10 @@ class _HomeShellState extends State<HomeShell> {
                 icon: Icon(Icons.account_balance_wallet_outlined),
                 selectedIcon: Icon(Icons.account_balance_wallet),
                 label: 'Finance'),
-            NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+            NavigationDestination(
+                icon: Icon(Icons.view_timeline_outlined),
+                selectedIcon: Icon(Icons.view_timeline),
+                label: 'Timeline'),
           ],
         ),
       ),
