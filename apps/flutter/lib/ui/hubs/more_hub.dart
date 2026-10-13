@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
@@ -12,7 +11,7 @@ import '../screens/project_detail_screen.dart';
 import '../screens/reminders_screen.dart';
 import '../screens/routine_detail_screen.dart';
 import '../screens/task_detail_screen.dart';
-import '../screens/assistant_screen.dart';
+import '../assistant_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
@@ -107,7 +106,6 @@ class _MoreHubState extends State<MoreHub> {
     final Widget? screen = () {
       switch (entityType) {
         case 'TASK':
-        case 'WORK_SESSION':
           return TaskDetailScreen(taskId: entityId);
         case 'NOTE':
           return NoteDetailScreen(noteId: entityId);
