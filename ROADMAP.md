@@ -1,7 +1,7 @@
 # Personal Life OS — Remaining work
 
 **Current:** Flutter offline client · Ordin  
-**Last updated:** 2026-10-13 — Stability waves (refresh / Schedule / notes / Timeline)
+**Last updated:** 2026-10-13 — W4 record expense in progress
 
 Keep this list ordered by **impact**. Check items off when merged to `main`.
 
@@ -27,8 +27,11 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 - [ ] Turn lines → tasks respects paragraphs / bullets
 
 ### W4 — Finance expense path
-- [ ] Record expense saves and shows on ledger (in progress)
-- [ ] Confirmation snackbar; no refresh on cancel (in progress)
+- [x] Validation feedback when amount/description missing
+- [x] Success/error snackbar after save
+- [x] Refresh ledger only when save succeeds (cancel stays put)
+- [x] Amount label uses user currency (UserPrefs)
+- [ ] Device confirm: expense appears on Recent ledger
 
 ### W5 — More → Timeline
 - [ ] Rename/repurpose More tab as **Timeline**
