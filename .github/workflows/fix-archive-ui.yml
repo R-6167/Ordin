@@ -1,0 +1,29 @@
+name: Fix archive UI compile
+on:
+  push:
+    branches:
+      - feature/archive-cascade-phase1
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/archive-cascade-phase1
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          set -e
+          python3 tools/fix_archive_ui.py
+          rm -f tools/fix_archive_ui.py .github/workflows/fix-archive-ui.yml
+          rmdir tools 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo no change
+          else
+            git commit -m "fix: place archive methods on State classes; theme color"
+            git push origin feature/archive-cascade-phase1
+          fi
