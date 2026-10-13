@@ -1,32 +1,65 @@
 # Personal Life OS — Remaining work
 
-**Current:** Flutter offline client `0.19.0` · schema v20  
-**Last updated:** Phase 3 Universal Recurrence
+**Current:** Flutter offline client · Ordin  
+**Last updated:** 2026-10-13 — Stability waves (refresh / Schedule / notes / Timeline)
 
 Keep this list ordered by **impact**. Check items off when merged to `main`.
 
 ---
 
+## Stability waves (active)
+
+### W1 — Refresh honesty
+- [x] Root cause map: shell `setState` + over-broad `AppDataBus` notifies
+- [ ] FAB `+ Add` uses **domain-scoped** notify (not `allChanged`)
+- [ ] Finance **Record expense** refreshes only on successful save
+- [ ] Schedule / Day plan: fix **unmodifiable list** (`Cannot add to an unmodifiable list`)
+- [ ] Stable list keys on Tasks rows (follow-up if flash remains)
+
+### W2 — Day plan / Schedule reliability
+- [ ] Empty day = empty state, not hard failure
+- [ ] Surface real engine errors cleanly
+- [ ] Build My Day succeeds on a normal day with open tasks
+
+### W3 — Notes writer path
+- [ ] Life / + Add note opens **note editor** (not single-line popup)
+- [ ] Multiline body + Enter creates real lines
+- [ ] Turn lines → tasks respects paragraphs / bullets
+
+### W4 — Finance expense path
+- [ ] Record expense saves and shows on ledger
+- [ ] Confirmation snackbar; no refresh on cancel
+
+### W5 — More → Timeline
+- [ ] Rename/repurpose More tab as **Timeline**
+- [ ] Chronological activity (tasks, expenses, notes, habits, …)
+- [ ] AI / intelligence suggestions on same screen
+- [ ] Settings / backup only under Settings (AppBar)
+- [ ] Remove duplicate search field (AppBar search only)
+
+### Phase 7 (scoped refresh) — engineering done, verify on device
+- [x] Debounce + stable tab keys (#57)
+- [x] Narrower domain reloads (#58)
+- [x] Sonar tools cleanup (#59)
+- [x] Schedule nav generation gate + note cursor (#60)
+- [x] Life hub nav generation gate (#61)
+- [ ] Device sign-off after W1–W2
+
+---
+
 ## Highest impact (active)
 
-- [x] Reminder lifecycle UI (create → notify → snooze → complete) — **More → Reminders**
-- [x] Hide balances applied on Finance amounts
-- [x] **User currency** — Settings currency drives all new amounts / UI (not hardcoded KES)
-- [x] Phase 2 planning engine (busy merge, deps, duration, Build My Day apply)
-- [x] Phase 3 universal recurrence (tasks + subscriptions + schedule columns)
 - [ ] Green APK every time (`flutter analyze` clean + release build)
-- [ ] Milestone + task dependency UX polish (create/complete already partial)
-- [ ] Real branded app icon (replace system drawable)
+- [ ] Milestone + task dependency UX polish
+- [ ] Real branded app icon
 - [ ] Short first-run onboarding tip
 - [ ] Smoke tests: import/export, pay bill, complete habit
 
-## Product depth (DOCX gaps)
+## Product depth
 
-- [x] Recurring **tasks** via task_recurrences + DomainRecurrence (complete → spawn next)
 - [ ] Recurring tasks **UI** (picker on task detail)
 - [ ] Calendar ↔ tasks bidirectional polish
 - [ ] Cash-flow period reconciliation UI
-- [x] Subscriptions recurrence (frequency / next_renewal via DomainRecurrence; pause/cancel/renew)
 - [ ] Subscriptions full **UI** lifecycle polish
 - [ ] People ↔ notes ↔ projects linking UX
 - [ ] Flexible / adaptive routines
@@ -45,31 +78,3 @@ Keep this list ordered by **impact**. Check items off when merged to `main`.
 - Cloud sync / accounts
 - Multi-device live merge (beyond backup file)
 - Biometrics (PIN is enough for v1)
-
----
-
-## Phase 2 — Planning Engine (2026-10-03)
-
-- [x] Busy intervals merged (blocks + calendar + scheduled tasks)
-- [x] `collectDayBusy` shared by availableMinutes + suggestSlots
-- [x] Slot suggestions respect duration against free gaps
-- [x] Dependencies block scheduling (`listBlockedTaskIds`)
-- [x] Task duration (estimate) drives fit (15–180 min)
-- [x] Atomic schedule/reschedule (task + block + history)
-- [x] Build My Day apply skips blocked tasks; sorts by score
-- [x] `listDueToday` / `listScheduledOnDay` restored on TaskRepository
-
-Still open: notification deep-link, adaptive routines, cash-flow UI.
-
----
-
-## Phase 3 — Universal Recurrence (2026-10-05)
-
-- [x] One brain: RecurrenceRule → OccurrenceGenerator → Occurrence
-- [x] domain_recurrence.dart shared adapter
-- [x] Habits / routines / bills on DomainRecurrence
-- [x] Tasks: setRecurrenceRule / getRecurrenceRule / spawn on complete / clearRecurrence
-- [x] Subscriptions: frequency, interval, next_renewal_at, renewSubscription
-- [x] Schema: task_recurrences full columns; subscription + schedule intervals
-- [ ] Recurring reminders series (optional)
-- [ ] Recurring practical responsibilities UI

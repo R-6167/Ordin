@@ -56,12 +56,12 @@ class DaySlot {
 
 /// Merge overlapping / adjacent locked day slots so gap math is not double-busy.
 List<DaySlot> mergeOverlappingDaySlots(List<DaySlot> slots) {
-  if (slots.isEmpty) return const [];
+  if (slots.isEmpty) return <DaySlot>[];
   final sorted = [
     for (final s in slots)
       if (s.end.isAfter(s.start)) s,
   ]..sort((a, b) => a.start.compareTo(b.start));
-  if (sorted.isEmpty) return const [];
+  if (sorted.isEmpty) return <DaySlot>[];
   final out = <DaySlot>[];
   var cur = sorted.first;
   for (var i = 1; i < sorted.length; i++) {
@@ -169,7 +169,7 @@ class BuildMyDayEngine {
     }
 
     final lockedRaw = await _collectLocked(d, dayStart, dayEnd);
-    var locked = mergeOverlappingDaySlots(lockedRaw);
+    var locked = List<DaySlot>.of(mergeOverlappingDaySlots(lockedRaw));
     final candidates = await _collectFlexible(d, locked, maxFlexible);
 
     if (includeLunchBreak) {
