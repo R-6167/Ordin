@@ -417,14 +417,27 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     final existing = {
       for (final d in _deps) d['depends_on_task_id'] as String?,
     };
+    // Dependencies are intentionally scoped to the same project by the
+    // repository contract. Filter here too, so users never select a task
+    // that will be rejected after they make their choice.
+    final currentProjectId = _task?.projectId;
     final options = [
       for (final task in candidates)
-        if (task.id != widget.taskId && !existing.contains(task.id)) task,
+        if (task.id != widget.taskId &&
+            task.projectId == currentProjectId &&
+            !existing.contains(task.id))
+          task,
     ];
     if (!mounted) return;
     if (options.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No other open tasks to depend on.')),
+        SnackBar(
+          content: Text(
+            currentProjectId == null
+                ? 'No other open, unassigned tasks to depend on.'
+                : 'No other open tasks in this project to depend on.',
+          ),
+        ),
       );
       return;
     }
