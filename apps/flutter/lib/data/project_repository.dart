@@ -202,4 +202,30 @@ class ProjectRepository {
       occurredAt: now,
     );
   }
+
+  /// Re-open a completed project (status back to active). Progress is still
+  /// derived from child tasks/milestones — no fabricated completion counts.
+  Future<void> reopen(String id) async {
+    final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
+    await AtomicWrite.run(
+      db: _db,
+      state: (txn) async {
+        await RelationshipValidator.validateProject(txn, ownerId: ownerId, projectId: id);
+        final changed = await txn.update(
+          'projects',
+          {'status': EntityStatus.active, 'updated_at': now},
+          where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+          whereArgs: [id, ownerId],
+        );
+        if (changed != 1) {
+          throw StateError('Project not found or not owned by the current user: $id');
+        }
+      },
+      eventType: 'PROJECT_REOPENED',
+      entityType: 'PROJECT',
+      entityId: id,
+      occurredAt: now,
+    );
+  }
 }

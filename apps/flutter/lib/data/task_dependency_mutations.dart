@@ -37,6 +37,29 @@ mixin TaskDependencyMutations {
           throw StateError('Dependency target not found or not owned: $dependsOnTaskId');
         }
 
+        final left = await txn.query(
+          'tasks',
+          columns: ['project_id'],
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [taskId, ownerId],
+          limit: 1,
+        );
+        final right = await txn.query(
+          'tasks',
+          columns: ['project_id'],
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [dependsOnTaskId, ownerId],
+          limit: 1,
+        );
+        final leftProject = left.isEmpty ? null : left.first['project_id'] as String?;
+        final rightProject = right.isEmpty ? null : right.first['project_id'] as String?;
+        if (leftProject != rightProject) {
+          throw StateError(
+            'Dependencies must stay within the same project '
+            '(task.project_id=$leftProject, depends_on.project_id=$rightProject).',
+          );
+        }
+
         final existing = await txn.query(
           'task_dependencies',
           columns: ['id'],

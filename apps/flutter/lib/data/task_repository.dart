@@ -287,15 +287,55 @@ class TaskRepository with TaskDependencyMutations {
       final targetGoalId = goalId == null
           ? current['goal_id'] as String?
           : (goalId.isEmpty ? null : goalId);
-      final targetMilestoneId = clearMilestone
+      var targetMilestoneId = clearMilestone
           ? null
           : (milestoneId ?? current['milestone_id'] as String?);
+      var resolvedGoalId = targetGoalId;
+
+      // Project reassignment: drop milestones that no longer belong, and align
+      // goal to the project's goal so the graph stays connected.
+      if (projectId != null) {
+        if (targetProjectId == null) {
+          if (targetMilestoneId != null && milestoneId == null && !clearMilestone) {
+            targetMilestoneId = null;
+            patch['milestone_id'] = null;
+          }
+        } else {
+          if (targetMilestoneId != null && milestoneId == null && !clearMilestone) {
+            final ms = await txn.query(
+              'milestones',
+              columns: ['id'],
+              where: 'id = ? AND project_id = ? AND owner_id = ?',
+              whereArgs: [targetMilestoneId, targetProjectId, ownerId],
+              limit: 1,
+            );
+            if (ms.isEmpty) {
+              targetMilestoneId = null;
+              patch['milestone_id'] = null;
+            }
+          }
+          if (goalId == null) {
+            final prow = await txn.query(
+              'projects',
+              columns: ['goal_id'],
+              where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+              whereArgs: [targetProjectId, ownerId],
+              limit: 1,
+            );
+            if (prow.isNotEmpty) {
+              final pg = prow.first['goal_id'] as String?;
+              resolvedGoalId = (pg != null && pg.isNotEmpty) ? pg : null;
+              patch['goal_id'] = resolvedGoalId;
+            }
+          }
+        }
+      }
 
       await RelationshipValidator.validateTaskLinks(
         txn,
         ownerId: ownerId,
         projectId: targetProjectId,
-        goalId: targetGoalId,
+        goalId: resolvedGoalId,
         milestoneId: targetMilestoneId,
         parentTaskId: current['parent_task_id'] as String?,
         taskId: id,
