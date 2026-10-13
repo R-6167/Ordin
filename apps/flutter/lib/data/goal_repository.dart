@@ -1,3 +1,4 @@
+import '../domain/archive_cascade.dart';
 import '../domain/enums.dart';
 import '../domain/models.dart';
 import 'atomic_write.dart';
@@ -268,6 +269,125 @@ required String title, String? description, int? targetDate, int priority = 0, S
         );
       },
       eventType: 'GOAL_COMPLETED',
+      entityType: 'GOAL',
+      entityId: id,
+      occurredAt: now,
+    );
+  }
+
+
+  /// Counts used by the archive confirmation sheet.
+  Future<Map<String, int>> archiveImpact(String goalId) async {
+    final ownerId = await _db.requireOwnerId();
+    final db = await _db.database;
+    final projects = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM projects '
+      'WHERE owner_id = ? AND goal_id = ? AND archived_at IS NULL',
+      [ownerId, goalId],
+    );
+    final directTasks = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM tasks '
+      'WHERE owner_id = ? AND goal_id = ? AND project_id IS NULL '
+      'AND archived_at IS NULL',
+      [ownerId, goalId],
+    );
+    final habits = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM habits '
+      'WHERE owner_id = ? AND goal_id = ? AND archived_at IS NULL',
+      [ownerId, goalId],
+    );
+    return {
+      'projects': (projects.first['c'] as int?) ?? 0,
+      'directTasks': (directTasks.first['c'] as int?) ?? 0,
+      'habits': (habits.first['c'] as int?) ?? 0,
+    };
+  }
+
+  /// Soft-archive a goal. See [ArchiveCascade] for child handling.
+  Future<void> archive(
+    String id, {
+    ArchiveCascade cascade = ArchiveCascade.parentOnly,
+  }) async {
+    final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
+    await AtomicWrite.run(
+      db: _db,
+      state: (txn) async {
+        final owned = await txn.query(
+          'goals',
+          columns: ['id'],
+          where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+          whereArgs: [id, ownerId],
+          limit: 1,
+        );
+        if (owned.isEmpty) {
+          throw StateError('Goal not found or already archived: $id');
+        }
+
+        if (cascade == ArchiveCascade.detachChildren) {
+          await txn.update(
+            'projects',
+            {'goal_id': null, 'updated_at': now},
+            where: 'goal_id = ? AND owner_id = ? AND archived_at IS NULL',
+            whereArgs: [id, ownerId],
+          );
+          await txn.update(
+            'tasks',
+            {'goal_id': null, 'updated_at': now},
+            where: 'goal_id = ? AND owner_id = ? AND archived_at IS NULL',
+            whereArgs: [id, ownerId],
+          );
+          await txn.update(
+            'habits',
+            {'goal_id': null, 'updated_at': now},
+            where: 'goal_id = ? AND owner_id = ? AND archived_at IS NULL',
+            whereArgs: [id, ownerId],
+          );
+        } else if (cascade == ArchiveCascade.withProjects) {
+          await txn.update(
+            'projects',
+            {'archived_at': now, 'updated_at': now},
+            where: 'goal_id = ? AND owner_id = ? AND archived_at IS NULL',
+            whereArgs: [id, ownerId],
+          );
+        }
+
+        final changed = await txn.update(
+          'goals',
+          {'archived_at': now, 'updated_at': now},
+          where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+          whereArgs: [id, ownerId],
+        );
+        if (changed != 1) {
+          throw StateError('Goal not found or already archived: $id');
+        }
+      },
+      eventType: 'GOAL_ARCHIVED',
+      entityType: 'GOAL',
+      entityId: id,
+      occurredAt: now,
+      metadata: '{"cascade":"${cascade.name}"}',
+    );
+  }
+
+  /// Clear archived_at so the goal returns to active lists.
+  Future<void> unarchive(String id) async {
+    final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
+    await AtomicWrite.run(
+      db: _db,
+      state: (txn) async {
+        final changed = await txn.update(
+          'goals',
+          {'archived_at': null, 'updated_at': now},
+          where: 'id = ? AND owner_id = ? AND archived_at IS NOT NULL',
+          whereArgs: [id, ownerId],
+        );
+        if (changed != 1) {
+          throw StateError('Goal not found or not archived: $id');
+        }
+      },
+      eventType: 'GOAL_UNARCHIVED',
       entityType: 'GOAL',
       entityId: id,
       occurredAt: now,

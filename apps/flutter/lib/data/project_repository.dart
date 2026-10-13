@@ -1,3 +1,4 @@
+import '../domain/archive_cascade.dart';
 import '../domain/enums.dart';
 import '../domain/models.dart';
 import 'atomic_write.dart';
@@ -223,6 +224,109 @@ class ProjectRepository {
         }
       },
       eventType: 'PROJECT_REOPENED',
+      entityType: 'PROJECT',
+      entityId: id,
+      occurredAt: now,
+    );
+  }
+
+
+  Future<Map<String, int>> archiveImpact(String projectId) async {
+    final ownerId = await _db.requireOwnerId();
+    final db = await _db.database;
+    final openTasks = await db.rawQuery(
+      "SELECT COUNT(*) AS c FROM tasks WHERE owner_id = ? AND project_id = ? "
+      "AND archived_at IS NULL AND status NOT IN (?, ?)",
+      [ownerId, projectId, EntityStatus.completed, EntityStatus.cancelled],
+    );
+    final milestones = await db.rawQuery(
+      'SELECT COUNT(*) AS c FROM milestones '
+      'WHERE owner_id = ? AND project_id = ?',
+      [ownerId, projectId],
+    );
+    return {
+      'openTasks': (openTasks.first['c'] as int?) ?? 0,
+      'milestones': (milestones.first['c'] as int?) ?? 0,
+    };
+  }
+
+  Future<void> archive(
+    String id, {
+    ArchiveCascade cascade = ArchiveCascade.parentOnly,
+  }) async {
+    final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
+    await AtomicWrite.run(
+      db: _db,
+      state: (txn) async {
+        await RelationshipValidator.validateProject(
+          txn,
+          ownerId: ownerId,
+          projectId: id,
+        );
+
+        if (cascade == ArchiveCascade.detachChildren) {
+          await txn.update(
+            'tasks',
+            {
+              'project_id': null,
+              'milestone_id': null,
+              'updated_at': now,
+            },
+            where: 'project_id = ? AND owner_id = ? AND archived_at IS NULL',
+            whereArgs: [id, ownerId],
+          );
+        } else if (cascade == ArchiveCascade.withOpenTasks) {
+          await txn.update(
+            'tasks',
+            {'archived_at': now, 'updated_at': now},
+            where:
+                'project_id = ? AND owner_id = ? AND archived_at IS NULL '
+                'AND status NOT IN (?, ?)',
+            whereArgs: [
+              id,
+              ownerId,
+              EntityStatus.completed,
+              EntityStatus.cancelled,
+            ],
+          );
+        }
+
+        final changed = await txn.update(
+          'projects',
+          {'archived_at': now, 'updated_at': now},
+          where: 'id = ? AND owner_id = ? AND archived_at IS NULL',
+          whereArgs: [id, ownerId],
+        );
+        if (changed != 1) {
+          throw StateError('Project not found or already archived: $id');
+        }
+      },
+      eventType: 'PROJECT_ARCHIVED',
+      entityType: 'PROJECT',
+      entityId: id,
+      occurredAt: now,
+      metadata: '{"cascade":"${cascade.name}"}',
+    );
+  }
+
+  Future<void> unarchive(String id) async {
+    final now = AppDatabase.nowMs();
+    final ownerId = await _db.requireOwnerId();
+    await AtomicWrite.run(
+      db: _db,
+      state: (txn) async {
+        final changed = await txn.update(
+          'projects',
+          {'archived_at': null, 'updated_at': now},
+          where: 'id = ? AND owner_id = ? AND archived_at IS NOT NULL',
+          whereArgs: [id, ownerId],
+        );
+        if (changed != 1) {
+          throw StateError('Project not found or not archived: $id');
+        }
+      },
+      eventType: 'PROJECT_UNARCHIVED',
       entityType: 'PROJECT',
       entityId: id,
       occurredAt: now,

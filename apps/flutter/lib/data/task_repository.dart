@@ -31,11 +31,15 @@ class TaskRepository with TaskDependencyMutations {
   Future<List<Task>> listOpen() async {
     final ownerId = await _db.requireOwnerId();
     final db = await _db.database;
-    final rows = await db.query(
-      'tasks',
-      where: 'owner_id = ? AND status NOT IN (?, ?) AND archived_at IS NULL',
-      whereArgs: [ownerId, EntityStatus.completed, EntityStatus.cancelled],
-      orderBy: 'priority DESC, due_at ASC, updated_at DESC',
+    final rows = await db.rawQuery(
+      'SELECT t.* FROM tasks t '
+      'WHERE t.owner_id = ? AND t.status NOT IN (?, ?) AND t.archived_at IS NULL '
+      'AND NOT EXISTS ('
+      '  SELECT 1 FROM projects p WHERE p.id = t.project_id '
+      '  AND p.owner_id = t.owner_id AND p.archived_at IS NOT NULL'
+      ') '
+      'ORDER BY t.priority DESC, t.due_at ASC, t.updated_at DESC',
+      [ownerId, EntityStatus.completed, EntityStatus.cancelled],
     );
     return rows.map(Task.fromMap).toList();
   }
@@ -44,12 +48,16 @@ class TaskRepository with TaskDependencyMutations {
     final now = AppDatabase.nowMs();
     final ownerId = await _db.requireOwnerId();
     final db = await _db.database;
-    final rows = await db.query(
-      'tasks',
-      where:
-          'owner_id = ? AND due_at IS NOT NULL AND due_at < ? AND status NOT IN (?, ?) AND archived_at IS NULL',
-      whereArgs: [ownerId, now, EntityStatus.completed, EntityStatus.cancelled],
-      orderBy: 'due_at ASC',
+    final rows = await db.rawQuery(
+      'SELECT t.* FROM tasks t '
+      'WHERE t.owner_id = ? AND t.due_at IS NOT NULL AND t.due_at < ? '
+      'AND t.status NOT IN (?, ?) AND t.archived_at IS NULL '
+      'AND NOT EXISTS ('
+      '  SELECT 1 FROM projects p WHERE p.id = t.project_id '
+      '  AND p.owner_id = t.owner_id AND p.archived_at IS NOT NULL'
+      ') '
+      'ORDER BY t.due_at ASC',
+      [ownerId, now, EntityStatus.completed, EntityStatus.cancelled],
     );
     return rows.map(Task.fromMap).toList();
   }
@@ -59,12 +67,16 @@ class TaskRepository with TaskDependencyMutations {
     final end = AppDatabase.endOfTodayMs();
     final ownerId = await _db.requireOwnerId();
     final db = await _db.database;
-    final rows = await db.query(
-      'tasks',
-      where:
-          'owner_id = ? AND due_at IS NOT NULL AND due_at >= ? AND due_at <= ? AND status NOT IN (?, ?) AND archived_at IS NULL',
-      whereArgs: [ownerId, start, end, EntityStatus.completed, EntityStatus.cancelled],
-      orderBy: 'priority DESC, due_at ASC',
+    final rows = await db.rawQuery(
+      'SELECT t.* FROM tasks t '
+      'WHERE t.owner_id = ? AND t.due_at IS NOT NULL AND t.due_at >= ? AND t.due_at <= ? '
+      'AND t.status NOT IN (?, ?) AND t.archived_at IS NULL '
+      'AND NOT EXISTS ('
+      '  SELECT 1 FROM projects p WHERE p.id = t.project_id '
+      '  AND p.owner_id = t.owner_id AND p.archived_at IS NOT NULL'
+      ') '
+      'ORDER BY t.priority DESC, t.due_at ASC',
+      [ownerId, start, end, EntityStatus.completed, EntityStatus.cancelled],
     );
     return rows.map(Task.fromMap).toList();
   }
