@@ -39,24 +39,29 @@ class ErrorLogService {
     String level = 'ERROR',
   }) async {
     if (!enabled) return;
-    try {
-      final db = await AppDatabase.instance.database;
-      String? ownerId;
+    // Detailed exception text and stack traces are development-only. Release
+    // builds keep the structured, redacted error type in DiagnosticService.
+    if (!kReleaseMode) {
       try {
-        ownerId = await AppDatabase.instance.requireOwnerId();
+        final db = await AppDatabase.instance.database;
+        String? ownerId;
+        try {
+          ownerId = await AppDatabase.instance.requireOwnerId();
+        } catch (_) {}
+        await db.insert('error_logs', {
+          'id': AppDatabase.newId(),
+          'owner_id': ownerId,
+          'level': level,
+          'message': message.length > 2000 ? message.substring(0, 2000) : message,
+          'stack': stack == null
+              ? null
+              : (stack.length > 8000 ? stack.substring(0, 8000) : stack),
+          'context': context,
+          'occurred_at': AppDatabase.nowMs(),
+        });
       } catch (_) {}
-      await db.insert('error_logs', {
-        'id': AppDatabase.newId(),
-        'owner_id': ownerId,
-        'level': level,
-        'message': message.length > 2000 ? message.substring(0, 2000) : message,
-        'stack': stack == null
-            ? null
-            : (stack.length > 8000 ? stack.substring(0, 8000) : stack),
-        'context': context,
-        'occurred_at': AppDatabase.nowMs(),
-      });
-    } catch (_) {}
+  
+    }
     await DiagnosticService.instance.record(
       'uncaught_exception',
       category: 'error',
