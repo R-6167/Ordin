@@ -1,20 +1,15 @@
-"""Merge origin/main into this branch and ensure due-date UX works with progress bars."""
+"""Merge origin/main; on conflict take main project_detail then re-apply due UX."""
 from pathlib import Path
 import subprocess
 import sys
 
 
-def sh(*args: str) -> None:
+def sh(*args: str, check: bool = True) -> subprocess.CompletedProcess:
     print('+', ' '.join(args))
-    subprocess.check_call(list(args))
-
-
-def show_main(path: str) -> str:
-    return subprocess.check_output(['git', 'show', f'origin/main:{path}'], text=True)
+    return subprocess.run(list(args), check=check, text=True, capture_output=True)
 
 
 def ensure_due_in_project(t: str) -> str:
-    # Helpers
     if '_setMilestoneDue' not in t:
         helpers = r'''
   Future<void> _setMilestoneDue(Map<String, Object?> m) async {
@@ -59,12 +54,10 @@ def ensure_due_in_project(t: str) -> str:
 '''
         marker = '  List<Map<String, Object?>> _blockedOpen(ProjectWorkspace ws) {'
         if marker not in t:
-            sys.exit('blockedOpen missing after merge')
+            sys.exit('blockedOpen missing')
         t = t.replace(marker, helpers + marker, 1)
 
-    # Due menu (never use IconButton.onLongPress)
-    if "value: 'set'" not in t or 'Set due date' not in t:
-        # Insert before Rename button if present
+    if 'Set due date' not in t:
         rename = (
             "                            IconButton(\n"
             "                              tooltip: 'Rename',\n"
@@ -93,22 +86,15 @@ def ensure_due_in_project(t: str) -> str:
             "                                    child: Text('Clear due date'),\n"
             "                                  ),\n"
             "                              ],\n"
-            "                            ),\n"
-            + rename
+            "                            ),\n" + rename
         )
         if rename not in t:
-            sys.exit('rename button missing')
+            sys.exit('rename button missing on main UI')
         t = t.replace(rename, menu, 1)
 
-    # Strip forbidden onLongPress if any
-    t = t.replace(
-        "                              onLongPress: () => _clearMilestoneDue(m),\n",
-        '',
-    )
+    t = t.replace("                              onLongPress: () => _clearMilestoneDue(m),\n", '')
 
-    # Append due label into progress-bar subtitle if not present
-    if "dueLabel" not in t and 'LinearProgressIndicator' in t:
-        # After label is built, append due info to the Text under the bar
+    if 'dueExtra' not in t and 'final label = msDone' in t:
         needle = (
             "                          final label = msDone\n"
             "                              ? (total == 0\n"
@@ -118,9 +104,7 @@ def ensure_due_in_project(t: str) -> str:
             "                                  ? 'No tasks yet'\n"
             "                                  : '$doneN of $total tasks');\n"
         )
-        if needle not in t:
-            print('progress label needle missing — skip label merge')
-        else:
+        if needle in t:
             inject = (
                 needle
                 + "                          final dueRaw = m['due_at'];\n"
@@ -138,14 +122,16 @@ def ensure_due_in_project(t: str) -> str:
                 + "                          final displayLabel = '$label$dueExtra';\n"
             )
             t = t.replace(needle, inject, 1)
-            t = t.replace(
+            old_txt = (
                 "                              Text(\n"
                 "                                label,\n"
                 "                                style: TextStyle(\n"
                 "                                  color: AppTheme.silver.withValues(alpha: 0.45),\n"
                 "                                  fontSize: 11,\n"
                 "                                ),\n"
-                "                              ),",
+                "                              ),"
+            )
+            new_txt = (
                 "                              Text(\n"
                 "                                displayLabel,\n"
                 "                                style: TextStyle(\n"
@@ -154,44 +140,41 @@ def ensure_due_in_project(t: str) -> str:
                 "                                      : AppTheme.silver.withValues(alpha: 0.45),\n"
                 "                                  fontSize: 11,\n"
                 "                                ),\n"
-                "                              ),",
-                1,
+                "                              ),"
             )
-            print('due on progress label')
+            if old_txt in t:
+                t = t.replace(old_txt, new_txt, 1)
     return t
 
 
 def ensure_db_model_repo() -> None:
-    # Prefer our branch versions if present; otherwise take from current tree after merge
-    db = Path('apps/flutter/lib/data/database.dart').read_text()
-    if 'schemaVersion = 29' not in db:
-        if 'schemaVersion = 28' in db:
-            db = db.replace('schemaVersion = 28;', 'schemaVersion = 29;', 1)
-            db = db.replace(
-                '        if (oldVersion < 28) await _migrateToV28(db);\n',
-                '        if (oldVersion < 28) await _migrateToV28(db);\n'
-                '        if (oldVersion < 29) await _migrateToV29(db);\n',
-                1,
+    dbp = Path('apps/flutter/lib/data/database.dart')
+    db = dbp.read_text()
+    if 'schemaVersion = 29' not in db and 'schemaVersion = 28' in db:
+        db = db.replace('schemaVersion = 28;', 'schemaVersion = 29;', 1)
+        db = db.replace(
+            '        if (oldVersion < 28) await _migrateToV28(db);\n',
+            '        if (oldVersion < 28) await _migrateToV28(db);\n'
+            '        if (oldVersion < 29) await _migrateToV29(db);\n',
+            1,
+        )
+        if '_migrateToV29' not in db:
+            insert_at = db.find('  Future<void> _migrateToV28')
+            end = db.find('\n  Future<void>', insert_at + 10)
+            if end < 0:
+                end = db.find('\n  Future<void> _executeIgnoringDuplicateColumn', insert_at)
+            db = (
+                db[:end]
+                + '\n  Future<void> _migrateToV29(Database db) async {\n'
+                + "    await _executeIgnoringDuplicateColumn(\n"
+                + "        db, 'ALTER TABLE milestones ADD COLUMN due_at INTEGER');\n"
+                + '  }\n'
+                + db[end:]
             )
-            if '_migrateToV29' not in db:
-                insert_at = db.find('  Future<void> _migrateToV28')
-                end = db.find('\n  Future<void>', insert_at + 10)
-                if end < 0:
-                    end = db.find('\n  Future<void> _executeIgnoringDuplicateColumn', insert_at)
-                db = (
-                    db[:end]
-                    + '\n  Future<void> _migrateToV29(Database db) async {\n'
-                    + "    await _executeIgnoringDuplicateColumn(\n"
-                    + "        db, 'ALTER TABLE milestones ADD COLUMN due_at INTEGER');\n"
-                    + '  }\n'
-                    + db[end:]
-                )
-            Path('apps/flutter/lib/data/database.dart').write_text(db)
-            print('db patched')
-        else:
-            print('unexpected schemaVersion')
+        dbp.write_text(db)
 
-    model = Path('apps/flutter/lib/domain/models.dart').read_text()
+    modelp = Path('apps/flutter/lib/domain/models.dart')
+    model = modelp.read_text()
     block = model[model.find('class Milestone'):model.find('class Task')]
     if 'dueAt' not in block:
         model = model.replace(
@@ -211,10 +194,10 @@ def ensure_db_model_repo() -> None:
             '        createdAt:',
             1,
         )
-        Path('apps/flutter/lib/domain/models.dart').write_text(model)
-        print('model patched')
+        modelp.write_text(model)
 
-    repo = Path('apps/flutter/lib/data/milestone_repository.dart').read_text()
+    repop = Path('apps/flutter/lib/data/milestone_repository.dart')
+    repo = repop.read_text()
     if 'Future<void> setDue' not in repo:
         extra = r'''
   Future<void> setDue({required String id, int? dueAtMs}) async {
@@ -257,13 +240,12 @@ def ensure_db_model_repo() -> None:
   }
 '''
         repo = repo.rstrip()
-        Path('apps/flutter/lib/data/milestone_repository.dart').write_text(
-            repo[:-1] + extra + '}\n'
-        )
-        print('repo patched')
+        repop.write_text(repo[:-1] + extra + '}\n')
 
-    schema = Path('apps/flutter/assets/schema.sql').read_text()
-    if 'due_at INTEGER' not in schema[schema.find('milestones'):schema.find('milestones') + 350]:
+    sp = Path('apps/flutter/assets/schema.sql')
+    schema = sp.read_text()
+    chunk = schema[schema.find('milestones'):schema.find('milestones') + 400]
+    if 'due_at' not in chunk:
         old = (
             'CREATE TABLE IF NOT EXISTS milestones (\n'
             '  id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, project_id TEXT, title TEXT NOT NULL,\n'
@@ -280,24 +262,33 @@ def ensure_db_model_repo() -> None:
             ');'
         )
         if old in schema:
-            Path('apps/flutter/assets/schema.sql').write_text(schema.replace(old, new, 1))
-            print('schema patched')
+            sp.write_text(schema.replace(old, new, 1))
 
 
 def main() -> None:
-    sh('git', 'fetch', 'origin', 'main', '--depth=50')
-    # merge main
-    try:
-        sh('git', 'merge', 'origin/main', '-m', 'merge main into milestone-due-dates')
-    except subprocess.CalledProcessError:
-        # accept ours/theirs for conflicts programmatically if any
-        print('merge conflict — aborting to inspect')
-        sys.exit(1)
-
+    sh('git', 'fetch', 'origin', 'main')
+    r = sh('git', 'merge', 'origin/main', '-m', 'merge main into milestone-due-dates', check=False)
+    if r.returncode != 0:
+        print(r.stdout)
+        print(r.stderr)
+        sh('git', 'checkout', '--theirs', 'apps/flutter/lib/ui/screens/project_detail_screen.dart')
+        status = sh('git', 'status', '--porcelain').stdout
+        print(status)
+        for line in status.splitlines():
+            if line.startswith('UU ') or line.startswith('AA '):
+                path = line[3:].strip()
+                if path.endswith('project_detail_screen.dart'):
+                    continue
+                sh('git', 'checkout', '--ours', path, check=False)
+                sh('git', 'add', path, check=False)
+        sh('git', 'add', 'apps/flutter/lib/ui/screens/project_detail_screen.dart')
     ensure_db_model_repo()
     pd = Path('apps/flutter/lib/ui/screens/project_detail_screen.dart')
     pd.write_text(ensure_due_in_project(pd.read_text()))
-    print('project ok')
+    sh('git', 'add', '-A')
+    if Path('.git/MERGE_HEAD').exists():
+        sh('git', 'commit', '-m', 'merge main; due dates + progress bars (no onLongPress)')
+    print('ready')
 
 
 if __name__ == '__main__':
