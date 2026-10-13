@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../data/database.dart';
+import 'diagnostic_service.dart';
 
 /// Stores Flutter errors and zone errors locally for offline diagnostics.
 class ErrorLogService {
@@ -56,6 +57,21 @@ class ErrorLogService {
         'occurred_at': AppDatabase.nowMs(),
       });
     } catch (_) {}
+    await DiagnosticService.instance.record(
+      'uncaught_exception',
+      category: 'error',
+      severity: 'error',
+      details: {
+        'operation': level,
+        'error_type': _errorType(message),
+      },
+    );
+  }
+
+  String _errorType(String message) {
+    final match = RegExp(r'^[A-Za-z_][A-Za-z0-9_.]*Exception|^[A-Za-z_][A-Za-z0-9_.]*Error')
+        .firstMatch(message.trim());
+    return match?.group(0) ?? 'UnhandledError';
   }
 
   Future<List<Map<String, Object?>>> recent({int limit = 50}) async {
