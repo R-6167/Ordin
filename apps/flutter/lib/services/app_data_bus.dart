@@ -15,6 +15,10 @@ enum DataDomain {
 /// Flow:
 ///   Repository write → AppDataBus.notify({DataDomain.tasks})
 ///   Tasks tab / Today tab listeners rebuild only their slice.
+///
+/// Dirty consumption is centralized in HomeShell ([takeDirty] once per
+/// generation). Route-return handlers must not invent a full-domain reload
+/// when the residual set is empty — use [domainsAfterRouteReturn].
 class AppDataBus extends ChangeNotifier {
   AppDataBus._();
   static final instance = AppDataBus._();
@@ -51,6 +55,7 @@ class AppDataBus extends ChangeNotifier {
   void allChanged() => notifyDomains(DataDomain.values.toSet());
 
   /// Consume dirty set (e.g. after a scoped reload).
+  /// Prefer a single consumer (HomeShell) so residual sets stay meaningful.
   Set<DataDomain> takeDirty() {
     final out = Set<DataDomain>.from(_dirty);
     _dirty.clear();
@@ -58,4 +63,14 @@ class AppDataBus extends ChangeNotifier {
   }
 
   bool isDirty(DataDomain domain) => _dirty.contains(domain);
+}
+
+/// Merge pending + residual dirty after a route returns.
+/// Intentionally never expands to [DataDomain.values] — empty means no reload.
+@visibleForTesting
+Set<DataDomain> domainsAfterRouteReturn({
+  required Set<DataDomain> pending,
+  required Set<DataDomain> residualDirty,
+}) {
+  return {...pending, ...residualDirty};
 }
