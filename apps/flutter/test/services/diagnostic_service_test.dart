@@ -28,7 +28,7 @@ void main() {
 
     test('bounds long allow-listed string values', () {
       final safe = DiagnosticService.sanitizeDetailsForTesting({
-        'reason': 'x' * 500,
+        'reason': List<String>.filled(500, 'x').join(),
       });
 
       expect((safe['reason'] as String).length, 120);
