@@ -57,6 +57,24 @@ class DiagnosticService {
       'details': jsonEncode(_safeDetails(details)),
     };
 
+    // Keep high-frequency refresh/lifecycle traces in a bounded memory queue.
+    // Persist them when diagnostics are opened/exported, avoiding concurrent DB
+    // writes during widget rebuilds and keeping the recorder out of hot paths.
+    if (severity != 'error' && severity != 'fatal') {
+      _remember(event);
+      return;
+    }
+    await _persist(event);
+  }
+
+  void _remember(Map<String, Object?> event) {
+    _memoryFallback.add(event);
+    if (_memoryFallback.length > maxMemoryEvents) {
+      _memoryFallback.removeAt(0);
+    }
+  }
+
+  Future<bool> _persist(Map<String, Object?> event) async {
     try {
       final db = await AppDatabase.instance.database;
       await db.insert('diagnostic_events', event);
@@ -65,11 +83,10 @@ class DiagnosticService {
         '(SELECT id FROM diagnostic_events ORDER BY occurred_at DESC LIMIT -1 OFFSET ?)',
         [maxPersistedEvents],
       );
+      return true;
     } catch (_) {
-      _memoryFallback.add(event);
-      if (_memoryFallback.length > maxMemoryEvents) {
-        _memoryFallback.removeAt(0);
-      }
+      _remember(event);
+      return false;
     }
   }
 
@@ -98,6 +115,13 @@ class DiagnosticService {
 
   Future<List<Map<String, Object?>>> recent({int limit = 200}) async {
     final safeLimit = limit.clamp(1, maxPersistedEvents).toInt();
+    // Persist queued development traces only when a developer explicitly
+    // opens or exports diagnostics, not during routine UI work.
+    final queued = List<Map<String, Object?>>.from(_memoryFallback);
+    for (final event in queued) {
+      final persisted = await _persist(event);
+      if (persisted) _memoryFallback.remove(event);
+    }
     try {
       final db = await AppDatabase.instance.database;
       return db.query(
