@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'services/diagnostic_service.dart';
 import 'services/error_log_service.dart';
 import 'services/local_analytics.dart';
 import 'services/notification_router.dart';
@@ -48,6 +49,7 @@ class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     final sec = SecurityService.instance;
     _unlocked = !(sec.lockEnabled && sec.hasPin);
+    DiagnosticService.instance.record('app_started', category: 'lifecycle');
     LocalAnalytics.instance.track('app_open');
   }
 
@@ -61,9 +63,11 @@ class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       SecurityService.instance.markBackground();
+      DiagnosticService.instance.record('app_background', category: 'lifecycle');
       LocalAnalytics.instance.track('app_background');
     }
     if (state == AppLifecycleState.resumed) {
+      DiagnosticService.instance.record('app_resumed', category: 'lifecycle');
       LocalAnalytics.instance.track('app_resume');
       OfflineRuntime.instance.runMaintenance();
       if (SecurityService.instance.shouldLockOnResume()) {
