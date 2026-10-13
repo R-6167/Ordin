@@ -83,6 +83,7 @@ class DiagnosticService {
     for (final entry in details.entries) {
       if (!_safeDetailKeys.contains(entry.key)) continue;
       final value = entry.value;
+      if (value is double && !value.isFinite) continue;
       if (value == null || value is bool || value is num) {
         safe[entry.key] = value;
       } else if (value is String) {
