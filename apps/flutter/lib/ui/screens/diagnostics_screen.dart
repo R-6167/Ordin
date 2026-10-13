@@ -140,87 +140,91 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
               ),
               const SizedBox(height: 12),
               if (_loading)
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: CircularProgressIndicator(color: AppTheme.amber),
-                ))
-              else if (_events.isEmpty)
-                const GlassCard(child: Text('No diagnostic events recorded yet.'))
-              if (!kReleaseMode) ...[
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text('Detailed development errors',
-                          style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
-                    ),
-                    if (_errors.isNotEmpty)
-                      TextButton(onPressed: _shareDetailedErrors, child: const Text('Share log')),
-                  ],
-                ),
-                if (_errors.isEmpty)
-                  Text('No detailed errors recorded.',
-                      style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.55)))
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(color: AppTheme.amber),
+                  ),
+                )
+              else ...[
+                if (_events.isEmpty)
+                  const GlassCard(child: Text('No diagnostic events recorded yet.'))
                 else
-                  ..._errors.map((error) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${error['level']} · ${error['occurred_at']}',
-                              style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Text('${error['message']}',
-                              maxLines: 4,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: AppTheme.silver, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  )),
-              ],
-              else
-                ..._events.map((event) {
-                  final name = event['event_name']?.toString() ?? 'event';
-                  final category = event['category']?.toString() ?? 'app';
-                  final severity = event['severity']?.toString() ?? 'info';
-                  final timestamp = event['occurred_at'];
-                  final date = timestamp is int
-                      ? DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal().toString()
-                      : 'Unknown time';
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GlassCard(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            severity == 'error' || severity == 'fatal'
-                                ? Icons.error_outline
-                                : Icons.timeline,
-                            color: severity == 'error' || severity == 'fatal'
-                                ? Colors.redAccent
-                                : AppTheme.seed,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(name, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
-                                Text('$category · $severity',
-                                    style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.65), fontSize: 12)),
-                                Text(date,
-                                    style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.5), fontSize: 11)),
-                              ],
+                  ..._events.map((event) {
+                    final name = event['event_name']?.toString() ?? 'event';
+                    final category = event['category']?.toString() ?? 'app';
+                    final severity = event['severity']?.toString() ?? 'info';
+                    final timestamp = event['occurred_at'];
+                    final date = timestamp is int
+                        ? DateTime.fromMillisecondsSinceEpoch(timestamp).toLocal().toString()
+                        : 'Unknown time';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GlassCard(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              severity == 'error' || severity == 'fatal'
+                                  ? Icons.error_outline
+                                  : Icons.timeline,
+                              color: severity == 'error' || severity == 'fatal'
+                                  ? Colors.redAccent
+                                  : AppTheme.seed,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(name, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                                  Text('$category · $severity',
+                                      style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.65), fontSize: 12)),
+                                  Text(date,
+                                      style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.5), fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                if (!kReleaseMode) ...[
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text('Detailed development errors',
+                            style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                      ),
+                      if (_errors.isNotEmpty)
+                        TextButton(onPressed: _shareDetailedErrors, child: const Text('Share log')),
+                    ],
+                  ),
+                  if (_errors.isEmpty)
+                    Text('No detailed errors recorded.',
+                        style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.55)))
+                  else
+                    ..._errors.map((error) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${error['level']} · ${error['occurred_at']}',
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                            const SizedBox(height: 4),
+                            Text('${error['message']}',
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: AppTheme.silver, fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    )),
+                ],
+              ],
             ],
           ),
         ),
