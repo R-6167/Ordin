@@ -520,6 +520,42 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
     );
   }
 
+
+  Future<void> _archiveGoal() async {
+    final impact = await _goals.archiveImpact(widget.goalId);
+    if (!mounted) return;
+    final result = await showArchiveSheet(
+      context: context,
+      title: 'Archive this goal?',
+      impact: {
+        'projects': impact['projects'] ?? 0,
+        'direct tasks': impact['directTasks'] ?? 0,
+        'habits': impact['habits'] ?? 0,
+      },
+      options: const [
+        (
+          mode: ArchiveCascade.parentOnly,
+          label: 'Archive goal only',
+          subtitle: 'Projects and tasks keep their link; goal leaves active lists.',
+        ),
+        (
+          mode: ArchiveCascade.withProjects,
+          label: 'Archive goal and its projects',
+          subtitle: 'Projects (and their boards) leave active lists with the goal.',
+        ),
+        (
+          mode: ArchiveCascade.detachChildren,
+          label: 'Detach children, then archive',
+          subtitle: 'Projects, direct tasks, and habits become independent.',
+        ),
+      ],
+    );
+    if (result == null || !mounted) return;
+    await _goals.archive(widget.goalId, cascade: result.cascade);
+    AppDataBus.instance.lifeChanged();
+    if (mounted) Navigator.pop(context);
+  }
+
 class _ProjectTreeCard extends StatelessWidget {
   const _ProjectTreeCard({
     required this.branch,
@@ -632,39 +668,5 @@ class _ProjectTreeCard extends StatelessWidget {
       ),
     );
   
-  Future<void> _archiveGoal() async {
-    final impact = await _goals.archiveImpact(widget.goalId);
-    if (!mounted) return;
-    final result = await showArchiveSheet(
-      context: context,
-      title: 'Archive this goal?',
-      impact: {
-        'projects': impact['projects'] ?? 0,
-        'direct tasks': impact['directTasks'] ?? 0,
-        'habits': impact['habits'] ?? 0,
-      },
-      options: const [
-        (
-          mode: ArchiveCascade.parentOnly,
-          label: 'Archive goal only',
-          subtitle: 'Projects and tasks keep their link; goal leaves active lists.',
-        ),
-        (
-          mode: ArchiveCascade.withProjects,
-          label: 'Archive goal and its projects',
-          subtitle: 'Projects (and their boards) leave active lists with the goal.',
-        ),
-        (
-          mode: ArchiveCascade.detachChildren,
-          label: 'Detach children, then archive',
-          subtitle: 'Projects, direct tasks, and habits become independent.',
-        ),
-      ],
-    );
-    if (result == null || !mounted) return;
-    await _goals.archive(widget.goalId, cascade: result.cascade);
-    AppDataBus.instance.lifeChanged();
-    if (mounted) Navigator.pop(context);
-  }
 }
 }

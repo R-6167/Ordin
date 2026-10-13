@@ -1021,6 +1021,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
     );
   
+}
+
   Future<void> _archiveProject() async {
     final impact = await _projects.archiveImpact(widget.projectId);
     if (!mounted) return;
@@ -1055,5 +1057,4 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     AppDataBus.instance.tasksChanged();
     if (mounted) Navigator.pop(context);
   }
-}
 }

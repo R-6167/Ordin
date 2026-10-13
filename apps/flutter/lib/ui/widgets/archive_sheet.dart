@@ -21,7 +21,7 @@ Future<ArchiveSheetResult?> showArchiveSheet({
   return showModalBottomSheet<ArchiveSheetResult>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppTheme.surface,
+    backgroundColor: AppTheme.metalDeep,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
