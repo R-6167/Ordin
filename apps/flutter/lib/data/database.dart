@@ -15,7 +15,7 @@ class AppDatabase {
   static const _uuid = Uuid();
 
   // Bump whenever the database schema/migration contract changes.
-  static const schemaVersion = 29;
+  static const schemaVersion = 30;
 
   Future<Database> get database async {
     if (_db != null) return _db!;
@@ -114,6 +114,7 @@ class AppDatabase {
         if (oldVersion < 27) await _migrateToV27(db);
         if (oldVersion < 28) await _migrateToV28(db);
         if (oldVersion < 29) await _migrateToV29(db);
+        if (oldVersion < 30) await _migrateToV30(db);
         await _verifySchemaContract(db);
       },
       onOpen: (db) async {
@@ -346,6 +347,11 @@ CREATE TABLE IF NOT EXISTS life_areas (
   Future<void> _migrateToV29(Database db) async {
     await _executeIgnoringDuplicateColumn(
         db, 'ALTER TABLE milestones ADD COLUMN due_at INTEGER');
+  }
+
+  Future<void> _migrateToV30(Database db) async {
+    // Idempotently create the bounded local diagnostics table and indexes.
+    await _applySchema(db);
   }
 
   Future<void> _migrateToV24(Database db) async {
