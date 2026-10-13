@@ -52,7 +52,7 @@ class DiagnosticService {
       'category': _bounded(category, 40),
       'severity': _bounded(severity, 16),
       'occurred_at': now,
-      'duration_ms': durationMs == null ? null : durationMs.clamp(0, 86400000),
+      'duration_ms': durationMs == null ? null : durationMs.clamp(0, 86400000).toInt(),
       'correlation_id': correlationId == null ? null : _bounded(correlationId, 80),
       'details': jsonEncode(_safeDetails(details)),
     };
