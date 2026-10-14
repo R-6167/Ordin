@@ -152,21 +152,70 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                 children: [
                   GlassCard(
-                    child: Row(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            DateFormat.yMMMEd().format(_day),
-                            style: const TextStyle(
-                                color: AppTheme.silver, fontWeight: FontWeight.w600),
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppTheme.brandBlueContainer,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_month_rounded,
+                                color: AppTheme.brandBlue,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Your timeline',
+                                    style: TextStyle(
+                                      color: AppTheme.silver,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    DateFormat.yMMMEd().format(_day),
+                                    style: TextStyle(
+                                      color: AppTheme.silver.withValues(alpha: 0.62),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        if (built != null)
-                          Text(
-                            '${built.plannedMinutes}m planned · ${built.freeMinutes}m free',
-                            style: TextStyle(
-                                color: AppTheme.silver.withValues(alpha: 0.55), fontSize: 12),
+                        if (built != null) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _ScheduleMetric(
+                                  label: 'PLANNED',
+                                  value: '${built.plannedMinutes} min',
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _ScheduleMetric(
+                                  label: 'TIME FREE',
+                                  value: '${built.freeMinutes} min',
+                                ),
+                              ),
+                            ],
                           ),
+                        ],
                       ],
                     ),
                   ),
