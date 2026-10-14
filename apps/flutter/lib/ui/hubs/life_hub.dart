@@ -19,6 +19,7 @@ import '../screens/project_detail_screen.dart';
 import '../screens/routine_detail_screen.dart';
 import '../screens/schedule_screen.dart';
 import '../screens/life_areas_screen.dart';
+import 'more_hub.dart';
 import '../screens/wellness_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
@@ -171,6 +172,12 @@ class _LifeHubState extends State<LifeHub> {
           title: 'Calendar',
           subtitle: 'Events & month grid',
           onTap: () => _open(const CalendarScreen()),
+        ),
+        _navCard(
+          icon: Icons.explore_outlined,
+          title: 'More tools & insights',
+          subtitle: 'Activity insights and quick suggestions',
+          onTap: () => _open(MoreHub(onChanged: widget.onChanged)),
         ),
         _navCard(
           icon: Icons.home_repair_service_outlined,
