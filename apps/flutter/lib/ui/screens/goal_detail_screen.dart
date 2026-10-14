@@ -235,9 +235,48 @@ class _GoalDetailScreenState extends State<GoalDetailScreen> {
             ),
             const SizedBox(height: 10),
             GlassCard(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppTheme.amber.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.flag_outlined,
+                          color: AppTheme.amber,
+                          size: 21,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'GOAL OVERVIEW',
+                          style: TextStyle(
+                            color: AppTheme.woodLight,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${(t.progressRatio * 100).round()}%',
+                        style: const TextStyle(
+                          color: AppTheme.amber,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
                       const Icon(Icons.explore, color: AppTheme.amber, size: 20),
