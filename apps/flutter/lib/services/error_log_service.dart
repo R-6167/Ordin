@@ -88,7 +88,7 @@ class ErrorLogService {
     // Error wrappers such as softFuture prepend `tasks.open: `, so look for
     // the exception class at the start or immediately after a wrapper label.
     final match = RegExp(
-      r'(?:^|:\\s*)([A-Za-z_][A-Za-z0-9_.]*(?:Exception|Error))\\b',
+      r'(?:^|:\s*)([A-Za-z_][A-Za-z0-9_.]*(?:Exception|Error))\b',
     ).firstMatch(message.trim());
     return match?.group(1) ?? 'UnhandledError';
   }
@@ -98,7 +98,7 @@ class ErrorLogService {
       _operationForTesting(message, fallback: fallback);
 
   static String _operationForTesting(String message, {required String fallback}) {
-    final match = RegExp(r'^([A-Za-z][A-Za-z0-9_.-]{0,79}):\\s+').firstMatch(message.trim());
+    final match = RegExp(r'^([A-Za-z][A-Za-z0-9_.-]{0,79}):\s+').firstMatch(message.trim());
     if (match == null) return fallback;
     final label = match.group(1)!;
     // Only keep compact, source-code-like operation labels, never arbitrary
