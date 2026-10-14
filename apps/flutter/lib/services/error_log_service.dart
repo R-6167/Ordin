@@ -72,16 +72,38 @@ class ErrorLogService {
       category: 'error',
       severity: 'error',
       details: {
-        'operation': level,
-        'error_type': _errorType(message),
+        // `softFuture` prefixes exceptions with a stable operation label
+        // (for example, `tasks.open: DatabaseException(...)`). Preserve that
+        // label, not just the broad SOFT/ZONE handler, for release diagnosis.
+        'operation': _operationForTesting(message, fallback: level),
+        'error_type': _errorTypeForTesting(message),
       },
     );
   }
 
-  String _errorType(String message) {
-    final match = RegExp(r'^[A-Za-z_][A-Za-z0-9_.]*Exception|^[A-Za-z_][A-Za-z0-9_.]*Error')
-        .firstMatch(message.trim());
-    return match?.group(0) ?? 'UnhandledError';
+  @visibleForTesting
+  static String errorTypeForTesting(String message) => _errorTypeForTesting(message);
+
+  static String _errorTypeForTesting(String message) {
+    // Error wrappers such as softFuture prepend `tasks.open: `, so look for
+    // the exception class at the start or immediately after a wrapper label.
+    final match = RegExp(
+      r'(?:^|:\s*)([A-Za-z_][A-Za-z0-9_.]*(?:Exception|Error))\b',
+    ).firstMatch(message.trim());
+    return match?.group(1) ?? 'UnhandledError';
+  }
+
+  @visibleForTesting
+  static String operationForTesting(String message, {String fallback = 'ERROR'}) =>
+      _operationForTesting(message, fallback: fallback);
+
+  static String _operationForTesting(String message, {required String fallback}) {
+    final match = RegExp(r'^([A-Za-z][A-Za-z0-9_.-]{0,79}):\s+').firstMatch(message.trim());
+    if (match == null) return fallback;
+    final label = match.group(1)!;
+    // Only keep compact, source-code-like operation labels, never arbitrary
+    // exception text or SQL statements.
+    return label;
   }
 
   Future<List<Map<String, Object?>>> recent({int limit = 50}) async {
