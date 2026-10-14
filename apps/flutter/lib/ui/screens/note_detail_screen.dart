@@ -483,9 +483,56 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               ),
             ] else ...[
               GlassCard(
-                child: Text(
-                  n.content,
-                  style: const TextStyle(color: AppTheme.silver, height: 1.45),
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: AppTheme.amber.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.notes_rounded,
+                            color: AppTheme.amber,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'NOTE CONTENT',
+                            style: TextStyle(
+                              color: AppTheme.woodLight,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${n.content.split('\n').where((line) => line.trim().isNotEmpty).length} lines',
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.4),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SelectableText(
+                      n.content,
+                      style: const TextStyle(
+                        color: AppTheme.silver,
+                        height: 1.55,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
