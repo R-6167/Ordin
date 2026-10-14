@@ -29,6 +29,7 @@ import 'forms/create_forms.dart';
 import 'hubs/finance_hub.dart';
 import 'hubs/life_hub.dart';
 import 'hubs/more_hub.dart';
+import 'screens/activity_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/project_detail_screen.dart';
@@ -603,17 +604,7 @@ class _HomeShellState extends State<HomeShell> {
             AppDataBus.instance.financeChanged();
           },
         ),
-        MoreHub(
-          key: const ValueKey('tab-more'),
-          onChanged: () async {
-            AppDataBus.instance.notifyDomains({
-              DataDomain.life,
-              DataDomain.finance,
-              DataDomain.today,
-              DataDomain.timeline,
-            });
-          },
-        ),
+        const ActivityScreen(key: ValueKey('tab-timeline')),
       ],
     );
   }
