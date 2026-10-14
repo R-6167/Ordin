@@ -37,6 +37,11 @@ class AppDataBus extends ChangeNotifier {
     if (domains.isEmpty) return;
     _dirty.addAll(domains);
     _generation++;
+    if (kDebugMode) {
+      debugPrint('[RefreshTrace] AppDataBus notify generation=$_generation '
+          'domains=${domains.map((d) => d.name).join(',')} '
+          'dirty=${_dirty.map((d) => d.name).join(',')}');
+    }
     notifyListeners();
   }
 
