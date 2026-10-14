@@ -6,6 +6,7 @@ import '../../data/feedback_repository.dart';
 import '../../services/local_analytics.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/load_error_state.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -18,6 +19,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   final _repo = FeedbackRepository(AppDatabase.instance);
   List<Map<String, Object?>> _items = [];
   bool _loading = true;
+  String? _loadError;
 
   @override
   void initState() {
@@ -27,12 +29,22 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   }
 
   Future<void> _load() async {
-    final items = await _repo.list();
-    if (!mounted) return;
-    setState(() {
-      _items = items;
-      _loading = false;
-    });
+    if (mounted) setState(() { _loading = true; _loadError = null; });
+    try {
+      final items = await _repo.list();
+      if (!mounted) return;
+      setState(() {
+        _items = items;
+        _loading = false;
+        _loadError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Feedback and bug notes could not be loaded.';
+      });
+    }
   }
 
   Future<void> _add() async {
@@ -108,6 +120,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         appBar: AppBar(
           title: const Text('Feedback & bugs'),
           actions: [
+            IconButton(
+              tooltip: 'Refresh feedback',
+              icon: const Icon(Icons.refresh),
+              onPressed: _loading ? null : _load,
+            ),
             IconButton(icon: const Icon(Icons.ios_share), onPressed: _shareAll),
           ],
         ),
@@ -118,7 +135,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator(color: AppTheme.amber))
-            : _items.isEmpty
+            : _loadError != null
+                ? LoadErrorState(
+                    title: 'Feedback unavailable',
+                    message: _loadError!,
+                    onRetry: _load,
+                    icon: Icons.feedback_outlined,
+                  )
+                : _items.isEmpty
                 ? Center(
                     child: Text(
                       'Log feedback or bugs offline.\nShare later when you choose.',
