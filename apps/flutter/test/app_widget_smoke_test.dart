@@ -86,11 +86,22 @@ void main() {
 
     // Tabs are created lazily; visit Life before asserting its State survives
     // a later parent/domain refresh.
-    await tester.tap(find.text('Life').last);
-    // Boot/repository work is asynchronous in CI; give the tab time to mount.
-    for (var i = 0; i < 50 && find.byType(LifeHub).evaluate().isEmpty; i++) {
+    final lifeDestination = find.byWidgetPredicate(
+      (widget) => widget is NavigationDestination && widget.label == 'Life',
+    );
+    expect(lifeDestination, findsOneWidget);
+    await tester.tap(lifeDestination);
+
+    // Wait for HomeShell boot and tab selection, not merely for a widget that
+    // may not exist while the shell is still showing its loading/error state.
+    final lifeTitle = find.descendant(
+      of: find.byType(AppBar),
+      matching: find.text('Life'),
+    );
+    for (var i = 0; i < 80 && lifeTitle.evaluate().isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
+    expect(lifeTitle, findsOneWidget);
     expect(find.byType(LifeHub), findsOneWidget);
 
     final lifeHubStateBefore = tester.state(find.byType(LifeHub));
