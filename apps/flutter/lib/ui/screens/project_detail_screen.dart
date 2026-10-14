@@ -494,6 +494,108 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
+            // Project summary: progress and relationships stay visible above the
+            // detailed workspace sections.
+            GlassCard(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(11),
+                        decoration: BoxDecoration(
+                          color: AppTheme.brandBlueContainer,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Icon(
+                          Icons.workspaces_outline,
+                          color: AppTheme.brandBlue,
+                          size: 23,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                color: AppTheme.silver,
+                                fontSize: 20,
+                                height: 1.2,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              goalTitle == null ? 'Project workspace' : 'Goal · $goalTitle',
+                              style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.62),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${(ws.progressRatio * 100).round()}%',
+                        style: const TextStyle(
+                          color: AppTheme.brandBlue,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (desc != null && desc.trim().isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      desc,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.silver.withValues(alpha: 0.72),
+                        height: 1.4,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 15),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: ws.progressRatio.clamp(0.0, 1.0).toDouble(),
+                      minHeight: 6,
+                      backgroundColor: AppTheme.silver.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ProjectSummaryMetric(
+                          label: 'MILESTONES',
+                          value: '${ws.milestonesDone}/${ws.milestonesTotal}',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ProjectSummaryMetric(
+                          label: 'TASKS DONE',
+                          value: '${ws.tasksDone}/${ws.tasksTotal}',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
             // —— Overview / chain ——
             LifeChainBanner(
               steps: const ['Goal', 'Project', 'Milestone', 'Task', 'Schedule', 'Done'],
