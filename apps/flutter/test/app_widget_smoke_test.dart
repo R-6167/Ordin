@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ordin/services/app_data_bus.dart';
 import 'package:ordin/services/error_log_service.dart';
 import 'package:ordin/services/local_analytics.dart';
 import 'package:ordin/ui/home_shell.dart';
+import 'package:ordin/ui/hubs/life_hub.dart';
 
 import 'helpers/test_db.dart';
 
@@ -66,6 +68,34 @@ void main() {
     );
 
     // Unmount the stateful shell so no route animation survives the test.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('domain refresh keeps existing tab State alive', (tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    AppDataBus.instance.takeDirty();
+    await tester.pumpWidget(const MaterialApp(home: HomeShell()));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final lifeHubStateBefore = tester.state(find.byType(LifeHub));
+    AppDataBus.instance.lifeChanged();
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(
+      identical(lifeHubStateBefore, tester.state(find.byType(LifeHub))),
+      isTrue,
+      reason: 'A parent/domain refresh must rebuild the tab without recreating its State',
+    );
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
   });
