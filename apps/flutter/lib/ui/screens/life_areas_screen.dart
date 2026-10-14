@@ -143,6 +143,44 @@ class _LifeAreasScreenState extends State<LifeAreasScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                GlassCard(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: AppTheme.amber.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(Icons.dashboard_customize_outlined,
+                            color: AppTheme.amber),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Your life, organized',
+                                style: TextStyle(
+                                    color: AppTheme.silver,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_areas.length} active ${_areas.length == 1 ? 'area' : 'areas'} · open an area to manage its goals and projects',
+                              style: TextStyle(
+                                  color: AppTheme.silver.withValues(alpha: 0.55),
+                                  fontSize: 12,
+                                  height: 1.35),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text(
                   'Organize goals and projects by domain of life. '
                   'Areas are configurable — not a fixed list.',
