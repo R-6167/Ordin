@@ -20,6 +20,7 @@ class _PracticalLifeScreenState extends State<PracticalLifeScreen> {
   List<Map<String, Object?>> _appointments = [];
   List<Map<String, Object?>> _shopping = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -28,18 +29,28 @@ class _PracticalLifeScreenState extends State<PracticalLifeScreen> {
   }
 
   Future<void> _load() async {
-    final docs = await _ext.listDocuments();
-    final practical = await _ext.listPractical();
-    final appointments = await _ext.listUpcomingAppointments(days: 30);
-    final shopping = await _ext.listShoppingLists();
-    if (!mounted) return;
-    setState(() {
-      _docs = docs;
-      _practical = practical;
-      _appointments = appointments;
-      _shopping = shopping;
-      _loading = false;
-    });
+    if (mounted) setState(() { _loading = true; _error = null; });
+    try {
+      final docs = await _ext.listDocuments();
+      final practical = await _ext.listPractical();
+      final appointments = await _ext.listUpcomingAppointments(days: 30);
+      final shopping = await _ext.listShoppingLists();
+      if (!mounted) return;
+      setState(() {
+        _docs = docs;
+        _practical = practical;
+        _appointments = appointments;
+        _shopping = shopping;
+        _loading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loading = false; _error = 'Could not load practical-life items.'; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Practical life failed to load: $e')),
+      );
+    }
   }
 
   String _fmtDue(Object? ms) {
@@ -196,6 +207,19 @@ class _PracticalLifeScreenState extends State<PracticalLifeScreen> {
     await _load();
   }
 
+  Widget _overviewChip(IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceRaised.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 16, color: AppTheme.amber),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(color: AppTheme.silver, fontSize: 12)),
+        ]),
+      );
+
   Widget _section(String title, VoidCallback onAdd, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,12 +251,63 @@ class _PracticalLifeScreenState extends State<PracticalLifeScreen> {
     return GlassBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Practical life')),
+        appBar: AppBar(
+          title: const Text('Practical life'),
+          actions: [
+            IconButton(
+              tooltip: 'Refresh practical-life items',
+              icon: const Icon(Icons.refresh),
+              onPressed: _loading ? null : _load,
+            ),
+          ],
+        ),
         body: _loading
             ? const Center(child: CircularProgressIndicator(color: AppTheme.amber))
-            : ListView(
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.cloud_off_outlined, color: AppTheme.amber, size: 36),
+                          const SizedBox(height: 12),
+                          Text(_error!, textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppTheme.silver)),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: _load,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try again'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
+                  GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Life admin overview',
+                            style: TextStyle(color: AppTheme.silver, fontSize: 16, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _overviewChip(Icons.description_outlined, '${_docs.length} documents'),
+                            _overviewChip(Icons.build_outlined, '${_practical.length} items to track'),
+                            _overviewChip(Icons.event_outlined, '${_appointments.length} upcoming'),
+                            _overviewChip(Icons.shopping_basket_outlined, '${_shopping.length} lists'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     'Documents, vehicle, maintenance, warranties, shopping — all feed Needs Attention when due.',
                     style: TextStyle(
