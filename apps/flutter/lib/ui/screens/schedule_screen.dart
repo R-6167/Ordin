@@ -75,6 +75,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
+  Future<void> _changeDay(int offset) async {
+    setState(() {
+      _day = _day.add(Duration(days: offset));
+      _built = null;
+      _loading = true;
+    });
+    await _load();
+  }
+
   Future<void> _apply() async {
     if (_built == null) return;
     final n = await _engine.apply(_built!);
@@ -123,6 +132,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         appBar: AppBar(
           title: const Text('Schedule'),
           actions: [
+            IconButton(
+              tooltip: 'Previous day',
+              icon: const Icon(Icons.chevron_left),
+              onPressed: _loading ? null : () => _changeDay(-1),
+            ),
+            IconButton(
+              tooltip: 'Next day',
+              icon: const Icon(Icons.chevron_right),
+              onPressed: _loading ? null : () => _changeDay(1),
+            ),
             if (trayHint > 0)
               Padding(
                 padding: const EdgeInsets.only(right: 8),
