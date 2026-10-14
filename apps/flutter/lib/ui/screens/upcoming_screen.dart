@@ -296,7 +296,7 @@ class _UpcomingScreenState extends State<UpcomingScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.glass,
+                            color: AppTheme.glassFill,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppTheme.glassBorder),
                           ),
