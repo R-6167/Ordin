@@ -84,6 +84,7 @@ class _HomeShellState extends State<HomeShell> {
   Set<String> _blockedIds = {};
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
+  int _refreshTraceBuildCount = 0;
 
   static const _titles = ['Today', 'Tasks', 'Life', 'Finance', 'Timeline'];
 
@@ -460,6 +461,13 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      _refreshTraceBuildCount++;
+      debugPrint('[RefreshTrace] HomeShell build #$_refreshTraceBuildCount '
+          'tab=$_tab ready=$_ready error=${_error != null} '
+          'reloadInFlight=${_reloadInFlight != null} '
+          'pendingDomains=${_pendingDomains.map((d) => d.name).join(',')}');
+    }
     return GlassBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
