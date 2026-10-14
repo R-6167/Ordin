@@ -28,7 +28,6 @@ import 'assistant_screen.dart';
 import 'forms/create_forms.dart';
 import 'hubs/finance_hub.dart';
 import 'hubs/life_hub.dart';
-import 'hubs/more_hub.dart';
 import 'screens/activity_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/search_screen.dart';
