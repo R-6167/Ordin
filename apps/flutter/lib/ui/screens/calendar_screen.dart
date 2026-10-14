@@ -129,6 +129,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
     await _load();
   }
 
+  String _monthLabel(DateTime d) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    return '${months[d.month - 1]} ${d.year}';
+  }
+
+  String _dayLabel(DateTime d) {
+    const weekdays = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    ];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final today = DateTime.now();
+    final isToday = d.year == today.year && d.month == today.month && d.day == today.day;
+    return '${isToday ? 'Today · ' : ''}${weekdays[d.weekday - 1]}, ${months[d.month - 1]} ${d.day}';
+  }
+
   String _fmtDate(int ms) {
     final d = DateTime.fromMillisecondsSinceEpoch(ms);
     return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} '
@@ -207,7 +228,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             Expanded(
               child: Text(
-                '${_month.year}-${_month.month.toString().padLeft(2, '0')}',
+                _monthLabel(_month),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600),
               ),
@@ -261,16 +282,95 @@ class _CalendarScreenState extends State<CalendarScreen> {
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                 children: [
+                  GlassCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.brandBlueContainer,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.calendar_month_rounded,
+                              color: AppTheme.brandBlue, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Make room for what matters',
+                                  style: TextStyle(
+                                    color: AppTheme.silver,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                  )),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_monthEvents.length} ${_monthEvents.length == 1 ? 'event' : 'events'} this month · ${_reminders.length} pending ${_reminders.length == 1 ? 'reminder' : 'reminders'}',
+                                style: TextStyle(
+                                  color: AppTheme.silver.withValues(alpha: 0.5),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   GlassCard(child: _monthGrid()),
                   const SizedBox(height: 16),
-                  Text(
-                    'Selected ${_selected.year}-${_selected.month.toString().padLeft(2, '0')}-${_selected.day.toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _dayLabel(_selected),
+                          style: const TextStyle(
+                            color: AppTheme.woodLight,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: _addEvent,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add event'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   if (dayEvents.isEmpty)
-                    Text('No events this day',
-                        style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)))
+                    GlassCard(
+                      child: Row(
+                        children: [
+                          Icon(Icons.event_available_rounded,
+                              color: AppTheme.silver.withValues(alpha: 0.4), size: 26),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('A little space in your day',
+                                    style: TextStyle(
+                                      color: AppTheme.silver,
+                                      fontWeight: FontWeight.w600,
+                                    )),
+                                const SizedBox(height: 4),
+                                Text('No events planned for this date yet.',
+                                    style: TextStyle(
+                                      color: AppTheme.silver.withValues(alpha: 0.45),
+                                      fontSize: 12,
+                                    )),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
                   else
                     ...dayEvents.map((e) => Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -291,8 +391,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   if (_reminders.isEmpty)
-                    Text('No pending reminders',
-                        style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35)))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'No pending reminders. New reminders will appear here with quick snooze and completion controls.',
+                        style: TextStyle(
+                          color: AppTheme.silver.withValues(alpha: 0.45),
+                          fontSize: 12,
+                        ),
+                      ),
+                    )
                   else
                     ..._reminders.map((r) {
                       final source = r['source_type'] as String?;
