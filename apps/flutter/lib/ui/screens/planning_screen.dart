@@ -828,3 +828,44 @@ class _PlanningScreenState extends State<PlanningScreen> {
     );
   }
 }
+
+ 
+class _PlanningMetric extends StatelessWidget {
+  const _PlanningMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceRaised.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.silver.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppTheme.silver,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppTheme.silver.withValues(alpha: 0.5),
+                fontSize: 9,
+                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+}
