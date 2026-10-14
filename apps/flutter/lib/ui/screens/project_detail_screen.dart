@@ -33,6 +33,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   ProjectWorkspace? _ws;
   String? _loadError;
   bool _loading = true;
+  int _refreshTraceBuildCount = 0;
 
   final _projects = ProjectRepository(AppDatabase.instance);
   final _milestonesRepo = MilestoneRepository(AppDatabase.instance);
@@ -425,6 +426,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      _refreshTraceBuildCount++;
+      debugPrint('[RefreshTrace] ProjectDetail build #$_refreshTraceBuildCount '
+          'projectId=${widget.projectId} loading=$_loading '
+          'hasWorkspace=${_ws != null} error=${_loadError != null}');
+    }
     if (_loading && _ws == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppTheme.amber)));
     }

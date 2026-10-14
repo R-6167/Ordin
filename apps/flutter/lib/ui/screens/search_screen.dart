@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/database.dart';
@@ -28,10 +29,12 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, Object?>> _hits = [];
   bool _loading = false;
   String? _error;
+  int _refreshTraceBuildCount = 0;
 
   @override
   void initState() {
     super.initState();
+    if (kDebugMode) debugPrint('[RefreshTrace] Search initState');
     final q = widget.initialQuery?.trim();
     if (q != null && q.isNotEmpty) {
       _ctrl.text = q;
@@ -42,6 +45,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    if (kDebugMode) debugPrint('[RefreshTrace] Search dispose');
     _ctrl.dispose();
     _focus.dispose();
     super.dispose();
@@ -121,6 +125,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      _refreshTraceBuildCount++;
+      debugPrint('[RefreshTrace] Search build #$_refreshTraceBuildCount '
+          'queryLength=${_ctrl.text.length} loading=$_loading '
+          'focus=${_focus.hasFocus} hits=${_hits.length}');
+    }
     return Scaffold(
       backgroundColor: AppTheme.metalDeep,
       appBar: AppBar(

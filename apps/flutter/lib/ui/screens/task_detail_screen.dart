@@ -38,6 +38,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   late TextEditingController _title;
   late TextEditingController _desc;
   int _priority = 0;
+  int _refreshTraceBuildCount = 0;
   DateTime? _due;
   String? _projectId;
 
@@ -574,6 +575,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      _refreshTraceBuildCount++;
+      debugPrint('[RefreshTrace] TaskDetail build #$_refreshTraceBuildCount '
+          'taskId=${widget.taskId} loading=$_loading editing=$_editing');
+    }
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: AppTheme.amber)));
     }
