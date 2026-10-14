@@ -84,6 +84,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
+    // Tabs are created lazily; visit Life before asserting its State survives
+    // a later parent/domain refresh.
+    await tester.tap(find.text('Life').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(LifeHub), findsOneWidget);
+
     final lifeHubStateBefore = tester.state(find.byType(LifeHub));
     AppDataBus.instance.lifeChanged();
     for (var i = 0; i < 20; i++) {
