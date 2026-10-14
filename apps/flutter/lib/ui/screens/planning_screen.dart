@@ -503,18 +503,75 @@ class _PlanningScreenState extends State<PlanningScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                   children: [
-                    Text(dayLabel,
-                        style: const TextStyle(
-                            color: AppTheme.silver,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 6),
-                    Text(
-                      built == null
-                          ? '$_freeMin min free'
-                          : '${built.plannedMinutes} min planned · ${built.freeMinutes} min still free',
-                      style: TextStyle(
-                          color: AppTheme.silver.withValues(alpha: 0.5), fontSize: 13),
+                    GlassCard(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.brandBlueContainer,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.auto_awesome_rounded,
+                                  color: AppTheme.brandBlue,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      dayLabel,
+                                      style: const TextStyle(
+                                        color: AppTheme.silver,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Make room for what matters.',
+                                      style: TextStyle(
+                                        color: AppTheme.silver.withValues(alpha: 0.58),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _PlanningMetric(
+                                  label: 'PLANNED',
+                                  value: built == null
+                                      ? '0 min'
+                                      : '${built.plannedMinutes} min',
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _PlanningMetric(
+                                  label: 'TIME FREE',
+                                  value: built == null
+                                      ? '$_freeMin min'
+                                      : '${built.freeMinutes} min',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     if (built != null &&
                         built.timeline.isEmpty &&
