@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
@@ -44,7 +48,23 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     setState(() => _busy = true);
     try {
       final report = await DiagnosticService.instance.exportJson(limit: 500);
-      await Share.share(report, subject: 'Ordin diagnostic report');
+      final stamp = DateTime.now()
+          .toUtc()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .replaceAll('.', '-');
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Ordin diagnostic report',
+        fileName: 'ordin-diagnostics-$stamp.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        bytes: Uint8List.fromList(utf8.encode(report)),
+      );
+      if (savedPath != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Diagnostic JSON saved')),
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +118,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             IconButton(
               tooltip: 'Export diagnostic report',
               onPressed: _busy ? null : _export,
-              icon: const Icon(Icons.ios_share),
+              icon: const Icon(Icons.save_alt),
             ),
             IconButton(
               tooltip: 'Clear diagnostics',
@@ -131,8 +151,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: _busy ? null : _export,
-                        icon: const Icon(Icons.ios_share),
-                        label: Text(_busy ? 'Preparing…' : 'Export diagnostic report'),
+                        icon: const Icon(Icons.save_alt),
+                        label: Text(_busy ? 'Preparing…' : 'Save diagnostic JSON'),
                       ),
                     ),
                   ],
