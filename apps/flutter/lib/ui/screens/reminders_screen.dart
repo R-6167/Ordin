@@ -21,6 +21,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
   final _ext = ExtendedRepository(AppDatabase.instance);
   List<Map<String, Object?>> _pending = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -29,12 +30,22 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Future<void> _load() async {
-    final rows = await _ext.listPendingReminders();
-    if (!mounted) return;
-    setState(() {
-      _pending = rows;
-      _loading = false;
-    });
+    if (mounted) setState(() { _loading = true; _error = null; });
+    try {
+      final rows = await _ext.listPendingReminders();
+      if (!mounted) return;
+      setState(() {
+        _pending = rows;
+        _loading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _loading = false; _error = 'Could not load reminders.'; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Reminders failed to load: $e')),
+      );
+    }
   }
 
   Future<void> _resyncNotifs() async {
@@ -157,6 +168,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
           title: const Text('Reminders'),
           actions: [
             IconButton(
+              tooltip: 'Refresh reminders',
+              icon: const Icon(Icons.refresh),
+              onPressed: _loading ? null : _load,
+            ),
+            IconButton(
               tooltip: 'Resync notifications',
               icon: const Icon(Icons.sync),
               onPressed: () async {
@@ -177,7 +193,28 @@ class _RemindersScreenState extends State<RemindersScreen> {
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator(color: AppTheme.amber))
-            : _pending.isEmpty
+            : _error != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.notifications_off_outlined, color: AppTheme.amber, size: 36),
+                          const SizedBox(height: 12),
+                          Text(_error!, textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppTheme.silver)),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: _load,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try again'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _pending.isEmpty
                 ? Center(
                     child: Text(
                       'No pending reminders.\nAuto-generated from tasks, bills, habits…',
