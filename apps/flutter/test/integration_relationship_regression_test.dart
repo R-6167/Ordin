@@ -4,6 +4,7 @@ import 'package:ordin/data/goal_repository.dart';
 import 'package:ordin/data/milestone_repository.dart';
 import 'package:ordin/data/project_repository.dart';
 import 'package:ordin/data/task_repository.dart';
+import 'package:ordin/services/project_workspace.dart';
 import 'package:ordin/domain/enums.dart';
 
 import 'helpers/test_db.dart';
@@ -52,6 +53,14 @@ void main() {
         contains(task.id));
     expect((await milestones.listForProject(project.id)).map((m) => m.id),
         contains(milestone.id));
+
+    // Exercise the aggregate read used when opening Project Details.
+    final workspace = await ProjectWorkspaceService(appDb).load(project.id);
+    expect(workspace.goal?['id'], goal.id);
+    expect(workspace.milestones.map((m) => m['id']), contains(milestone.id));
+    expect(workspace.tasks.map((t) => t['id']), contains(task.id));
+    expect(workspace.tasksTotal, 1);
+    expect(workspace.milestonesTotal, 1);
 
     await tasks.update(
       id: task.id,
