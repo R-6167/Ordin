@@ -636,19 +636,109 @@ class _HomeShellState extends State<HomeShell> {
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           GlassCard(
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_greeting,
-                    style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.55), fontSize: 13)),
-                const SizedBox(height: 4),
-                const Text('What needs attention',
-                    style:
-                        TextStyle(color: AppTheme.silver, fontSize: 20, fontWeight: FontWeight.w700)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _greeting,
+                            style: TextStyle(
+                              color: AppTheme.silver.withValues(alpha: 0.65),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'What needs attention',
+                            style: TextStyle(
+                              color: AppTheme.silver,
+                              fontSize: 22,
+                              height: 1.15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.brandBlueContainer,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.wb_sunny_outlined,
+                        color: AppTheme.brandBlue,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TodayMetric(
+                        icon: Icons.schedule_rounded,
+                        label: 'TIME AVAILABLE',
+                        value: '~${_freeMinutes ~/ 60}h',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _TodayMetric(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'SPENT THIS MONTH',
+                        value: '$_currency $spend',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const PlanningScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.auto_awesome, size: 18),
+                        label: const Text('Plan my day'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    IconButton.filledTonal(
+                      tooltip: 'Refresh today',
+                      onPressed: () => _reload(
+                        domains: {
+                          DataDomain.tasks,
+                          DataDomain.life,
+                          DataDomain.finance,
+                          DataDomain.today,
+                        },
+                        runMaintenance: true,
+                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  'Pull to refresh · ~${_freeMinutes ~/ 60}h free · $_currency $spend spent',
-                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.4), fontSize: 11),
+                  'Pull down to refresh your overview.',
+                  style: TextStyle(
+                    color: AppTheme.silver.withValues(alpha: 0.42),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -878,4 +968,55 @@ class _HomeShellState extends State<HomeShell> {
       ),
     );
   }
+}
+
+ 
+class _TodayMetric extends StatelessWidget {
+  const _TodayMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceRaised.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.silver.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 17, color: AppTheme.brandBlue),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppTheme.silver,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 2,
+              style: TextStyle(
+                color: AppTheme.silver.withValues(alpha: 0.48),
+                fontSize: 9,
+                letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
 }

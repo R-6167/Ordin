@@ -625,6 +625,72 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
+            if (!_editing)
+              GlassCard(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(11),
+                          decoration: BoxDecoration(
+                            color: done
+                                ? Colors.green.withValues(alpha: 0.14)
+                                : AppTheme.brandBlueContainer,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Icon(
+                            done ? Icons.task_alt_rounded : Icons.checklist_rounded,
+                            color: done ? Colors.greenAccent : AppTheme.brandBlue,
+                            size: 23,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            t.title,
+                            style: const TextStyle(
+                              color: AppTheme.silver,
+                              fontSize: 20,
+                              height: 1.2,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _TaskInfoPill(
+                          icon: done ? Icons.check_circle_outline : Icons.radio_button_unchecked,
+                          label: done ? 'Completed' : t.status.toLowerCase().replaceAll('_', ' '),
+                          highlighted: done,
+                        ),
+                        _TaskInfoPill(
+                          icon: Icons.flag_outlined,
+                          label: _priority >= 2
+                              ? 'Urgent priority'
+                              : _priority == 1
+                                  ? 'High priority'
+                                  : 'Normal priority',
+                        ),
+                        _TaskInfoPill(
+                          icon: Icons.event_outlined,
+                          label: _due == null
+                              ? 'No due date'
+                              : 'Due ${_due!.day}/${_due!.month}/${_due!.year}',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             if (_editing) ...[
               TextField(
                 controller: _title,
@@ -817,4 +883,52 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       ),
     );
   }
+}
+
+ 
+class _TaskInfoPill extends StatelessWidget {
+  const _TaskInfoPill({
+    required this.icon,
+    required this.label,
+    this.highlighted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: highlighted
+              ? Colors.green.withValues(alpha: 0.13)
+              : AppTheme.surfaceRaised.withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: highlighted
+                ? Colors.green.withValues(alpha: 0.25)
+                : AppTheme.silver.withValues(alpha: 0.1),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: highlighted ? Colors.greenAccent : AppTheme.brandBlue,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppTheme.silver.withValues(alpha: 0.9),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
 }
