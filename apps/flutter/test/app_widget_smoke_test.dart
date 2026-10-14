@@ -87,8 +87,10 @@ void main() {
     // Tabs are created lazily; visit Life before asserting its State survives
     // a later parent/domain refresh.
     await tester.tap(find.text('Life').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    // Boot/repository work is asynchronous in CI; give the tab time to mount.
+    for (var i = 0; i < 50 && find.byType(LifeHub).evaluate().isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(find.byType(LifeHub), findsOneWidget);
 
     final lifeHubStateBefore = tester.state(find.byType(LifeHub));
