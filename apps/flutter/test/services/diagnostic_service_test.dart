@@ -45,10 +45,8 @@ void main() {
       expect(safe, {'widget': 'HomeShell'});
     });
   });
-}
 
-
-group('ErrorLogService safe error fingerprints', () {
+  group('ErrorLogService safe error fingerprints', () {
   test('extracts exception type after softFuture operation prefix', () {
     expect(
       ErrorLogService.errorTypeForTesting(
@@ -75,4 +73,5 @@ group('ErrorLogService safe error fingerprints', () {
     );
     expect(ErrorLogService.errorTypeForTesting('unexpected failure'), 'UnhandledError');
   });
-});
+  });
+}
