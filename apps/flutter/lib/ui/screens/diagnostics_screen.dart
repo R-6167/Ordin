@@ -10,6 +10,7 @@ import '../../services/diagnostic_service.dart';
 import '../../services/error_log_service.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/load_error_state.dart';
 
 class DiagnosticsScreen extends StatefulWidget {
   const DiagnosticsScreen({super.key});
@@ -23,6 +24,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   List<Map<String, Object?>> _errors = const [];
   bool _loading = true;
   bool _busy = false;
+  String? _loadError;
 
   @override
   void initState() {
@@ -31,16 +33,26 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   }
 
   Future<void> _load() async {
-    final events = await DiagnosticService.instance.recent(limit: 200);
-    final errors = kReleaseMode
-        ? <Map<String, Object?>>[]
-        : await ErrorLogService.instance.recent(limit: 30);
-    if (!mounted) return;
-    setState(() {
-      _events = events;
-      _errors = errors;
-      _loading = false;
-    });
+    if (mounted) setState(() { _loading = true; _loadError = null; });
+    try {
+      final events = await DiagnosticService.instance.recent(limit: 200);
+      final errors = kReleaseMode
+          ? <Map<String, Object?>>[]
+          : await ErrorLogService.instance.recent(limit: 30);
+      if (!mounted) return;
+      setState(() {
+        _events = events;
+        _errors = errors;
+        _loading = false;
+        _loadError = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Diagnostic events could not be loaded.';
+      });
+    }
   }
 
   Future<void> _export() async {
@@ -167,7 +179,14 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   ),
                 )
               else ...[
-                if (_events.isEmpty)
+                if (_loadError != null)
+                  LoadErrorState(
+                    title: 'Diagnostics unavailable',
+                    message: _loadError!,
+                    onRetry: _load,
+                    icon: Icons.monitor_heart_outlined,
+                  )
+                else if (_events.isEmpty)
                   const GlassCard(child: Text('No diagnostic events recorded yet.'))
                 else
                   ..._events.map((event) {
