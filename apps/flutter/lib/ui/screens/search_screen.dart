@@ -4,6 +4,7 @@ import '../../data/database.dart';
 import '../../data/extended_repository.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/load_error_state.dart';
 import 'goal_detail_screen.dart';
 import 'habit_detail_screen.dart';
 import 'life_area_detail_screen.dart';
@@ -28,6 +29,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, Object?>> _hits = [];
   bool _loading = false;
   String? _error;
+  int _requestGeneration = 0;
 
   @override
   void initState() {
@@ -37,7 +39,9 @@ class _SearchScreenState extends State<SearchScreen> {
       _ctrl.text = q;
       _run(q);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
   }
 
   @override
@@ -48,6 +52,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _run(String q) async {
+    final generation = ++_requestGeneration;
     final needle = q.trim();
     if (needle.length < 2) {
       setState(() {
@@ -63,19 +68,24 @@ class _SearchScreenState extends State<SearchScreen> {
     });
     try {
       final hits = await ExtendedRepository(AppDatabase.instance).search(needle);
-      if (!mounted) return;
+      if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _hits = hits;
         _loading = false;
       });
-    } catch (e) {
-      if (!mounted) return;
+    } catch (_) {
+      if (!mounted || generation != _requestGeneration) return;
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = 'Search could not be completed. Check your local data and try again.';
         _hits = [];
       });
     }
+  }
+
+  void _clearSearch() {
+    _ctrl.clear();
+    _run('');
   }
 
   void _openHit(Map<String, Object?> h) {
@@ -96,7 +106,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            kind == 'PERSON' ? 'People detail screen not available yet' : 'No detail for $kind',
+            kind == 'PERSON' ? 'People detail screen is not available yet' : 'No detail for $kind',
           ),
         ),
       );
@@ -121,6 +131,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final queryLength = _ctrl.text.trim().length;
     return Scaffold(
       backgroundColor: AppTheme.metalDeep,
       appBar: AppBar(
@@ -129,7 +140,7 @@ class _SearchScreenState extends State<SearchScreen> {
           focusNode: _focus,
           style: const TextStyle(color: AppTheme.silver),
           decoration: const InputDecoration(
-            hintText: 'Search everything…',
+            hintText: 'Search tasks, goals, projects, notes…',
             border: InputBorder.none,
             hintStyle: TextStyle(color: AppTheme.silverMuted),
           ),
@@ -140,30 +151,65 @@ class _SearchScreenState extends State<SearchScreen> {
         actions: [
           if (_ctrl.text.isNotEmpty)
             IconButton(
+              tooltip: 'Clear search',
               icon: const Icon(Icons.clear),
-              onPressed: () {
-                _ctrl.clear();
-                _run('');
-              },
+              onPressed: _clearSearch,
             ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.amber))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.amber),
+            )
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-                  ),
+              ? LoadErrorState(
+                  title: 'Search unavailable',
+                  message: _error!,
+                  icon: Icons.search_off,
+                  onRetry: () => _run(_ctrl.text),
                 )
               : _hits.isEmpty
                   ? Center(
-                      child: Text(
-                        _ctrl.text.trim().length < 2
-                            ? 'Type at least 2 characters'
-                            : 'No matches',
-                        style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              queryLength < 2 ? Icons.manage_search : Icons.search_off,
+                              size: 42,
+                              color: AppTheme.silverMuted,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              queryLength < 2 ? 'Search your life' : 'No matches found',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: AppTheme.silver,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              queryLength < 2
+                                  ? 'Enter at least 2 characters to search tasks, goals, projects, notes, habits, routines, and life areas.'
+                                  : 'Try a shorter phrase or check the spelling.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.silverMuted,
+                                    height: 1.4,
+                                  ),
+                            ),
+                            if (queryLength > 1) ...[
+                              const SizedBox(height: 12),
+                              TextButton.icon(
+                                onPressed: _clearSearch,
+                                icon: const Icon(Icons.clear),
+                                label: const Text('Clear search'),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -184,13 +230,16 @@ class _SearchScreenState extends State<SearchScreen> {
                                 style: const TextStyle(color: AppTheme.silver),
                               ),
                               subtitle: Text(
-                                kind,
+                                kind.replaceAll('_', ' '),
                                 style: TextStyle(
-                                  color: AppTheme.silver.withValues(alpha: 0.4),
+                                  color: AppTheme.silver.withValues(alpha: 0.55),
                                   fontSize: 11,
                                 ),
                               ),
-                              trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                color: AppTheme.silverMuted,
+                              ),
                             ),
                           ),
                         );
