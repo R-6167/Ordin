@@ -97,15 +97,55 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             GlassCard(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(h.title,
-                      style: const TextStyle(
-                          color: AppTheme.silver, fontSize: 20, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: (done ? const Color(0xFF6BCB77) : AppTheme.amber)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          done ? Icons.check_circle_outline : Icons.track_changes_outlined,
+                          color: done ? const Color(0xFF6BCB77) : AppTheme.amber,
+                          size: 25,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(h.title,
+                                style: const TextStyle(
+                                    color: AppTheme.silver,
+                                    fontSize: 20,
+                                    height: 1.15,
+                                    fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 5),
+                            Text(
+                              done ? 'You showed up today.' : 'Small, consistent steps add up.',
+                              style: TextStyle(
+                                  color: AppTheme.silver.withValues(alpha: 0.55),
+                                  fontSize: 12,
+                                  height: 1.35),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 6,
                     children: [
                       Chip(label: Text(_todayStatus ?? 'No slot')),
                       Chip(label: Text('Streak $_streak')),
