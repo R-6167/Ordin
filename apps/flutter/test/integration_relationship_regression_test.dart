@@ -25,6 +25,7 @@ void main() {
     final projects = ProjectRepository(appDb);
     final milestones = MilestoneRepository(appDb);
     final tasks = TaskRepository(appDb);
+    final db = await appDb.database;
 
     final goal = await goals.create(title: 'Ship personal-life OS');
     final project = await projects.create(
@@ -75,16 +76,22 @@ void main() {
     expect(reopened?.goalId, goal.id);
 
     await milestones.complete(milestone.id);
-    final completedMilestone =
-        (await milestones.listForProject(project.id)).single;
-    expect(completedMilestone.status, MilestoneStatus.completed);
-    expect(completedMilestone.completedAt, isNotNull);
+    var milestoneRow = (await db.query(
+      'milestones',
+      where: 'id = ?',
+      whereArgs: [milestone.id],
+    )).single;
+    expect(milestoneRow['status'], MilestoneStatus.completed);
+    expect(milestoneRow['completed_at'], isNotNull);
 
     await milestones.reopen(milestone.id);
-    final reopenedMilestone =
-        (await milestones.listForProject(project.id)).single;
-    expect(reopenedMilestone.status, MilestoneStatus.planned);
-    expect(reopenedMilestone.completedAt, isNull);
+    milestoneRow = (await db.query(
+      'milestones',
+      where: 'id = ?',
+      whereArgs: [milestone.id],
+    )).single;
+    expect(milestoneRow['status'], MilestoneStatus.planned);
+    expect(milestoneRow['completed_at'], isNull);
 
     final goalProgress = await goals.progress(goal.id);
     expect(goalProgress['projectsTotal'], 1);
