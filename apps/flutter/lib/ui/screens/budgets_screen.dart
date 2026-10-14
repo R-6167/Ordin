@@ -7,6 +7,45 @@ import '../../domain/enums.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
+class _BudgetOverviewMetric extends StatelessWidget {
+  const _BudgetOverviewMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 20, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 3),
+          Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: AppTheme.silver.withValues(alpha: 0.55),
+                  fontSize: 10)),
+        ],
+      ),
+    );
+  }
+}
+
 class BudgetsScreen extends StatefulWidget {
   const BudgetsScreen({super.key});
 
@@ -154,6 +193,79 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                 children: [
+                  GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppTheme.amber.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(Icons.account_balance_wallet_outlined,
+                                  color: AppTheme.amber),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Monthly guardrails',
+                                      style: TextStyle(
+                                          color: AppTheme.silver,
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${_budgets.length} tracked ${_budgets.length == 1 ? 'budget' : 'budgets'} · keep spending visible before it drifts',
+                                    style: TextStyle(
+                                        color: AppTheme.silver.withValues(alpha: 0.55),
+                                        fontSize: 12,
+                                        height: 1.35),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_budgets.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _BudgetOverviewMetric(
+                                  label: 'On track',
+                                  value: '${_budgets.where((b) => b.level != BudgetAlertLevel.near && b.level != BudgetAlertLevel.exceeded).length}',
+                                  color: AppTheme.amber,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _BudgetOverviewMetric(
+                                  label: 'Near limit',
+                                  value: '${_budgets.where((b) => b.level == BudgetAlertLevel.near).length}',
+                                  color: Colors.orangeAccent,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _BudgetOverviewMetric(
+                                  label: 'Exceeded',
+                                  value: '${_budgets.where((b) => b.level == BudgetAlertLevel.exceeded).length}',
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   GlassCard(
                     child: Text(
                       'Category budgets sum expenses tagged with that category this month. '
