@@ -69,4 +69,47 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
   });
+
+  testWidgets('primary navigation remains usable at narrow phone width',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(home: HomeShell()));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.text('Today'), findsWidgets);
+    expect(tester.takeException(), isNull);
+
+    for (final destination in ['Tasks', 'Life', 'Finance', 'Timeline', 'Today']) {
+      final tab = find.text(destination).last;
+      await tester.ensureVisible(tab);
+      await tester.tap(tab);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text(destination),
+        ),
+        findsOneWidget,
+        reason: '$destination should remain reachable at 360 logical pixels',
+      );
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Narrow-screen navigation to $destination should not throw',
+      );
+    }
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
 }
