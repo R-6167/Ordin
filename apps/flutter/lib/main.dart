@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'services/error_log_service.dart';
+import 'services/first_run_tip.dart';
 import 'services/local_analytics.dart';
 import 'services/notification_router.dart';
 import 'services/notification_service.dart';
@@ -41,6 +42,7 @@ class OrdinApp extends StatefulWidget {
 
 class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
   bool _unlocked = false;
+  bool _tipScheduled = false;
 
   @override
   void initState() {
@@ -49,6 +51,7 @@ class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
     final sec = SecurityService.instance;
     _unlocked = !(sec.lockEnabled && sec.hasPin);
     LocalAnalytics.instance.track('app_open');
+    if (_unlocked) _scheduleFirstRunTip();
   }
 
   @override
@@ -72,6 +75,39 @@ class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
     }
   }
 
+  void _scheduleFirstRunTip() {
+    if (_tipScheduled) return;
+    _tipScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showFirstRunTipIfNeeded());
+  }
+
+  Future<void> _showFirstRunTipIfNeeded() async {
+    final tip = FirstRunTip.instance;
+    if (!tip.isLoaded) await tip.load();
+    if (!tip.shouldShow) return;
+    final nav = NotificationRouter.navigatorKey.currentState;
+    if (nav == null) return;
+    final ctx = nav.context;
+    await showDialog<void>(
+      context: ctx,
+      barrierDismissible: true,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceRaised,
+        title: const Text('Welcome to Ordin'),
+        content: const Text(
+          'Everything stays on this device. Start from Today, explore Life for goals and Finance, and use Timeline for your history.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+    await tip.dismiss();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -86,6 +122,7 @@ class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
                 LocalAnalytics.instance.track('app_unlock');
                 OfflineRuntime.instance.runMaintenance();
                 setState(() => _unlocked = true);
+                _scheduleFirstRunTip();
               },
             ),
     );
