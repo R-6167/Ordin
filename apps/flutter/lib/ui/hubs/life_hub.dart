@@ -23,6 +23,7 @@ import 'more_hub.dart';
 import '../screens/wellness_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/empty_state.dart';
 
 class LifeHub extends StatefulWidget {
   const LifeHub({
@@ -72,7 +73,6 @@ class _LifeHubState extends State<LifeHub> {
     }
   }
 
-
   /// Push a screen; only bubble [onChanged] if data actually mutated.
   Future<void> _open(Widget page, {bool reloadPractical = false}) async {
     final gen = AppDataBus.instance.generation;
@@ -83,7 +83,6 @@ class _LifeHubState extends State<LifeHub> {
       await widget.onChanged();
     }
   }
-
 
   List<String> get _attention {
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -161,20 +160,20 @@ class _LifeHubState extends State<LifeHub> {
             crossAxisCount: columns,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: constraints.maxWidth < 360 ? 0.95 : 1.15,
+            crossAxisSpacing: 10,
+            childAspectRatio: columns == 3 ? 1.15 : 1.35,
             children: [
               _navCard(
-                icon: Icons.checklist_rounded,
+                icon: Icons.check_circle_outline,
                 title: 'Tasks',
-                subtitle: 'Open work and overdue items',
+                subtitle: 'Open work',
                 onTap: widget.onOpenTasks,
               ),
               _navCard(
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'Finance',
-                subtitle: 'Budgets, bills and transactions',
+                subtitle: 'Money & bills',
                 onTap: () => _open(
                   Scaffold(
                     appBar: AppBar(title: const Text('Finance')),
@@ -185,49 +184,50 @@ class _LifeHubState extends State<LifeHub> {
               _navCard(
                 icon: Icons.category_outlined,
                 title: 'Life areas',
-                subtitle: 'Organize domains of life',
+                subtitle: 'Domains',
                 onTap: () => _open(const LifeAreasScreen()),
               ),
               _navCard(
                 icon: Icons.priority_high,
-                title: 'Needs attention',
-                subtitle: 'Duties and upcoming expiries',
+                title: 'Attention',
+                subtitle: 'Needs focus',
                 onTap: () => _open(const NeedsAttentionScreen()),
               ),
               _navCard(
-                icon: Icons.favorite_outline,
-                title: 'Health & wellness',
-                subtitle: 'Check-ins, sleep and mood',
+                icon: Icons.spa_outlined,
+                title: 'Wellness',
+                subtitle: 'Health &
+ body',
                 onTap: () => _open(const WellnessScreen()),
               ),
               _navCard(
                 icon: Icons.schedule,
                 title: 'Schedule',
-                subtitle: 'Daily time grid',
+                subtitle: 'Time blocks',
                 onTap: () => _open(const ScheduleScreen()),
               ),
               _navCard(
-                icon: Icons.view_timeline_outlined,
-                title: 'Day plan',
-                subtitle: 'Build and review your day',
+                icon: Icons.auto_awesome,
+                title: 'Plan day',
+                subtitle: 'Build my day',
                 onTap: () => _open(const PlanningScreen()),
               ),
               _navCard(
-                icon: Icons.calendar_month,
+                icon: Icons.calendar_month_outlined,
                 title: 'Calendar',
-                subtitle: 'Events and month view',
+                subtitle: 'Month view',
                 onTap: () => _open(const CalendarScreen()),
               ),
               _navCard(
-                icon: Icons.explore_outlined,
-                title: 'More tools',
-                subtitle: 'Additional tools and suggestions',
+                icon: Icons.more_horiz,
+                title: 'More',
+                subtitle: 'Tools & data',
                 onTap: () => _open(MoreHub(onChanged: widget.onChanged)),
               ),
               _navCard(
-                icon: Icons.home_repair_service_outlined,
-                title: 'Practical life',
-                subtitle: 'Documents, vehicle and shopping',
+                icon: Icons.home_work_outlined,
+                title: 'Practical',
+                subtitle: 'Home & docs',
                 onTap: () => _open(const PracticalLifeScreen(), reloadPractical: true),
               ),
             ],
@@ -242,9 +242,10 @@ class _LifeHubState extends State<LifeHub> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
         _navigationGrid(),
-        const SizedBox(height: 18),
         if (attention.isNotEmpty) ...[
+          const SizedBox(height: 12),
           GlassCard(
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -257,11 +258,16 @@ class _LifeHubState extends State<LifeHub> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
         ],
+        const SizedBox(height: 12),
         _header(context, 'Goals', AddKind.goal),
         if (widget.goals.isEmpty)
-          _empty('No goals yet.')
+          EmptyState(
+            title: 'No goals yet',
+            detail: 'Capture an outcome you want to move toward.',
+            icon: Icons.flag_outlined,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.goals.map((g) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -270,32 +276,34 @@ class _LifeHubState extends State<LifeHub> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   child: ListTile(
                     title: Text(g.title, style: const TextStyle(color: AppTheme.silver)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.flag, color: AppTheme.brandBlue),
-                      onPressed: () async {
-                        await GoalRepository(AppDatabase.instance).complete(g.id);
-                        await widget.onChanged();
-                      },
-                    ),
                   ),
                 ),
               )),
-        const SizedBox(height: 10),
         _header(context, 'Projects', AddKind.project),
         if (widget.projects.isEmpty)
-          _empty('No projects yet.')
+          EmptyState(
+            title: 'No projects yet',
+            detail: 'Group related work under a project.',
+            icon: Icons.folder_outlined,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.projects.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
                   onTap: () => _open(ProjectDetailScreen(projectId: p.id)),
+                  padding: const EdgeInsets.all(14),
                   child: Text(p.title, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
                 ),
               )),
-        const SizedBox(height: 10),
         _header(context, 'Habits', AddKind.habit),
         if (widget.habits.isEmpty)
-          _empty('No habits yet.')
+          EmptyState(
+            title: 'No habits yet',
+            detail: 'Track a daily practice you want to keep.',
+            icon: Icons.repeat,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.habits.map((h) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -305,9 +313,9 @@ class _LifeHubState extends State<LifeHub> {
                   child: ListTile(
                     title: Text(h.title, style: const TextStyle(color: AppTheme.silver)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.done_all, color: AppTheme.brandBlue),
+                      icon: const Icon(Icons.check_circle_outline, color: AppTheme.brandBlue),
                       onPressed: () async {
-                        await HabitRepository(AppDatabase.instance).markDoneToday(h.id);
+                        await HabitRepository(AppDatabase.instance).completeToday(h.id);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logged ${h.title}')));
                         }
@@ -317,50 +325,47 @@ class _LifeHubState extends State<LifeHub> {
                   ),
                 ),
               )),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            const Text('Routines', style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600, fontSize: 14)),
-            const Spacer(),
-            TextButton(
-              onPressed: () async {
-                final c = TextEditingController();
-                final name = await showDialog<String>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: AppTheme.metal,
-                    title: const Text('New routine', style: TextStyle(color: AppTheme.silver)),
-                    content: TextField(
-                      controller: c,
-                      autofocus: true,
-                      style: const TextStyle(color: AppTheme.silver),
-                      decoration: const InputDecoration(labelText: 'Name'),
-                    ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(ctx, c.text.trim()),
-                        child: const Text('Create'),
-                      ),
-                    ],
-                  ),
-                );
-                if (name != null && name.isNotEmpty) {
-                  final r = await RoutineRepository(AppDatabase.instance).create(name: name);
-                  if (context.mounted) {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => RoutineDetailScreen(routineId: r.id)),
-                    );
-                  }
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              const Text('Routines', style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600, fontSize: 14)),
+              const Spacer(),
+              TextButton(
+                onPressed: () async {
+                  final name = await showDialog<String>(
+                    context: context,
+                    builder: (ctx) {
+                      final c = TextEditingController();
+                      return AlertDialog(
+                        title: const Text('New routine', style: TextStyle(color: AppTheme.silver)),
+                        content: TextField(controller: c, autofocus: true),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+                            child: const Text('Create'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  if (name == null || name.isEmpty) return;
+                  await RoutineRepository(AppDatabase.instance).create(name: name);
                   await widget.onChanged();
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
         ),
         if (widget.routines.isEmpty)
-          _empty('No routines yet.')
+          EmptyState(
+            title: 'No routines yet',
+            detail: 'Bundle steps you run together.',
+            icon: Icons.list_alt,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.routines.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -383,10 +388,14 @@ class _LifeHubState extends State<LifeHub> {
                   ),
                 ),
               )),
-        const SizedBox(height: 10),
         _header(context, 'Notes', AddKind.note),
         if (widget.notes.isEmpty)
-          _empty('No notes yet.')
+          EmptyState(
+            title: 'No notes yet',
+            detail: 'Jot ideas, links, or context for later.',
+            icon: Icons.sticky_note_2_outlined,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.notes.map((n) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -419,10 +428,5 @@ class _LifeHubState extends State<LifeHub> {
             ),
           ],
         ),
-      );
-
-  Widget _empty(String m) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(m, style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35))),
       );
 }
