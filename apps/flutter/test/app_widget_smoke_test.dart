@@ -127,6 +127,7 @@ void main() {
     );
     expect(find.text('Finance contents'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    semantics.dispose();
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
@@ -134,7 +135,6 @@ void main() {
 
   testWidgets('Life hub uses an accessible compact grid on a narrow phone', (tester) async {
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
