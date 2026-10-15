@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Post–Phase 6 polish — notification entity deep-links
+**Current work:** Ready for device testing (Timeline suggestions + related-links polish)
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -60,12 +60,13 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-**Status: Complete** for implementable in-repo scope (PR #106–#110). Device-only verification and domain-depth polish remain open below.
+**Status: Complete** (PR #106–#110).
 
-- [x] Shared `EmptyState` widget; Life hub + habit detail empty states.
-- [x] First-run onboarding tip — PR #107.
-- [x] Branded launcher icon.
-- [x] Release signing docs — PR #106.
+## Post–Phase 6 polish
+
+- [x] Notification deep-linking for task/project/goal/habit/routine (PR #111).
+- [x] Timeline intelligence suggestions from local data (overdue, due today, open bills, pending habits) — does not replace the chronological feed.
+- [x] Related links section: ROUTINE open, EmptyState, hierarchy accents.
 
 ## Existing stability work still open
 
@@ -79,14 +80,15 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [ ] Finish subscriptions lifecycle UI polish.
 
 ### Timeline / reminders
-- [ ] Add useful intelligence suggestions to Timeline without replacing the chronological feed.
+- [x] Add useful intelligence suggestions to Timeline without replacing the chronological feed.
 - [x] Notification deep-linking: task/project/goal/habit/routine open their detail screens; money types open Needs Attention; docs open Practical Life.
 
 ### Relationship and domain depth
-- [ ] Polish milestone/task dependency UX.
-- [ ] Finish recurring-task UI on task detail.
+- [x] Related links UX polish (EmptyState, ROUTINE navigation, consistent accents).
+- [ ] Further polish milestone/task dependency UX on task detail (backend + basic UI already exist).
+- [ ] Finish recurring-task UI on task detail (recurrence APIs exist; surface polish remains).
 - [ ] Polish calendar ↔ tasks bidirectional behavior.
-- [ ] Improve people ↔ notes ↔ projects linking.
+- [ ] Improve people ↔ notes ↔ projects linking beyond Related section.
 - [ ] Add flexible/adaptive routines.
 - [ ] Expand vehicle/service-record specialization.
 
