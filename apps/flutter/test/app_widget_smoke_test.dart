@@ -133,7 +133,7 @@ void main() {
     expect(find.text('Today'), findsWidgets);
     expect(tester.takeException(), isNull);
 
-    for (final destination in ['Tasks', 'Life', 'Finance', 'Timeline', 'Today']) {
+    for (final destination in ['Insights', 'Life', 'Finance', 'Timeline', 'Today']) {
       final tab = find.text(destination).last;
       await tester.ensureVisible(tab);
       await tester.tap(tab);
