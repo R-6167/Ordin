@@ -13,7 +13,7 @@ class DiagnosticService {
   static final instance = DiagnosticService._();
 
   static const int maxPersistedEvents = 2000;
-  static const int maxMemoryEvents = 100;
+  static const int maxMemoryEvents = 150;
   static const Set<String> _safeDetailKeys = {
     'route',
     'reason',
@@ -27,6 +27,11 @@ class DiagnosticService {
     'widget',
     'domain',
     'phase',
+    'code',
+    'message',
+    'platform',
+    'tab',
+    'action',
   };
 
   final List<Map<String, Object?>> _memoryFallback = <Map<String, Object?>>[];
@@ -43,8 +48,15 @@ class DiagnosticService {
     Map<String, Object?> details = const {},
   }) async {
     if (!enabled) return;
-    // Release builds retain only error-level events; verbose tracing is debug/profile-only.
-    if (kReleaseMode && severity != 'error' && severity != 'fatal') return;
+    // Release: keep errors always; also keep compact user_action / nav breadcrumbs
+    // so device reports show what the user did before a failure.
+    final keepInRelease = severity == 'error' ||
+        severity == 'fatal' ||
+        category == 'user_action' ||
+        category == 'nav' ||
+        category == 'notif';
+    if (kReleaseMode && !keepInRelease) return;
+
     final now = AppDatabase.nowMs();
     final event = <String, Object?>{
       'id': AppDatabase.newId(),
@@ -57,14 +69,26 @@ class DiagnosticService {
       'details': jsonEncode(_safeDetails(details)),
     };
 
-    // Keep high-frequency refresh/lifecycle traces in a bounded memory queue.
-    // Persist them when diagnostics are opened/exported, avoiding concurrent DB
-    // writes during widget rebuilds and keeping the recorder out of hot paths.
+    // High-frequency traces stay in memory until export/open diagnostics.
     if (severity != 'error' && severity != 'fatal') {
       _remember(event);
       return;
     }
     if (!await _persist(event)) _remember(event);
+  }
+
+  /// Breadcrumb for navigation / UI actions (safe, no personal content).
+  Future<void> trackAction(String action, {String? route, String? tab}) {
+    return record(
+      action,
+      category: 'user_action',
+      severity: 'info',
+      details: {
+        if (route != null) 'route': route,
+        if (tab != null) 'tab': tab,
+        'action': action,
+      },
+    );
   }
 
   void _remember(Map<String, Object?> event) {
@@ -103,7 +127,7 @@ class DiagnosticService {
       if (value == null || value is bool || value is num) {
         safe[entry.key] = value;
       } else if (value is String) {
-        safe[entry.key] = _bounded(value, 120);
+        safe[entry.key] = _bounded(value, 160);
       }
     }
     return safe;
@@ -114,8 +138,6 @@ class DiagnosticService {
 
   Future<List<Map<String, Object?>>> recent({int limit = 200}) async {
     final safeLimit = limit.clamp(1, maxPersistedEvents).toInt();
-    // Persist queued development traces only when a developer explicitly
-    // opens or exports diagnostics, not during routine UI work.
     final queued = List<Map<String, Object?>>.from(_memoryFallback);
     for (final event in queued) {
       final persisted = await _persist(event);
@@ -133,8 +155,6 @@ class DiagnosticService {
     }
   }
 
-  /// A portable JSON report containing diagnostic events only. User analytics
-  /// and personal content are intentionally excluded.
   Future<String> exportJson({int limit = 500}) async {
     final events = await recent(limit: limit);
     return const JsonEncoder.withIndent('  ').convert({
@@ -162,8 +182,6 @@ class DiagnosticService {
     try {
       final db = await AppDatabase.instance.database;
       await db.delete('diagnostic_events');
-    } catch (_) {
-      // The in-memory fallback has still been cleared.
-    }
+    } catch (_) {}
   }
 }
