@@ -33,6 +33,7 @@ class LifeHub extends StatefulWidget {
     required this.notes,
     required this.projects,
     required this.onChanged,
+    required this.finance,
     this.routines = const [],
   });
 
@@ -43,6 +44,7 @@ class LifeHub extends StatefulWidget {
   final List<Project> projects;
   final List<Routine> routines;
   final Future<void> Function() onChanged;
+  final Widget finance;
 
   @override
   State<LifeHub> createState() => _LifeHubState();
@@ -144,6 +146,17 @@ class _LifeHubState extends State<LifeHub> {
           title: 'Tasks',
           subtitle: 'Open work, overdue items and completion actions',
           onTap: widget.onOpenTasks,
+        ),
+        _navCard(
+          icon: Icons.account_balance_wallet_outlined,
+          title: 'Finance',
+          subtitle: 'Accounts, budgets, cash flow, bills and transactions',
+          onTap: () => _open(
+            Scaffold(
+              appBar: AppBar(title: const Text('Finance')),
+              body: widget.finance,
+            ),
+          ),
         ),
         _navCard(
           icon: Icons.category_outlined,
