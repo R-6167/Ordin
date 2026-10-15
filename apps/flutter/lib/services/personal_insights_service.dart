@@ -213,7 +213,7 @@ class PersonalInsightsService {
     );
 
     int value(dynamic v) => v is num ? v.toInt() : 0;
-    return rows.map((row) => PersonalProgressItem(
+    return rows.map<PersonalProgressItem>((row) => PersonalProgressItem(
       id: row['id'] as String,
       title: row['title'] as String? ?? 'Untitled',
       kind: row['kind'] as String? ?? 'Work',
