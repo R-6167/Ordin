@@ -94,7 +94,7 @@ void main() {
     // initializes platform-backed preferences and notifications; those boot
     // dependencies are covered separately by the shell smoke test.
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(body: HomeInsightsCard(service: _ImmediateInsightsService())),
       ),
     );
