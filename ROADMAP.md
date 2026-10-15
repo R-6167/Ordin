@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Post–Phase 6 polish and device verification
+**Current work:** Post–Phase 6 polish — notification entity deep-links
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -60,18 +60,12 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-**Status: Complete** for implementable in-repo scope (PR #106–#108 + Life EmptyState + habit detail EmptyState). Device-only verification and domain-depth polish remain open below.
+**Status: Complete** for implementable in-repo scope (PR #106–#110). Device-only verification and domain-depth polish remain open below.
 
-- [x] Run flutter analyze, unit/widget tests, and release APK via CI on each implementation PR.
-- [x] Smoke coverage retained for primary navigation, Insights, nested Finance, and related flows (extend as regressions appear).
-- [ ] Complete device checks for Day Plan empty-state/build behavior and Finance expense visibility in Recent ledger.
-- [x] Shared `EmptyState` widget + tests; `SectionHeader` silverMuted (PR #108).
-- [x] Life hub empty lists (goals, projects, habits, routines, notes) use `EmptyState`.
-- [x] Habit detail empty recent history uses `EmptyState`.
-- [x] First-run onboarding tip (Welcome dialog after unlock) — PR #107.
-- [x] Branded launcher icon (`@drawable/ic_launcher_ordin` → `ordin_logo`).
-- [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`) — PR #106.
-- [x] Cloud sync, multi-device live merge, and biometrics remain out of scope for v1.
+- [x] Shared `EmptyState` widget; Life hub + habit detail empty states.
+- [x] First-run onboarding tip — PR #107.
+- [x] Branded launcher icon.
+- [x] Release signing docs — PR #106.
 
 ## Existing stability work still open
 
@@ -86,7 +80,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Timeline / reminders
 - [ ] Add useful intelligence suggestions to Timeline without replacing the chronological feed.
-- [ ] Add notification deep-linking to the referenced entity screen.
+- [x] Notification deep-linking: task/project/goal/habit/routine open their detail screens; money types open Needs Attention; docs open Practical Life.
 
 ### Relationship and domain depth
 - [ ] Polish milestone/task dependency UX.
