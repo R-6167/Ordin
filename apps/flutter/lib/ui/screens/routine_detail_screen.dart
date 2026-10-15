@@ -4,6 +4,7 @@ import '../../data/database.dart';
 import '../../data/routine_repository.dart';
 import '../../domain/models.dart';
 import '../theme.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/glass.dart';
 
 class RoutineDetailScreen extends StatefulWidget {
@@ -121,11 +122,17 @@ class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
                       const SizedBox(height: 16),
                       const Text('Steps',
                           style: TextStyle(
-                              color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
+                              color: AppTheme.silverMuted, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       if (_steps.isEmpty)
-                        Text('No steps yet — add the sequence for this routine.',
-                            style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.4)))
+                        EmptyState(
+                          title: 'No steps yet',
+                          detail: 'Add the sequence for this routine.',
+                          icon: Icons.list_alt,
+                          actionLabel: 'Add step',
+                          onAction: _addStep,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        )
                       else
                         ..._steps.map((s) => Padding(
                               padding: const EdgeInsets.only(bottom: 8),

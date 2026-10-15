@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../ui/screens/goal_detail_screen.dart';
+import '../ui/screens/habit_detail_screen.dart';
 import '../ui/screens/needs_attention_screen.dart';
 import '../ui/screens/practical_life_screen.dart';
 import '../ui/screens/project_detail_screen.dart';
 import '../ui/screens/reminders_screen.dart';
+import '../ui/screens/routine_detail_screen.dart';
 import '../ui/screens/task_detail_screen.dart';
 import 'notification_payload.dart';
 import 'reminder_generator_service.dart';
@@ -41,13 +43,17 @@ class NotificationRouter {
       case NotificationPayload.goal:
         nav.push(MaterialPageRoute(builder: (_) => GoalDetailScreen(goalId: payload.id)));
         break;
+      case NotificationPayload.habit:
+        nav.push(MaterialPageRoute(builder: (_) => HabitDetailScreen(habitId: payload.id)));
+        break;
+      case NotificationPayload.routine:
+        nav.push(MaterialPageRoute(builder: (_) => RoutineDetailScreen(routineId: payload.id)));
+        break;
       case NotificationPayload.bill:
       case NotificationPayload.billOcc:
       case NotificationPayload.subscription:
       case NotificationPayload.budget:
       case NotificationPayload.overdue:
-      case NotificationPayload.habit:
-      case NotificationPayload.routine:
         // Actionable hub for money / attention items
         nav.push(MaterialPageRoute(builder: (_) => const NeedsAttentionScreen()));
         break;
