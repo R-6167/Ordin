@@ -29,6 +29,7 @@ class LifeHub extends StatefulWidget {
     super.key,
     required this.goals,
     required this.habits,
+    required this.onOpenTasks,
     required this.notes,
     required this.projects,
     required this.onChanged,
@@ -37,6 +38,7 @@ class LifeHub extends StatefulWidget {
 
   final List<Goal> goals;
   final List<Habit> habits;
+  final VoidCallback onOpenTasks;
   final List<Note> notes;
   final List<Project> projects;
   final List<Routine> routines;
@@ -137,6 +139,12 @@ class _LifeHubState extends State<LifeHub> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
+        _navCard(
+          icon: Icons.checklist_rounded,
+          title: 'Tasks',
+          subtitle: 'Open work, overdue items and completion actions',
+          onTap: widget.onOpenTasks,
+        ),
         _navCard(
           icon: Icons.category_outlined,
           title: 'Life areas',
