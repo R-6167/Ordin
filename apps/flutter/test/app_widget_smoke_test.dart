@@ -132,6 +132,44 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('Life hub uses an accessible compact grid on a narrow phone', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LifeHub(
+            goals: const [],
+            habits: const [],
+            onOpenTasks: () {},
+            notes: const [],
+            projects: const [],
+            routines: const [],
+            onChanged: () async {},
+            finance: const Center(child: Text('Finance contents')),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final grid = tester.widget<GridView>(find.byType(GridView));
+    final delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(delegate.crossAxisCount, 2);
+    expect(find.text('Tasks'), findsOneWidget);
+    expect(find.text('Finance'), findsOneWidget);
+    expect(find.text('Practical life'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'Finance\. Budgets, bills and transactions')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets('Today insights card opens personal insights', (tester) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1;
