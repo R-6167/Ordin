@@ -86,7 +86,7 @@ class _HomeShellState extends State<HomeShell> {
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
 
-  static const _titles = ['Today', 'Insights', 'Life', 'Finance', 'Timeline'];
+  static const _titles = ['Today', 'Insights', 'Life', 'Timeline'];
 
   @override
   void initState() {
@@ -560,10 +560,6 @@ class _HomeShellState extends State<HomeShell> {
                 selectedIcon: Icon(Icons.favorite),
                 label: 'Life'),
             NavigationDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet),
-                label: 'Finance'),
-            NavigationDestination(
                 icon: Icon(Icons.view_timeline_outlined),
                 selectedIcon: Icon(Icons.view_timeline),
                 label: 'Timeline'),
@@ -591,22 +587,22 @@ class _HomeShellState extends State<HomeShell> {
           notes: _noteList,
           projects: _projectList,
           routines: _routineList,
+          finance: FinanceHub(
+            key: const ValueKey('life-finance'),
+            expenses: _expenseList,
+            income: _incomeList,
+            billOcc: _billOcc,
+            monthSpendMinor: _monthSpendMinor,
+            onChanged: () async {
+              AppDataBus.instance.financeChanged();
+            },
+            onPayBill: (o) async {
+              await promptAndPayBill(context, o);
+              AppDataBus.instance.financeChanged();
+            },
+          ),
           onChanged: () async {
             AppDataBus.instance.lifeChanged();
-          },
-        ),
-        FinanceHub(
-          key: const ValueKey('tab-finance'),
-          expenses: _expenseList,
-          income: _incomeList,
-          billOcc: _billOcc,
-          monthSpendMinor: _monthSpendMinor,
-          onChanged: () async {
-            AppDataBus.instance.financeChanged();
-          },
-          onPayBill: (o) async {
-            await promptAndPayBill(context, o);
-            AppDataBus.instance.financeChanged();
           },
         ),
         const ActivityScreen(key: ValueKey('tab-timeline')),
