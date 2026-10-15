@@ -29,6 +29,7 @@ import 'forms/create_forms.dart';
 import 'hubs/finance_hub.dart';
 import 'hubs/life_hub.dart';
 import 'screens/activity_screen.dart';
+import 'screens/insights_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/project_detail_screen.dart';
@@ -85,7 +86,7 @@ class _HomeShellState extends State<HomeShell> {
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
 
-  static const _titles = ['Today', 'Tasks', 'Life', 'Finance', 'Timeline'];
+  static const _titles = ['Today', 'Insights', 'Life', 'Timeline'];
 
   @override
   void initState() {
@@ -551,17 +552,13 @@ class _HomeShellState extends State<HomeShell> {
                 selectedIcon: Icon(Icons.today),
                 label: 'Today'),
             NavigationDestination(
-                icon: Icon(Icons.check_box_outlined),
-                selectedIcon: Icon(Icons.check_box),
-                label: 'Tasks'),
+                icon: Icon(Icons.insights_outlined),
+                selectedIcon: Icon(Icons.insights),
+                label: 'Insights'),
             NavigationDestination(
                 icon: Icon(Icons.favorite_outline),
                 selectedIcon: Icon(Icons.favorite),
                 label: 'Life'),
-            NavigationDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet),
-                label: 'Finance'),
             NavigationDestination(
                 icon: Icon(Icons.view_timeline_outlined),
                 selectedIcon: Icon(Icons.view_timeline),
@@ -577,30 +574,35 @@ class _HomeShellState extends State<HomeShell> {
       index: _tab,
       children: [
         KeyedSubtree(key: const ValueKey('tab-today'), child: _today()),
-        KeyedSubtree(key: const ValueKey('tab-tasks'), child: _tasksView()),
+        const InsightsScreen(key: ValueKey('tab-insights')),
         LifeHub(
           key: const ValueKey('tab-life'),
+          onOpenTasks: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => _tasksView()),
+            );
+          },
           goals: _goalList,
           habits: _habitList,
           notes: _noteList,
           projects: _projectList,
           routines: _routineList,
+          finance: FinanceHub(
+            key: const ValueKey('life-finance'),
+            expenses: _expenseList,
+            income: _incomeList,
+            billOcc: _billOcc,
+            monthSpendMinor: _monthSpendMinor,
+            onChanged: () async {
+              AppDataBus.instance.financeChanged();
+            },
+            onPayBill: (o) async {
+              await promptAndPayBill(context, o);
+              AppDataBus.instance.financeChanged();
+            },
+          ),
           onChanged: () async {
             AppDataBus.instance.lifeChanged();
-          },
-        ),
-        FinanceHub(
-          key: const ValueKey('tab-finance'),
-          expenses: _expenseList,
-          income: _incomeList,
-          billOcc: _billOcc,
-          monthSpendMinor: _monthSpendMinor,
-          onChanged: () async {
-            AppDataBus.instance.financeChanged();
-          },
-          onPayBill: (o) async {
-            await promptAndPayBill(context, o);
-            AppDataBus.instance.financeChanged();
           },
         ),
         const ActivityScreen(key: ValueKey('tab-timeline')),
@@ -733,6 +735,8 @@ class _HomeShellState extends State<HomeShell> {
               ],
             ),
           ),
+          const HomeInsightsCard(),
+          const SizedBox(height: 8),
           if (_scheduledToday.isNotEmpty) ...[
             SectionHeader(
               'On the clock',

@@ -11,7 +11,6 @@ import '../screens/project_detail_screen.dart';
 import '../screens/reminders_screen.dart';
 import '../screens/routine_detail_screen.dart';
 import '../screens/task_detail_screen.dart';
-import '../assistant_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
@@ -88,16 +87,15 @@ class _MoreHubState extends State<MoreHub> {
         ));
       }
     } catch (_) {}
-    out.add(_Suggestion(
-      title: out.isEmpty ? 'Ask intelligence' : 'More insights',
-      subtitle: 'Priorities, blockers, and next moves',
-      icon: Icons.auto_awesome,
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AssistantScreen()),
-        );
-      },
-    ));
+    // Suggestions here should be grounded in the user's actual records.
+    // Intelligence remains available from the global app-bar action.
+    if (out.isEmpty) {
+      out.add(const _Suggestion(
+        title: 'You’re clear for now',
+        subtitle: 'No overdue tasks or open bills were found.',
+        icon: Icons.check_circle_outline,
+      ));
+    }
     return out;
   }
 
