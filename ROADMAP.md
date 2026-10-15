@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Phase 5 closeout — hierarchy pass on `feat/phase5-hierarchy-pass`
+**Current work:** Phase 6 — Reliability, accessibility, and release readiness
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -90,7 +90,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 5 — Timeline and copy/visual cleanup
 
-**Status: In progress on branch `feat/phase5-hierarchy-pass`.** Plain-list slice merged in PR #103 (`32c4eaf`); quote audit merged in PR #104 (`08a6465`).
+**Status: Complete.** Merged across PR #103 (plain list, `32c4eaf`), PR #104 (quote audit, `08a6465`), and PR #105 (hierarchy pass, `995ff8ae`).
 
 - [x] Replace glass-card-per-event presentation with a plain chronological Activity list.
 - [x] Preserve date grouping, timestamp/context, tap targets, and navigation to the referenced entity where supported.
@@ -99,17 +99,19 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [x] Audit remaining UI copy for unnecessary quotation marks around project/task/goal names (life-area archive dialog fixed; remaining matches are JSON metadata or intentional labels, not decorative entity quotes).
 - [x] Add unit tests for activity day grouping, ordering, and formatTime; fixture headlines assert no decorative quotes.
 - [ ] Widget-level Timeline empty-state smoke deferred (flaky under CI; unit grouping coverage remains).
-- [x] Apply consistent spacing, restrained accents, readable hierarchy (Timeline day labels and dots use brandBlue; Life hub section headers use silverMuted; grid icons use brandBlue instead of legacy wood).
-- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on the hierarchy-pass commit before merge; then mark Phase 5 complete.
+- [x] Apply consistent spacing, restrained accents, readable hierarchy (Timeline day labels use brandBlue; Life hub section headers use silverMuted; grid icons use brandBlue).
+- [x] Hierarchy-pass CI and merge completed as PR #105 (merge commit `995ff8aec7548830dced39c20eed2f2fb523ac68`).
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-- [ ] Run flutter analyze, all unit/widget tests, and release APK build for each implementation phase.
+**Status: In progress on branch `feat/phase6-start`.**
+
+- [ ] Run flutter analyze, all unit/widget tests, and release APK build for each implementation phase (ongoing via CI).
 - [ ] Keep smoke coverage for primary navigation, Insights, nested Finance, import/export, bill payment, and habit completion.
 - [ ] Complete device checks for Day Plan empty-state/build behavior and Finance expense visibility in Recent ledger.
 - [ ] Add empty states across hubs, test large text/semantics, and check narrow-device layout.
 - [ ] Replace the placeholder app icon with a real branded icon and add a short first-run onboarding tip.
-- [ ] Document release signing/Play-ready keystore setup.
+- [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`).
 - [ ] Keep cloud sync, multi-device live merge, and biometrics out of scope for v1 unless explicitly reprioritized.
 
 ## Existing stability work still open
