@@ -54,12 +54,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return Colors.orangeAccent;
     }
     if (eventType.contains('WORK_') || eventType.contains('SESSION')) {
-      return AppTheme.amber;
+      return AppTheme.brandBlue;
     }
     if (eventType.contains('EXPENSE') ||
         eventType.contains('BILL') ||
         eventType.contains('DEBT')) {
-      return AppTheme.woodLight;
+      return AppTheme.silverMuted;
     }
     return AppTheme.silver.withValues(alpha: 0.5);
   }
@@ -100,7 +100,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ],
         ),
         body: (_loading && !_hasLoaded)
-            ? const Center(child: CircularProgressIndicator(color: AppTheme.amber))
+            ? const Center(child: CircularProgressIndicator(color: AppTheme.brandBlue))
             : _groups.isEmpty
                 ? Center(
                     child: Padding(
@@ -133,7 +133,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     ),
                   )
                 : RefreshIndicator(
-                    color: AppTheme.amber,
+                    color: AppTheme.brandBlue,
                     onRefresh: _load,
                     child: ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
@@ -144,14 +144,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
-                              padding: EdgeInsets.only(top: gi == 0 ? 4 : 20, bottom: 8),
+                              padding: EdgeInsets.only(top: gi == 0 ? 4 : 18, bottom: 6),
                               child: Text(
                                 g.label,
                                 style: const TextStyle(
-                                  color: AppTheme.woodLight,
+                                  color: AppTheme.brandBlue,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                  letterSpacing: 0.3,
+                                  fontSize: 13,
+                                  letterSpacing: 0.4,
                                 ),
                               ),
                             ),
@@ -174,7 +174,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                       : null,
                                   borderRadius: BorderRadius.circular(8),
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    padding: const EdgeInsets.symmetric(vertical: 9),
                                     child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [

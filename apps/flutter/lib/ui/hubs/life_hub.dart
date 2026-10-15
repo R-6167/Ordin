@@ -122,7 +122,7 @@ class _LifeHubState extends State<LifeHub> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(icon, color: AppTheme.amber, size: 26),
+              Icon(icon, color: AppTheme.brandBlue, size: 26),
               const SizedBox(height: 8),
               Text(
                 title,
@@ -242,13 +242,13 @@ class _LifeHubState extends State<LifeHub> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
         _navigationGrid(),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         if (attention.isNotEmpty) ...[
           GlassCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Heads-up', style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.w600)),
+                const Text('Heads-up', style: TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 ...attention.map((a) => Padding(
                       padding: const EdgeInsets.only(bottom: 4),
@@ -257,7 +257,7 @@ class _LifeHubState extends State<LifeHub> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
         ],
         _header(context, 'Goals', AddKind.goal),
         if (widget.goals.isEmpty)
@@ -271,7 +271,7 @@ class _LifeHubState extends State<LifeHub> {
                   child: ListTile(
                     title: Text(g.title, style: const TextStyle(color: AppTheme.silver)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.flag, color: AppTheme.amber),
+                      icon: const Icon(Icons.flag, color: AppTheme.brandBlue),
                       onPressed: () async {
                         await GoalRepository(AppDatabase.instance).complete(g.id);
                         await widget.onChanged();
@@ -280,7 +280,7 @@ class _LifeHubState extends State<LifeHub> {
                   ),
                 ),
               )),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _header(context, 'Projects', AddKind.project),
         if (widget.projects.isEmpty)
           _empty('No projects yet.')
@@ -292,7 +292,7 @@ class _LifeHubState extends State<LifeHub> {
                   child: Text(p.title, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
                 ),
               )),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _header(context, 'Habits', AddKind.habit),
         if (widget.habits.isEmpty)
           _empty('No habits yet.')
@@ -305,7 +305,7 @@ class _LifeHubState extends State<LifeHub> {
                   child: ListTile(
                     title: Text(h.title, style: const TextStyle(color: AppTheme.silver)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.done_all, color: AppTheme.amber),
+                      icon: const Icon(Icons.done_all, color: AppTheme.brandBlue),
                       onPressed: () async {
                         await HabitRepository(AppDatabase.instance).markDoneToday(h.id);
                         if (context.mounted) {
@@ -317,10 +317,10 @@ class _LifeHubState extends State<LifeHub> {
                   ),
                 ),
               )),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Row(
           children: [
-            const Text('Routines', style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
+            const Text('Routines', style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600, fontSize: 14)),
             const Spacer(),
             TextButton(
               onPressed: () async {
@@ -370,7 +370,7 @@ class _LifeHubState extends State<LifeHub> {
                   child: ListTile(
                     title: Text(r.name, style: const TextStyle(color: AppTheme.silver)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.play_circle_outline, color: AppTheme.amber),
+                      icon: const Icon(Icons.play_circle_outline, color: AppTheme.brandBlue),
                       onPressed: () async {
                         await RoutineRepository(AppDatabase.instance).completeToday(r.id);
                         if (context.mounted) {
@@ -383,7 +383,7 @@ class _LifeHubState extends State<LifeHub> {
                   ),
                 ),
               )),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _header(context, 'Notes', AddKind.note),
         if (widget.notes.isEmpty)
           _empty('No notes yet.')
@@ -408,7 +408,7 @@ class _LifeHubState extends State<LifeHub> {
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           children: [
-            Text(label, style: const TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
+            Text(label, style: const TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600, fontSize: 14)),
             const Spacer(),
             TextButton(
               onPressed: () async {
