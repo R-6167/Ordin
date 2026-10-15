@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ordin/services/error_log_service.dart';
 import 'package:ordin/services/local_analytics.dart';
+import 'package:ordin/services/personal_insights_service.dart';
 import 'package:ordin/ui/home_shell.dart';
 import 'package:ordin/ui/screens/insights_screen.dart';
 
