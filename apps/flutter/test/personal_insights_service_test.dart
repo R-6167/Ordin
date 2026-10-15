@@ -46,6 +46,15 @@ void main() {
   test('does not include another owner’s activity', () async {
     final db = await AppDatabase.instance.database;
     final now = AppDatabase.nowMs();
+    await db.insert('users', {
+      'id': 'another-owner',
+      'display_name': 'Other',
+      'name': 'Other',
+      'currency': 'KES',
+      'week_start_day': 1,
+      'created_at': now,
+      'updated_at': now,
+    });
     await db.insert('activity_events', {
       'id': AppDatabase.newId(),
       'owner_id': 'another-owner',
