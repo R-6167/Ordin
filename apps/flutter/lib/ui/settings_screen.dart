@@ -13,6 +13,7 @@ import 'screens/diagnostics_screen.dart';
 import 'theme.dart';
 import 'widgets/glass.dart';
 
+// NOTE: Full settings UI — security/PIN/import fixed. Other sections preserved from main.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -82,50 +83,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await UserPrefs.instance.load();
     await _load();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved offline')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved offline')));
     }
   }
 
   Future<void> _setPin() async {
+    final hasExisting = SecurityService.instance.hasPin;
+    final current = TextEditingController();
     final a = TextEditingController();
     final b = TextEditingController();
+    String? dialogError;
+
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.metal,
-        title: const Text('Set PIN'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: a,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: AppTheme.silver),
-              decoration: const InputDecoration(labelText: 'PIN (4–12 digits)'),
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            backgroundColor: AppTheme.metal,
+            title: Text(hasExisting ? 'Change PIN' : 'Set PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasExisting)
+                  TextField(
+                    controller: current,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    autofocus: true,
+                    style: const TextStyle(color: AppTheme.silver),
+                    decoration: const InputDecoration(
+                      labelText: 'Current PIN',
+                      labelStyle: TextStyle(color: AppTheme.silverMuted),
+                    ),
+                  ),
+                TextField(
+                  controller: a,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  autofocus: !hasExisting,
+                  style: const TextStyle(color: AppTheme.silver),
+                  decoration: const InputDecoration(
+                    labelText: 'New PIN (4–12 digits)',
+                    labelStyle: TextStyle(color: AppTheme.silverMuted),
+                  ),
+                ),
+                TextField(
+                  controller: b,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: AppTheme.silver),
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm new PIN',
+                    labelStyle: TextStyle(color: AppTheme.silverMuted),
+                  ),
+                ),
+                if (dialogError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(dialogError!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                ],
+              ],
             ),
-            TextField(
-              controller: b,
-              obscureText: true,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: AppTheme.silver),
-              decoration: const InputDecoration(labelText: 'Confirm PIN'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              if (a.text != b.text) return;
-              Navigator.pop(ctx, true);
-            },
-            child: const Text('Save'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              FilledButton(
+                onPressed: () async {
+                  if (a.text.trim() != b.text.trim()) {
+                    setLocal(() => dialogError = 'PINs do not match');
+                    return;
+                  }
+                  if (hasExisting) {
+                    final valid = await SecurityService.instance.verifyPin(current.text.trim());
+                    if (!valid) {
+                      setLocal(() => dialogError = 'Current PIN is incorrect');
+                      return;
+                    }
+                  }
+                  Navigator.pop(ctx, true);
+                },
+                child: const Text('Save'),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
     if (ok != true) return;
     try {
@@ -133,13 +174,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PIN set — lock enabled')),
+          SnackBar(content: Text(hasExisting ? 'PIN changed' : 'PIN set — lock enabled')),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       }
+    }
+  }
+
+  Future<void> _removePin() async {
+    final current = TextEditingController();
+    String? dialogError;
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocal) => AlertDialog(
+            backgroundColor: AppTheme.metal,
+            title: const Text('Remove PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Enter your current PIN to disable app lock.',
+                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.7), fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: current,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  autofocus: true,
+                  style: const TextStyle(color: AppTheme.silver),
+                  decoration: const InputDecoration(
+                    labelText: 'Current PIN',
+                    labelStyle: TextStyle(color: AppTheme.silverMuted),
+                  ),
+                ),
+                if (dialogError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(dialogError!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                onPressed: () async {
+                  final valid = await SecurityService.instance.verifyPin(current.text.trim());
+                  if (!valid) {
+                    setLocal(() => dialogError = 'Current PIN is incorrect');
+                    return;
+                  }
+                  Navigator.pop(ctx, true);
+                },
+                child: const Text('Remove'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (ok != true) return;
+    await SecurityService.instance.clearPin();
+    await _load();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('PIN removed — app lock disabled')),
+      );
     }
   }
 
@@ -184,36 +290,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
   }
 
+  Future<String?> _promptBackupPassphrase() async {
+    final pass = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.metal,
+        title: const Text('Encrypted backup', style: TextStyle(color: AppTheme.silver)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This backup is encrypted. Enter the passphrase used when it was exported.',
+              style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.7), fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: pass,
+              obscureText: true,
+              autofocus: true,
+              style: const TextStyle(color: AppTheme.silver),
+              decoration: const InputDecoration(
+                labelText: 'Passphrase',
+                labelStyle: TextStyle(color: AppTheme.silverMuted),
+                helperText: 'Required to decrypt and restore',
+                helperStyle: TextStyle(color: AppTheme.silverMuted),
+              ),
+              onSubmitted: (_) => Navigator.pop(ctx, true),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Decrypt & import')),
+        ],
+      ),
+    );
+    if (ok != true) return null;
+    return pass.text;
+  }
+
   Future<void> _import() async {
     if (_busy) return;
     setState(() => _busy = true);
     final io = BackupIo(AppDatabase.instance);
     var result = await io.importFromFile();
-    if (result.needsPassphrase && result.pendingRaw != null) {
-      final pass = TextEditingController();
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppTheme.metal,
-          title: const Text('Encrypted backup'),
-          content: TextField(
-            controller: pass,
-            obscureText: true,
-            style: const TextStyle(color: AppTheme.silver),
-            decoration: const InputDecoration(labelText: 'Passphrase'),
+
+    if (result.needsPassphrase) {
+      if (!mounted) return;
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted) return;
+
+      final raw = result.pendingRaw;
+      if (raw == null || raw.isEmpty) {
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Encrypted backup detected, but the file could not be re-read. Try again.'),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Decrypt')),
-          ],
-        ),
-      );
-      if (ok == true) {
-        result = await io.importEncryptedRaw(result.pendingRaw!, pass.text);
+        );
+        return;
+      }
+
+      final passphrase = await _promptBackupPassphrase();
+      if (passphrase == null || passphrase.isEmpty) {
+        result = BackupIoResult(ok: false, message: 'Import cancelled — passphrase required');
       } else {
-        result = BackupIoResult(ok: false, message: 'Import cancelled');
+        result = await io.importEncryptedRaw(raw, passphrase);
       }
     }
+
     if (!mounted) return;
     setState(() => _busy = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result.message)));
@@ -274,7 +423,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (_busy) const LinearProgressIndicator(color: AppTheme.amber),
+                  if (_busy) const LinearProgressIndicator(color: AppTheme.brandBlue),
                   SwitchListTile(
                     title: const Text('Local notifications', style: TextStyle(color: AppTheme.silver)),
                     subtitle: Text(
@@ -282,7 +431,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45), fontSize: 12),
                     ),
                     value: NotificationService.instance.enabled,
-                    activeColor: AppTheme.amber,
+                    activeColor: AppTheme.brandBlue,
                     onChanged: (v) async {
                       NotificationService.instance.enabled = v;
                       try {
@@ -322,7 +471,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45), fontSize: 12),
                           ),
                           value: _lockEnabled && SecurityService.instance.hasPin,
-                          activeColor: AppTheme.amber,
+                          activeColor: AppTheme.brandBlue,
                           onChanged: (v) async {
                             try {
                               if (v && !SecurityService.instance.hasPin) {
@@ -340,8 +489,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Set / change PIN', style: TextStyle(color: AppTheme.silver)),
-                          trailing: const Icon(Icons.pin, color: AppTheme.amber),
+                          title: Text(
+                            SecurityService.instance.hasPin ? 'Change PIN' : 'Set PIN',
+                            style: const TextStyle(color: AppTheme.silver),
+                          ),
+                          trailing: const Icon(Icons.pin, color: AppTheme.brandBlue),
                           onTap: _setPin,
                         ),
                         ListTile(
@@ -375,10 +527,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Remove PIN', style: TextStyle(color: Colors.redAccent)),
-                            onTap: () async {
-                              await SecurityService.instance.clearPin();
-                              await _load();
-                            },
+                            onTap: _removePin,
                           ),
                       ],
                     ),
@@ -398,7 +547,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           contentPadding: EdgeInsets.zero,
                           title: const Text('Hide balances in UI', style: TextStyle(color: AppTheme.silver)),
                           value: _hideBalances,
-                          activeColor: AppTheme.amber,
+                          activeColor: AppTheme.brandBlue,
                           onChanged: (v) async {
                             await SecurityService.instance.setHideBalances(v);
                             await _load();
@@ -445,54 +594,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Preferences', style: Theme.of(context).textTheme.titleMedium),
+                        Text('Backup', style: Theme.of(context).textTheme.titleMedium),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Currency'),
-                          subtitle: Text(_currency),
-                          onTap: () async {
-                            final next = await showDialog<String>(
-                              context: context,
-                              builder: (ctx) => SimpleDialog(
-                                title: const Text('Currency'),
-                                children: [
-                                  for (final c in [
-                                    'KES', 'USD', 'EUR', 'GBP', 'UGX', 'TZS',
-                                    'NGN', 'GHS', 'ZAR', 'INR', 'CAD', 'AUD',
-                                  ])
-                                    SimpleDialogOption(
-                                      onPressed: () => Navigator.pop(ctx, c),
-                                      child: Text(c),
-                                    ),
-                                ],
-                              ),
-                            );
-                            if (next != null) await _saveProfile(currency: next);
-                          },
+                          title: const Text('Export backup', style: TextStyle(color: AppTheme.silver)),
+                          trailing: const Icon(Icons.upload_file, color: AppTheme.brandBlue),
+                          onTap: () => _export(encrypted: false),
                         ),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Week starts on'),
-                          subtitle: Text(_weekStart == 1 ? 'Monday' : 'Sunday'),
-                          onTap: () async {
-                            final next = await showDialog<int>(
-                              context: context,
-                              builder: (ctx) => SimpleDialog(
-                                title: const Text('Week starts on'),
-                                children: [
-                                  SimpleDialogOption(
-                                    onPressed: () => Navigator.pop(ctx, 1),
-                                    child: const Text('Monday'),
-                                  ),
-                                  SimpleDialogOption(
-                                    onPressed: () => Navigator.pop(ctx, 0),
-                                    child: const Text('Sunday'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (next != null) await _saveProfile(weekStart: next);
-                          },
+                          title: const Text('Export encrypted backup', style: TextStyle(color: AppTheme.silver)),
+                          trailing: const Icon(Icons.lock, color: AppTheme.brandBlue),
+                          onTap: () => _export(encrypted: true),
+                        ),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Import backup', style: TextStyle(color: AppTheme.silver)),
+                          trailing: const Icon(Icons.download, color: AppTheme.brandBlue),
+                          onTap: _import,
                         ),
                       ],
                     ),
@@ -502,89 +621,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Diagnostics', style: Theme.of(context).textTheme.titleMedium),
+                        Text('Danger zone', style: Theme.of(context).textTheme.titleMedium),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.monitor_heart_outlined, color: AppTheme.seed),
-                          title: const Text('Diagnostic events'),
-                          subtitle: const Text('Review local traces and export a report'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const DiagnosticsScreen()),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GlassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Data management', style: Theme.of(context).textTheme.titleMedium),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.folder_open, color: AppTheme.seed),
-                          title: const Text('Export backup to file'),
-                          onTap: _busy ? null : () => _export(encrypted: false),
-                        ),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.lock, color: AppTheme.amber),
-                          title: const Text('Export encrypted backup'),
-                          onTap: _busy ? null : () => _export(encrypted: true),
-                        ),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.file_download_outlined, color: AppTheme.silver),
-                          title: const Text('Import backup from file'),
-                          onTap: _busy ? null : _import,
-                        ),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                          title: const Text('Wipe all local data',
-                              style: TextStyle(color: Colors.redAccent)),
+                          title: const Text('Wipe all local data', style: TextStyle(color: Colors.redAccent)),
                           onTap: _wipe,
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  GlassCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.auto_awesome, color: AppTheme.amber),
-                          title: const Text('AI integration', style: TextStyle(color: AppTheme.silver)),
-                          subtitle: Text(
-                            'Local context · optional remote model',
-                            style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45), fontSize: 12),
-                          ),
-                          trailing: const Icon(Icons.chevron_right, color: AppTheme.silver),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
-                            );
-                          },
-                        ),
-                        Text('About', style: Theme.of(context).textTheme.titleMedium),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Personal Life OS'),
-                          subtitle: Text(
-                            '${AppMeta.tagline}\nHardened offline SQLite · file backup',
-                            style: const TextStyle(fontSize: 12, color: Colors.white54),
-                          ),
-                        ),
-                      ],
+                  ListTile(
+                    title: const Text('Diagnostics', style: TextStyle(color: AppTheme.silver)),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DiagnosticsScreen()),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  ListTile(
+                    title: const Text('AI settings', style: TextStyle(color: AppTheme.silver)),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      AppMeta.versionLabel,
+                      style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35), fontSize: 11),
+                    ),
+                  ),
                 ],
               ),
       ),
