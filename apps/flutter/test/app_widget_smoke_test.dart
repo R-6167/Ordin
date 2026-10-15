@@ -52,7 +52,7 @@ void main() {
     expect(find.text('Today'), findsWidgets);
 
     // W5: bottom tab "More" renamed to "Timeline".
-    for (final destination in ['Insights', 'Life', 'Finance', 'Timeline']) {
+    for (final destination in ['Insights', 'Life', 'Timeline']) {
       await tester.tap(find.text(destination).last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -67,6 +67,25 @@ void main() {
       );
       expect(find.byType(NavigationBar), findsOneWidget);
     }
+
+    // Finance is nested under Life rather than occupying a primary tab.
+    await tester.tap(find.text('Life').last);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Finance'), findsWidgets);
+    await tester.tap(find.text('Finance').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Finance'),
+      ),
+      findsOneWidget,
+    );
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(find.text('Today').last);
     await tester.pump();
@@ -133,7 +152,7 @@ void main() {
     expect(find.text('Today'), findsWidgets);
     expect(tester.takeException(), isNull);
 
-    for (final destination in ['Insights', 'Life', 'Finance', 'Timeline', 'Today']) {
+    for (final destination in ['Insights', 'Life', 'Timeline', 'Today']) {
       final tab = find.text(destination).last;
       await tester.ensureVisible(tab);
       await tester.tap(tab);
