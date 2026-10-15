@@ -91,7 +91,10 @@ void main() {
     final card = find.text('Your week at a glance');
     await tester.ensureVisible(card);
     await tester.tap(card);
-    await tester.pumpAndSettle();
+    // Insights deliberately shows an indeterminate loader while local data is
+    // being read, so pumpAndSettle would wait forever for that animation.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Insights'), findsOneWidget);
     expect(find.text('Your last 7 days'), findsOneWidget);
