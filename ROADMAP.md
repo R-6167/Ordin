@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Phase 4 — Life hub layout and discoverability
+**Current work:** Phase 5 — Timeline and copy/visual cleanup
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -76,25 +76,31 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 4 — Life hub layout and discoverability
 
-**Status: In progress on branch `feat/life-hub-grid-discoverability`.**
+**Status: Complete; merged in PR #102.** Merge commit `a1f7622007f04a1026f8fefe48668ae7e4aa7fdf`; successful Flutter APK Build run [38703635035](https://github.com/R-6167/Ordin/actions/runs/38703635035).
 
 - [x] Replace the long stack of navigation cards with a compact responsive two-column grid, expanding to three columns when width supports it.
 - [x] Keep Finance inside Life with an accessible semantic label and a full card-sized tap target.
 - [x] Keep goals, projects, habits, routines, and notes in readable record lists below the navigation grid.
 - [x] Review project workspace flow: the workspace loader is owner-scoped and loads the linked goal, milestones, non-archived/non-cancelled tasks, progress totals, next action, schedule, notes, resources, and activity; existing repository/workspace contract tests cover linked relationships.
 - [x] Add narrow-phone grid and semantics smoke coverage, plus explicit Insights local-day boundary regression coverage.
-- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on the final Phase 4 commit.
-- [ ] Review CI logs and fix any failures before merge.
+- [x] Run full Flutter unit/smoke tests, static analysis, and release APK build on the final Phase 4 commit.
+- [x] Review CI logs and fix any failures before merge.
 - [x] Add a project-detail widget regression test proving the connected goal, milestone, linked task, and progress summary are visible. Empty-project messaging is already present in the workspace sections and remains part of final visual review.
-- [ ] Keep the deferred screen-refresh investigation untouched.
+- [x] Keep the deferred screen-refresh investigation untouched.
 
 ### Phase 5 — Timeline and copy/visual cleanup
 
-- [ ] Replace glass-card-per-event presentation with a plain chronological Activity list.
-- [ ] Preserve date grouping, timestamp/context, tap targets, and navigation to the referenced entity where supported.
-- [ ] Audit UI copy for unnecessary quotation marks around project/task/goal names.
+**Status: In progress on branch `feat/phase5-timeline-plain-list`.**
+
+- [x] Replace glass-card-per-event presentation with a plain chronological Activity list.
+- [x] Preserve date grouping, timestamp/context, tap targets, and navigation to the referenced entity where supported.
+- [x] Remove decorative quotation marks from activity timeline headlines (entity names no longer wrapped in quotes).
+- [ ] Audit remaining UI copy for unnecessary quotation marks around project/task/goal names (screens outside timeline).
 - [ ] Apply consistent spacing, restrained accents, readable hierarchy, and responsive behavior without redesigning every screen at once.
-- [ ] Add widget tests for activity ordering, empty state, and entity navigation.
+- [x] Add unit tests for activity day grouping, ordering, and formatTime; fixture headlines assert no decorative quotes.
+- [ ] Add widget-level empty-state and entity-navigation smoke coverage once CI is green on the plain-list change.
+- [ ] Align MoreHub activity rows with the same plain list style (done in this branch; verify on device).
+- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build before merge.
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 

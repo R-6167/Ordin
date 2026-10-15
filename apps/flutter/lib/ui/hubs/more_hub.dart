@@ -14,7 +14,7 @@ import '../screens/task_detail_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
-/// Tab 5: Timeline — chronological life activity + offline suggestions.
+/// Nested under Life → More tools: grounded suggestions + plain activity list.
 /// Settings / backup / search live on the AppBar (Search + Settings).
 class MoreHub extends StatefulWidget {
   const MoreHub({super.key, this.onChanged});
@@ -240,7 +240,7 @@ class _MoreHubState extends State<MoreHub> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Everything worth remembering — tap a chip to open it.',
+            'Recent life moments — tap a row to open it.',
             style: TextStyle(
               color: AppTheme.silver.withValues(alpha: 0.4),
               fontSize: 12,
@@ -248,7 +248,8 @@ class _MoreHubState extends State<MoreHub> {
           ),
           const SizedBox(height: 10),
           if (_groups.isEmpty)
-            GlassCard(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 'No activity yet. Complete a task, log an expense, or write a note — it will show up here.',
                 style: TextStyle(
@@ -261,7 +262,7 @@ class _MoreHubState extends State<MoreHub> {
             ..._groups.expand((g) {
               return [
                 Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  padding: const EdgeInsets.only(top: 12, bottom: 6),
                   child: Text(
                     g.label,
                     style: const TextStyle(
@@ -273,57 +274,82 @@ class _MoreHubState extends State<MoreHub> {
                 ),
                 ...g.entries.map((e) {
                   final time = ActivityTimelineService.formatTime(e.occurredAt);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GlassCard(
-                      onTap: () => _openEntity(e.entityType, e.entityId),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: _dotColor(e.eventType),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  e.headline,
-                                  style: const TextStyle(
-                                    color: AppTheme.silver,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.35,
-                                  ),
+                  final canOpen = e.entityId.isNotEmpty &&
+                      const {
+                        'TASK',
+                        'NOTE',
+                        'GOAL',
+                        'PROJECT',
+                        'HABIT',
+                        'ROUTINE',
+                      }.contains(e.entityType);
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: canOpen
+                          ? () => _openEntity(e.entityType, e.entityId)
+                          : null,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 44,
+                              child: Text(
+                                time,
+                                style: TextStyle(
+                                  color: AppTheme.silver.withValues(alpha: 0.55),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                if (e.detail != null && e.detail!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5, right: 10),
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: _dotColor(e.eventType),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    e.detail!,
-                                    style: TextStyle(
-                                      color: AppTheme.silver.withValues(alpha: 0.45),
-                                      fontSize: 12,
+                                    e.headline,
+                                    style: const TextStyle(
+                                      color: AppTheme.silver,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.35,
                                     ),
                                   ),
+                                  if (e.detail != null && e.detail!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      e.detail!,
+                                      style: TextStyle(
+                                        color: AppTheme.silver.withValues(alpha: 0.45),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            time,
-                            style: TextStyle(
-                              color: AppTheme.silver.withValues(alpha: 0.35),
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+                            if (canOpen)
+                              Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: AppTheme.silver.withValues(alpha: 0.35),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   );

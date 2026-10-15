@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../services/activity_timeline.dart';
+import '../screens/goal_detail_screen.dart';
+import '../screens/habit_detail_screen.dart';
+import '../screens/note_detail_screen.dart';
+import '../screens/project_detail_screen.dart';
+import '../screens/routine_detail_screen.dart';
+import '../screens/task_detail_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
 
-/// "Your Life Timeline" — personal history, not a database event log.
+/// Your Life Timeline — plain chronological feed (Phase 5).
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});
 
@@ -56,6 +62,30 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return AppTheme.woodLight;
     }
     return AppTheme.silver.withValues(alpha: 0.5);
+  }
+
+  void _openEntity(String entityType, String entityId) {
+    if (entityId.isEmpty) return;
+    final Widget? screen = switch (entityType) {
+      'TASK' => TaskDetailScreen(taskId: entityId),
+      'NOTE' => NoteDetailScreen(noteId: entityId),
+      'GOAL' => GoalDetailScreen(goalId: entityId),
+      'PROJECT' => ProjectDetailScreen(projectId: entityId),
+      'HABIT' => HabitDetailScreen(habitId: entityId),
+      'ROUTINE' => RoutineDetailScreen(routineId: entityId),
+      _ => null,
+    };
+    if (screen == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Open $entityType from its hub for full detail')),
+      );
+      return;
+    }
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen))
+        .then((_) {
+      if (mounted) _load();
+    });
   }
 
   @override
@@ -114,7 +144,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
-                              padding: EdgeInsets.only(top: gi == 0 ? 4 : 20, bottom: 10),
+                              padding: EdgeInsets.only(top: gi == 0 ? 4 : 20, bottom: 8),
                               child: Text(
                                 g.label,
                                 style: const TextStyle(
@@ -127,84 +157,92 @@ class _ActivityScreenState extends State<ActivityScreen> {
                             ),
                             ...g.entries.map((e) {
                               final time = ActivityTimelineService.formatTime(e.occurredAt);
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: IntrinsicHeight(
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      SizedBox(
-                                        width: 48,
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              time,
-                                              style: TextStyle(
-                                                color: AppTheme.silver.withValues(alpha: 0.55),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                              final canOpen = e.entityId.isNotEmpty &&
+                                  const {
+                                    'TASK',
+                                    'NOTE',
+                                    'GOAL',
+                                    'PROJECT',
+                                    'HABIT',
+                                    'ROUTINE',
+                                  }.contains(e.entityType);
+                              return Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: canOpen
+                                      ? () => _openEntity(e.entityType, e.entityId)
+                                      : null,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SizedBox(
+                                          width: 44,
+                                          child: Text(
+                                            time,
+                                            style: TextStyle(
+                                              color: AppTheme.silver.withValues(alpha: 0.55),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
                                             ),
-                                            const SizedBox(height: 6),
-                                            Expanded(
-                                              child: Container(
-                                                width: 2,
-                                                color: AppTheme.silver.withValues(alpha: 0.12),
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                      Expanded(
-                                        child: GlassCard(
-                                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                                          child: Row(
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 5, right: 10),
+                                          child: Container(
+                                            width: 8,
+                                            height: 8,
+                                            decoration: BoxDecoration(
+                                              color: _dotColor(e.eventType),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Container(
-                                                margin: const EdgeInsets.only(top: 4),
-                                                width: 8,
-                                                height: 8,
-                                                decoration: BoxDecoration(
-                                                  color: _dotColor(e.eventType),
-                                                  shape: BoxShape.circle,
+                                              Text(
+                                                e.headline,
+                                                style: const TextStyle(
+                                                  color: AppTheme.silver,
+                                                  fontWeight: FontWeight.w600,
+                                                  height: 1.35,
                                                 ),
                                               ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      e.headline,
-                                                      style: const TextStyle(
-                                                        color: AppTheme.silver,
-                                                        fontWeight: FontWeight.w600,
-                                                        height: 1.35,
-                                                      ),
-                                                    ),
-                                                    if (e.detail != null && e.detail!.isNotEmpty) ...[
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        e.detail!,
-                                                        style: TextStyle(
-                                                          color: AppTheme.silver.withValues(alpha: 0.45),
-                                                          fontSize: 12,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ],
+                                              if (e.detail != null && e.detail!.isNotEmpty) ...[
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  e.detail!,
+                                                  style: TextStyle(
+                                                    color: AppTheme.silver.withValues(alpha: 0.45),
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ],
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        if (canOpen)
+                                          Icon(
+                                            Icons.chevron_right,
+                                            size: 18,
+                                            color: AppTheme.silver.withValues(alpha: 0.35),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
                             }),
+                            if (gi < _groups.length - 1)
+                              Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: AppTheme.silver.withValues(alpha: 0.08),
+                              ),
                           ],
                         );
                       },
