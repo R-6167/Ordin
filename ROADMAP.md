@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Phase 5 — Timeline and copy/visual cleanup
+**Current work:** Phase 5 closeout — hierarchy pass on `feat/phase5-hierarchy-pass`
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -90,7 +90,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 5 — Timeline and copy/visual cleanup
 
-**Status: In progress on branch `feat/phase5-copy-audit-smoke`.** Plain-list slice merged in PR #103 (merge commit `32c4eafd0f1b990e76c1b4d9fc84ca94ee7f5d8b`).
+**Status: In progress on branch `feat/phase5-hierarchy-pass`.** Plain-list slice merged in PR #103 (`32c4eaf`); quote audit merged in PR #104 (`08a6465`).
 
 - [x] Replace glass-card-per-event presentation with a plain chronological Activity list.
 - [x] Preserve date grouping, timestamp/context, tap targets, and navigation to the referenced entity where supported.
@@ -98,9 +98,9 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [x] Align MoreHub activity rows with the same plain list style.
 - [x] Audit remaining UI copy for unnecessary quotation marks around project/task/goal names (life-area archive dialog fixed; remaining matches are JSON metadata or intentional labels, not decorative entity quotes).
 - [x] Add unit tests for activity day grouping, ordering, and formatTime; fixture headlines assert no decorative quotes.
-- [ ] Widget-level Timeline empty-state smoke deferred (removed flaky CI test; unit grouping coverage remains).
-- [ ] Apply consistent spacing, restrained accents, readable hierarchy, and responsive behavior without redesigning every screen at once (light pass remaining).
-- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on this follow-up commit before merge.
+- [ ] Widget-level Timeline empty-state smoke deferred (flaky under CI; unit grouping coverage remains).
+- [x] Apply consistent spacing, restrained accents, readable hierarchy (Timeline day labels and dots use brandBlue; Life hub section headers use silverMuted; grid icons use brandBlue instead of legacy wood).
+- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on the hierarchy-pass commit before merge; then mark Phase 5 complete.
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
