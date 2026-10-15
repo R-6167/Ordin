@@ -15,11 +15,6 @@ import 'user_prefs.dart';
 
 /// Local notification lifecycle:
 /// Create → Schedule → Notify → Open / Snooze / Delete → Record result
-///
-/// Sound + vibration: Android channel is immutable, so channel id is bumped
-/// when defaults change. Uses system default notification sound (ringtone-class
-/// for alerts) plus explicit vibration patterns. Haptics for in-app actions
-/// live in [FeedbackService].
 class NotificationService {
   NotificationService._();
   static final instance = NotificationService._();
@@ -28,21 +23,19 @@ class NotificationService {
   bool _ready = false;
   bool enabled = true;
 
-  /// Bumped to v3 so Android applies ringtone-style sound + vibration pattern.
   static const _channelId = 'ordin_alerts_v3';
   static const _channelName = 'Ordin Alerts';
   static const _channelDesc =
       'Tasks, bills, habits, and life reminders — sound & vibration';
   static const _iosCategory = 'ordin_actions';
+  /// Matches AndroidManifest launcher drawable (mipmap/ic_launcher is not packaged).
+  static const _androidIcon = '@drawable/ic_launcher_ordin';
 
   static const actionSnooze15 = 'SNOOZE_15';
   static const actionSnooze60 = 'SNOOZE_60';
   static const actionDelete = 'DELETE';
 
-  /// Triple pulse for high-priority reminders (tasks / bills).
   static final Int64List _vibeHigh = Int64List.fromList([0, 300, 120, 300, 120, 300]);
-
-  /// Double pulse for standard alerts (budget, soft reminders).
   static final Int64List _vibeNormal = Int64List.fromList([0, 200, 100, 200]);
 
   Future<void> init() async {
@@ -56,7 +49,7 @@ class NotificationService {
       } catch (_) {}
     }
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings(_androidIcon);
     final ios = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -151,8 +144,8 @@ class NotificationService {
         await instance._plugin.cancel(notificationId);
       }
     } catch (error, stackTrace) {
-          await NotificationDiagnostics.record('cancel_action_notification', error, stackTrace: stackTrace);
-        }
+      await NotificationDiagnostics.record('cancel_action_notification', error, stackTrace: stackTrace);
+    }
 
     if (reminderId == null || reminderId.isEmpty) {
       if (actionId == actionSnooze15 || actionId == actionSnooze60) {
@@ -213,8 +206,8 @@ class NotificationService {
         }
       }
     } catch (error, stackTrace) {
-          await NotificationDiagnostics.record('handle_notification_action', error, stackTrace: stackTrace);
-        }
+      await NotificationDiagnostics.record('handle_notification_action', error, stackTrace: stackTrace);
+    }
   }
 
   static Future<void> _cancelReminder(String id) async {
@@ -285,7 +278,7 @@ class NotificationService {
           'schedule_reminder',
           error,
           stackTrace: stackTrace,
-          details: {'reminderId': remId, 'sourceType': sourceType},
+          details: {'sourceType': sourceType},
         );
       }
     }
@@ -310,15 +303,19 @@ class NotificationService {
         type: NotificationPayload.budget,
         id: b.id,
       );
-      await _schedule(
-        id: _stableId('bud', b.id),
-        title: exceeded ? 'Budget exceeded: ${b.name}' : 'Budget warning: ${b.name}',
-        body: '$cat · $spent / $limit',
-        when: when,
-        high: exceeded,
-        payload: payload.encode(),
-      );
-      n++;
+      try {
+        await _schedule(
+          id: _stableId('bud', b.id),
+          title: exceeded ? 'Budget exceeded: ${b.name}' : 'Budget warning: ${b.name}',
+          body: '$cat · $spent / $limit',
+          when: when,
+          high: exceeded,
+          payload: payload.encode(),
+        );
+        n++;
+      } catch (error, stackTrace) {
+        await NotificationDiagnostics.record('schedule_budget_alert', error, stackTrace: stackTrace);
+      }
     }
     return n;
   }
@@ -330,7 +327,6 @@ class NotificationService {
     return hit;
   }
 
-  /// After recording an expense, re-check budgets (optionally scoped by category).
   Future<List<BudgetStatus>> checkCategoryAfterExpense(String? categoryId) async {
     final all = await BudgetRepository(AppDatabase.instance).alerts();
     if (categoryId == null || categoryId.isEmpty) return all;
@@ -389,7 +385,7 @@ class NotificationService {
           channelDescription: _channelDesc,
           importance: high ? Importance.max : Importance.high,
           priority: high ? Priority.max : Priority.high,
-          icon: '@mipmap/ic_launcher',
+          icon: _androidIcon,
           actions: actions,
           category: AndroidNotificationCategory.reminder,
           audioAttributesUsage: AudioAttributesUsage.notificationRingtone,

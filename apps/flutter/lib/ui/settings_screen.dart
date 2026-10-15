@@ -12,8 +12,8 @@ import 'screens/ai_settings_screen.dart';
 import 'screens/diagnostics_screen.dart';
 import 'theme.dart';
 import 'widgets/glass.dart';
+import 'widgets/settings_preferences.dart';
 
-// NOTE: Full settings UI — security/PIN/import fixed. Other sections preserved from main.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -555,6 +555,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  SettingsPreferencesCard(
+                    currency: _currency,
+                    weekStart: _weekStart,
+                    onCurrency: (c) => _saveProfile(currency: c),
+                    onWeekStart: (w) => _saveProfile(weekStart: w),
                   ),
                   const SizedBox(height: 12),
                   GlassCard(

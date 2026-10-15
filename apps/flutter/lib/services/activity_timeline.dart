@@ -56,7 +56,7 @@ class ActivityTimelineService {
       final entityType = '${r['entity_type']}';
       final entityId = '${r['entity_id']}';
       final title = await _resolveTitle(db, entityType, entityId);
-      final headline = _headline(type, title);
+      final headline = _headline(type, title, entityType);
       final detail = _detail(type, r['metadata'] as String?);
 
       out.add(TimelineEntry(
@@ -106,9 +106,33 @@ class ActivityTimelineService {
     return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
+  String _entityLabel(String entityType) {
+    return switch (entityType) {
+      'TASK' => 'task',
+      'NOTE' => 'note',
+      'GOAL' => 'goal',
+      'PROJECT' => 'project',
+      'MILESTONE' => 'milestone',
+      'HABIT' => 'habit',
+      'ROUTINE' => 'routine',
+      'BILL' || 'BILL_OCCURRENCE' => 'bill',
+      'EXPENSE' => 'expense',
+      'INCOME' => 'income',
+      'BUDGET' => 'budget',
+      'REMINDER' => 'reminder',
+      'PERSON' => 'person',
+      'DOCUMENT' => 'document',
+      'PRACTICAL' => 'practical item',
+      'EVENT' || 'CALENDAR_EVENT' => 'event',
+      'WORK_SESSION' => 'work session',
+      _ => entityType.isEmpty ? 'item' : entityType.toLowerCase().replaceAll('_', ' '),
+    };
+  }
+
   /// Human headline without decorative quotation marks around entity names.
-  String _headline(String type, String? title) {
+  String _headline(String type, String? title, String entityType) {
     final t = (title == null || title.isEmpty) ? null : title;
+    final label = _entityLabel(entityType);
     switch (type) {
       case 'TASK_COMPLETED':
         return t == null ? 'Completed a task' : 'Completed $t';
@@ -158,12 +182,19 @@ class ActivityTimelineService {
         return t == null ? 'Started a project' : 'Project: $t';
       default:
         if (type.contains('COMPLETED')) {
-          return t == null ? 'Completed something' : 'Completed $t';
+          return t == null ? 'Completed $label' : 'Completed $t';
         }
         if (type.contains('CREATED')) {
-          return t == null ? 'Created something' : 'Created $t';
+          return t == null ? 'Created $label' : 'Created $t';
         }
-        return type.replaceAll('_', ' ').toLowerCase();
+        if (type.contains('UPDATED')) {
+          return t == null ? 'Updated $label' : 'Updated $t';
+        }
+        if (type.contains('DELETED') || type.contains('CANCELLED')) {
+          return t == null ? 'Removed $label' : 'Removed $t';
+        }
+        final readable = type.replaceAll('_', ' ').toLowerCase();
+        return t == null ? readable : '$readable · $t';
     }
   }
 
@@ -173,6 +204,7 @@ class ActivityTimelineService {
   }
 
   Future<String?> _resolveTitle(dynamic db, String entityType, String entityId) async {
+    if (entityId.isEmpty || entityId == 'null') return null;
     try {
       switch (entityType) {
         case 'GOAL':
@@ -225,6 +257,11 @@ class ActivityTimelineService {
           return _field(db, 'financial_accounts', entityId, 'name');
         case 'REMINDER':
           return _field(db, 'reminders', entityId, 'title');
+        case 'PERSON':
+          return _field(db, 'people', entityId, 'name');
+        case 'EVENT':
+        case 'CALENDAR_EVENT':
+          return _field(db, 'calendar_events', entityId, 'title');
         default:
           return null;
       }
