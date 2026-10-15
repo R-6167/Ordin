@@ -23,6 +23,7 @@ import 'more_hub.dart';
 import '../screens/wellness_screen.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/empty_state.dart';
 
 class LifeHub extends StatefulWidget {
   const LifeHub({
@@ -72,7 +73,6 @@ class _LifeHubState extends State<LifeHub> {
     }
   }
 
-
   /// Push a screen; only bubble [onChanged] if data actually mutated.
   Future<void> _open(Widget page, {bool reloadPractical = false}) async {
     final gen = AppDataBus.instance.generation;
@@ -83,7 +83,6 @@ class _LifeHubState extends State<LifeHub> {
       await widget.onChanged();
     }
   }
-
 
   List<String> get _attention {
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -242,17 +241,20 @@ class _LifeHubState extends State<LifeHub> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
         _navigationGrid(),
-        const SizedBox(height: 18),
         if (attention.isNotEmpty) ...[
+          const SizedBox(height: 12),
           GlassCard(
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Heads-up', style: TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.w600)),
+                const Text('Heads-up',
+                    style: TextStyle(color: AppTheme.brandBlue, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 ...attention.map((a) => Padding(
                       padding: const EdgeInsets.only(bottom: 4),
-                      child: Text('• $a', style: const TextStyle(color: AppTheme.silver, fontSize: 13)),
+                      child: Text('• $a',
+                          style: const TextStyle(color: AppTheme.silver, fontSize: 13)),
                     )),
               ],
             ),
@@ -261,7 +263,12 @@ class _LifeHubState extends State<LifeHub> {
         ],
         _header(context, 'Goals', AddKind.goal),
         if (widget.goals.isEmpty)
-          _empty('No goals yet.')
+          EmptyState(
+            title: 'No goals yet',
+            detail: 'Capture an outcome you want to move toward.',
+            icon: Icons.flag_outlined,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.goals.map((g) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -270,32 +277,44 @@ class _LifeHubState extends State<LifeHub> {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   child: ListTile(
                     title: Text(g.title, style: const TextStyle(color: AppTheme.silver)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.flag, color: AppTheme.brandBlue),
-                      onPressed: () async {
-                        await GoalRepository(AppDatabase.instance).complete(g.id);
-                        await widget.onChanged();
-                      },
-                    ),
+                    subtitle: g.targetDate != null
+                        ? Text('Target set',
+                            style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.45),
+                                fontSize: 12))
+                        : null,
                   ),
                 ),
               )),
         const SizedBox(height: 10),
         _header(context, 'Projects', AddKind.project),
         if (widget.projects.isEmpty)
-          _empty('No projects yet.')
+          EmptyState(
+            title: 'No projects yet',
+            detail: 'Group related work under a project.',
+            icon: Icons.folder_outlined,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.projects.map((p) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
                   onTap: () => _open(ProjectDetailScreen(projectId: p.id)),
-                  child: Text(p.title, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
+                  padding: const EdgeInsets.all(14),
+                  child: Text(p.title,
+                      style: const TextStyle(
+                          color: AppTheme.silver, fontWeight: FontWeight.w600)),
                 ),
               )),
         const SizedBox(height: 10),
         _header(context, 'Habits', AddKind.habit),
         if (widget.habits.isEmpty)
-          _empty('No habits yet.')
+          EmptyState(
+            title: 'No habits yet',
+            detail: 'Track a daily practice you want to keep.',
+            icon: Icons.repeat,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.habits.map((h) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -305,11 +324,14 @@ class _LifeHubState extends State<LifeHub> {
                   child: ListTile(
                     title: Text(h.title, style: const TextStyle(color: AppTheme.silver)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.done_all, color: AppTheme.brandBlue),
+                      icon: const Icon(Icons.check_circle_outline,
+                          color: AppTheme.brandBlue),
                       onPressed: () async {
-                        await HabitRepository(AppDatabase.instance).markDoneToday(h.id);
+                        await HabitRepository(AppDatabase.instance)
+                            .completeToday(h.id);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Logged ${h.title}')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Logged ${h.title}')));
                         }
                         await widget.onChanged();
                       },
@@ -318,49 +340,54 @@ class _LifeHubState extends State<LifeHub> {
                 ),
               )),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            const Text('Routines', style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600, fontSize: 14)),
-            const Spacer(),
-            TextButton(
-              onPressed: () async {
-                final c = TextEditingController();
-                final name = await showDialog<String>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: AppTheme.metal,
-                    title: const Text('New routine', style: TextStyle(color: AppTheme.silver)),
-                    content: TextField(
-                      controller: c,
-                      autofocus: true,
-                      style: const TextStyle(color: AppTheme.silver),
-                      decoration: const InputDecoration(labelText: 'Name'),
-                    ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(ctx, c.text.trim()),
-                        child: const Text('Create'),
-                      ),
-                    ],
-                  ),
-                );
-                if (name != null && name.isNotEmpty) {
-                  final r = await RoutineRepository(AppDatabase.instance).create(name: name);
-                  if (context.mounted) {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => RoutineDetailScreen(routineId: r.id)),
-                    );
-                  }
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(
+            children: [
+              const Text('Routines',
+                  style: TextStyle(
+                      color: AppTheme.silverMuted,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14)),
+              const Spacer(),
+              TextButton(
+                onPressed: () async {
+                  final name = await showDialog<String>(
+                    context: context,
+                    builder: (ctx) {
+                      final c = TextEditingController();
+                      return AlertDialog(
+                        title: const Text('New routine',
+                            style: TextStyle(color: AppTheme.silver)),
+                        content: TextField(controller: c, autofocus: true),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel')),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, c.text.trim()),
+                            child: const Text('Create'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                  if (name == null || name.isEmpty) return;
+                  await RoutineRepository(AppDatabase.instance).create(name: name);
                   await widget.onChanged();
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
         ),
         if (widget.routines.isEmpty)
-          _empty('No routines yet.')
+          EmptyState(
+            title: 'No routines yet',
+            detail: 'Bundle steps you run together.',
+            icon: Icons.list_alt,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.routines.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -370,12 +397,14 @@ class _LifeHubState extends State<LifeHub> {
                   child: ListTile(
                     title: Text(r.name, style: const TextStyle(color: AppTheme.silver)),
                     trailing: IconButton(
-                      icon: const Icon(Icons.play_circle_outline, color: AppTheme.brandBlue),
+                      icon: const Icon(Icons.play_circle_outline,
+                          color: AppTheme.brandBlue),
                       onPressed: () async {
-                        await RoutineRepository(AppDatabase.instance).completeToday(r.id);
+                        await RoutineRepository(AppDatabase.instance)
+                            .completeToday(r.id);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(SnackBar(content: Text('Completed ${r.name}')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Completed ${r.name}')));
                         }
                         await widget.onChanged();
                       },
@@ -386,7 +415,12 @@ class _LifeHubState extends State<LifeHub> {
         const SizedBox(height: 10),
         _header(context, 'Notes', AddKind.note),
         if (widget.notes.isEmpty)
-          _empty('No notes yet.')
+          EmptyState(
+            title: 'No notes yet',
+            detail: 'Jot ideas, links, or context for later.',
+            icon: Icons.sticky_note_2_outlined,
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
+          )
         else
           ...widget.notes.map((n) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -408,7 +442,11 @@ class _LifeHubState extends State<LifeHub> {
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           children: [
-            Text(label, style: const TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600, fontSize: 14)),
+            Text(label,
+                style: const TextStyle(
+                    color: AppTheme.silverMuted,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14)),
             const Spacer(),
             TextButton(
               onPressed: () async {
@@ -419,10 +457,5 @@ class _LifeHubState extends State<LifeHub> {
             ),
           ],
         ),
-      );
-
-  Widget _empty(String m) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Text(m, style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35))),
       );
 }
