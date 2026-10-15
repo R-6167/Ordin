@@ -41,6 +41,82 @@ void main() {
     expect(summary.moneyEvents, 1);
     expect(summary.previousCompletedTasks, 1);
     expect(summary.taskCompletionDelta, 1);
+    expect(summary.dailyActivity, hasLength(7));
+    expect(summary.dailyActivity.fold<int>(0, (sum, day) => sum + day.completedTasks), 2);
+    expect(summary.dailyActivity.fold<int>(0, (sum, day) => sum + day.completedHabits), 1);
+    expect(summary.dailyActivity.fold<int>(0, (sum, day) => sum + day.moneyEvents), 1);
+  });
+
+  test('linked goal and project progress uses completed versus total non-archived tasks', () async {
+    final db = await AppDatabase.instance.database;
+    final ownerId = await AppDatabase.instance.requireOwnerId();
+    final now = AppDatabase.nowMs();
+    final goalId = AppDatabase.newId();
+    final projectId = AppDatabase.newId();
+
+    await db.insert('goals', {
+      'id': goalId,
+      'owner_id': ownerId,
+      'title': 'Finish the launch',
+      'status': 'ACTIVE',
+      'created_at': now,
+      'updated_at': now,
+    });
+    await db.insert('projects', {
+      'id': projectId,
+      'owner_id': ownerId,
+      'goal_id': goalId,
+      'title': 'Launch project',
+      'status': 'ACTIVE',
+      'created_at': now,
+      'updated_at': now,
+    });
+
+    await db.insert('tasks', {
+      'id': AppDatabase.newId(),
+      'owner_id': ownerId,
+      'project_id': projectId,
+      'goal_id': goalId,
+      'title': 'Completed work',
+      'status': 'COMPLETED',
+      'completed_at': now,
+      'created_at': now,
+      'updated_at': now,
+    });
+    await db.insert('tasks', {
+      'id': AppDatabase.newId(),
+      'owner_id': ownerId,
+      'project_id': projectId,
+      'goal_id': goalId,
+      'title': 'Remaining work',
+      'status': 'OPEN',
+      'completed_at': null,
+      'created_at': now,
+      'updated_at': now,
+    });
+    await db.insert('tasks', {
+      'id': AppDatabase.newId(),
+      'owner_id': ownerId,
+      'project_id': projectId,
+      'goal_id': goalId,
+      'title': 'Archived work',
+      'status': 'COMPLETED',
+      'completed_at': now,
+      'archived_at': now,
+      'created_at': now,
+      'updated_at': now,
+    });
+
+    final summary = await PersonalInsightsService().load();
+    final goal = summary.progressItems.singleWhere((item) => item.kind == 'Goal');
+    final project = summary.progressItems.singleWhere((item) => item.kind == 'Project');
+
+    expect(goal.completed, 1);
+    expect(goal.total, 2);
+    expect(goal.fraction, 0.5);
+    expect(project.completed, 1);
+    expect(project.total, 2);
+    expect(project.fraction, 0.5);
   });
 
   test('does not include another owner’s activity', () async {
@@ -69,5 +145,6 @@ void main() {
     final summary = await PersonalInsightsService().load();
     expect(summary.activityCount, 0);
     expect(summary.completedTasks, 0);
+    expect(summary.dailyActivity, hasLength(7));
   });
 }
