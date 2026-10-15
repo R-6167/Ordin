@@ -69,9 +69,21 @@ void main() {
     }
 
     // Finance is nested under Life rather than occupying a primary tab.
-    await tester.tap(find.text('Life').last);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Life'),
+      ),
+    );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Life'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Finance'), findsWidgets);
     await tester.tap(find.text('Finance').first);
     await tester.pump();
