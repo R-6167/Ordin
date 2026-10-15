@@ -7,7 +7,9 @@ import '../screens/goal_detail_screen.dart';
 import '../screens/habit_detail_screen.dart';
 import '../screens/note_detail_screen.dart';
 import '../screens/project_detail_screen.dart';
+import '../screens/routine_detail_screen.dart';
 import '../screens/task_detail_screen.dart';
+import 'empty_state.dart';
 import 'glass.dart';
 
 /// Bidirectional related records for any entity (entity_links).
@@ -73,11 +75,18 @@ class _RelatedLinksSectionState extends State<RelatedLinksSection> {
       'GOAL' => GoalDetailScreen(goalId: id),
       'NOTE' => NoteDetailScreen(noteId: id),
       'HABIT' => HabitDetailScreen(habitId: id),
+      'ROUTINE' => RoutineDetailScreen(routineId: id),
       _ => null,
     };
     if (screen == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No detail screen for $type yet')),
+        SnackBar(
+          content: Text(
+            type == 'PERSON'
+                ? 'People profiles open from notes and search'
+                : 'No detail screen for $type yet',
+          ),
+        ),
       );
       return;
     }
@@ -92,6 +101,7 @@ class _RelatedLinksSectionState extends State<RelatedLinksSection> {
       'GOAL' => Icons.flag_outlined,
       'NOTE' => Icons.sticky_note_2_outlined,
       'HABIT' => Icons.repeat,
+      'ROUTINE' => Icons.list_alt,
       'PERSON' => Icons.person_outline,
       'EVENT' => Icons.event,
       'CALENDAR_EVENT' => Icons.event,
@@ -108,7 +118,7 @@ class _RelatedLinksSectionState extends State<RelatedLinksSection> {
           child: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.amber),
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.brandBlue),
           ),
         ),
       );
@@ -119,13 +129,15 @@ class _RelatedLinksSectionState extends State<RelatedLinksSection> {
         const SizedBox(height: 12),
         const Text(
           'Related',
-          style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600),
+          style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         if (_items.isEmpty)
-          Text(
-            'Nothing linked yet — notes and other records can connect here.',
-            style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.35), fontSize: 12),
+          EmptyState(
+            title: 'Nothing linked yet',
+            detail: 'Notes, tasks, and projects can connect here.',
+            icon: Icons.link_off,
+            padding: const EdgeInsets.symmetric(vertical: 12),
           )
         else
           ..._items.map((item) {
@@ -139,7 +151,7 @@ class _RelatedLinksSectionState extends State<RelatedLinksSection> {
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: ListTile(
                   dense: true,
-                  leading: Icon(_icon(type), color: AppTheme.amber, size: 20),
+                  leading: Icon(_icon(type), color: AppTheme.brandBlue, size: 20),
                   title: Text(title, style: const TextStyle(color: AppTheme.silver)),
                   subtitle: Text(
                     '$type · $rel',
