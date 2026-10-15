@@ -15,7 +15,6 @@ import '../theme.dart';
 import '../widgets/glass.dart';
 
 /// Nested under Life → More tools: grounded suggestions + plain activity list.
-/// Settings / backup / search live on the AppBar (Search + Settings).
 class MoreHub extends StatefulWidget {
   const MoreHub({super.key, this.onChanged});
 
@@ -87,8 +86,6 @@ class _MoreHubState extends State<MoreHub> {
         ));
       }
     } catch (_) {}
-    // Suggestions here should be grounded in the user's actual records.
-    // Intelligence remains available from the global app-bar action.
     if (out.isEmpty) {
       out.add(const _Suggestion(
         title: 'You’re clear for now',
@@ -146,10 +143,10 @@ class _MoreHubState extends State<MoreHub> {
     if (eventType.contains('EXPENSE') ||
         eventType.contains('BILL') ||
         eventType.contains('DEBT')) {
-      return AppTheme.woodLight;
+      return AppTheme.silverMuted;
     }
     if (eventType.contains('WORK_') || eventType.contains('SESSION')) {
-      return AppTheme.amber;
+      return AppTheme.brandBlue;
     }
     return AppTheme.silver.withValues(alpha: 0.5);
   }
@@ -157,11 +154,11 @@ class _MoreHubState extends State<MoreHub> {
   @override
   Widget build(BuildContext context) {
     if (_loading && _groups.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.amber));
+      return const Center(child: CircularProgressIndicator(color: AppTheme.brandBlue));
     }
 
     return RefreshIndicator(
-      color: AppTheme.amber,
+      color: AppTheme.brandBlue,
       onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -172,7 +169,7 @@ class _MoreHubState extends State<MoreHub> {
                 child: Text(
                   'Suggestions',
                   style: TextStyle(
-                    color: AppTheme.woodLight,
+                    color: AppTheme.silverMuted,
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
@@ -197,7 +194,7 @@ class _MoreHubState extends State<MoreHub> {
                 onTap: s.onTap,
                 child: Row(
                   children: [
-                    Icon(s.icon, color: AppTheme.amber),
+                    Icon(s.icon, color: AppTheme.brandBlue, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -208,6 +205,8 @@ class _MoreHubState extends State<MoreHub> {
                             style: const TextStyle(
                               color: AppTheme.silver,
                               fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              height: 1.25,
                             ),
                           ),
                           Text(
@@ -233,7 +232,7 @@ class _MoreHubState extends State<MoreHub> {
           const Text(
             'Activity',
             style: TextStyle(
-              color: AppTheme.woodLight,
+              color: AppTheme.silverMuted,
               fontWeight: FontWeight.w700,
               fontSize: 15,
             ),
@@ -266,7 +265,7 @@ class _MoreHubState extends State<MoreHub> {
                   child: Text(
                     g.label,
                     style: const TextStyle(
-                      color: AppTheme.woodLight,
+                      color: AppTheme.brandBlue,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -327,6 +326,7 @@ class _MoreHubState extends State<MoreHub> {
                                       color: AppTheme.silver,
                                       fontWeight: FontWeight.w600,
                                       height: 1.35,
+                                      fontSize: 14,
                                     ),
                                   ),
                                   if (e.detail != null && e.detail!.isNotEmpty) ...[
