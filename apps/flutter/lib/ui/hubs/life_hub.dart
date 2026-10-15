@@ -111,29 +111,129 @@ class _LifeHubState extends State<LifeHub> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: GlassCard(
-        onTap: onTap,
-        child: Row(
-          children: [
-            Icon(icon, color: AppTheme.amber),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600)),
-                  Text(subtitle, style: const TextStyle(color: AppTheme.silverMuted, fontSize: 12)),
-                ],
+    return Semantics(
+      button: true,
+      label: '$title. $subtitle',
+      child: ExcludeSemantics(
+        child: GlassCard(
+          onTap: onTap,
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, color: AppTheme.amber, size: 26),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.silver,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppTheme.silverMuted,
+                  fontSize: 11,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _navigationGrid() => LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 900 ? 3 : 2;
+          return GridView.count(
+            crossAxisCount: columns,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: constraints.maxWidth < 360 ? 0.95 : 1.15,
+            children: [
+              _navCard(
+                icon: Icons.checklist_rounded,
+                title: 'Tasks',
+                subtitle: 'Open work and overdue items',
+                onTap: widget.onOpenTasks,
+              ),
+              _navCard(
+                icon: Icons.account_balance_wallet_outlined,
+                title: 'Finance',
+                subtitle: 'Budgets, bills and transactions',
+                onTap: () => _open(
+                  Scaffold(
+                    appBar: AppBar(title: const Text('Finance')),
+                    body: widget.finance,
+                  ),
+                ),
+              ),
+              _navCard(
+                icon: Icons.category_outlined,
+                title: 'Life areas',
+                subtitle: 'Organize domains of life',
+                onTap: () => _open(const LifeAreasScreen()),
+              ),
+              _navCard(
+                icon: Icons.priority_high,
+                title: 'Needs attention',
+                subtitle: 'Duties and upcoming expiries',
+                onTap: () => _open(const NeedsAttentionScreen()),
+              ),
+              _navCard(
+                icon: Icons.favorite_outline,
+                title: 'Health & wellness',
+                subtitle: 'Check-ins, sleep and mood',
+                onTap: () => _open(const WellnessScreen()),
+              ),
+              _navCard(
+                icon: Icons.schedule,
+                title: 'Schedule',
+                subtitle: 'Daily time grid',
+                onTap: () => _open(const ScheduleScreen()),
+              ),
+              _navCard(
+                icon: Icons.view_timeline_outlined,
+                title: 'Day plan',
+                subtitle: 'Build and review your day',
+                onTap: () => _open(const PlanningScreen()),
+              ),
+              _navCard(
+                icon: Icons.calendar_month,
+                title: 'Calendar',
+                subtitle: 'Events and month view',
+                onTap: () => _open(const CalendarScreen()),
+              ),
+              _navCard(
+                icon: Icons.explore_outlined,
+                title: 'More tools',
+                subtitle: 'Additional tools and suggestions',
+                onTap: () => _open(MoreHub(onChanged: widget.onChanged)),
+              ),
+              _navCard(
+                icon: Icons.home_repair_service_outlined,
+                title: 'Practical life',
+                subtitle: 'Documents, vehicle and shopping',
+                onTap: () => _open(const PracticalLifeScreen(), reloadPractical: true),
+              ),
+            ],
+          );
+        },
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -141,71 +241,8 @@ class _LifeHubState extends State<LifeHub> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
-        _navCard(
-          icon: Icons.checklist_rounded,
-          title: 'Tasks',
-          subtitle: 'Open work, overdue items and completion actions',
-          onTap: widget.onOpenTasks,
-        ),
-        _navCard(
-          icon: Icons.account_balance_wallet_outlined,
-          title: 'Finance',
-          subtitle: 'Accounts, budgets, cash flow, bills and transactions',
-          onTap: () => _open(
-            Scaffold(
-              appBar: AppBar(title: const Text('Finance')),
-              body: widget.finance,
-            ),
-          ),
-        ),
-        _navCard(
-          icon: Icons.category_outlined,
-          title: 'Life areas',
-          subtitle: 'Configure domains of life',
-          onTap: () => _open(const LifeAreasScreen()),
-        ),
-        _navCard(
-          icon: Icons.priority_high,
-          title: 'Needs attention',
-          subtitle: 'Recurring + practical duties',
-          onTap: () => _open(const NeedsAttentionScreen()),
-        ),
-        _navCard(
-          icon: Icons.favorite_outline,
-          title: 'Health & wellness',
-          subtitle: 'Check-in · sleep · mood',
-          onTap: () => _open(const WellnessScreen()),
-        ),
-        _navCard(
-          icon: Icons.schedule,
-          title: 'Schedule',
-          subtitle: 'Day grid · drag & drop time',
-          onTap: () => _open(const ScheduleScreen()),
-        ),
-        _navCard(
-          icon: Icons.view_timeline_outlined,
-          title: 'Day plan',
-          subtitle: 'Build my day · sessions',
-          onTap: () => _open(const PlanningScreen()),
-        ),
-        _navCard(
-          icon: Icons.calendar_month,
-          title: 'Calendar',
-          subtitle: 'Events & month grid',
-          onTap: () => _open(const CalendarScreen()),
-        ),
-        _navCard(
-          icon: Icons.explore_outlined,
-          title: 'More tools & insights',
-          subtitle: 'Activity insights and quick suggestions',
-          onTap: () => _open(MoreHub(onChanged: widget.onChanged)),
-        ),
-        _navCard(
-          icon: Icons.home_repair_service_outlined,
-          title: 'Practical',
-          subtitle: 'Documents · vehicle · shopping',
-          onTap: () => _open(const PracticalLifeScreen(), reloadPractical: true),
-        ),
+        _navigationGrid(),
+        const SizedBox(height: 16),
         if (attention.isNotEmpty) ...[
           GlassCard(
             child: Column(
