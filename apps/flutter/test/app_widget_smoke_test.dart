@@ -4,6 +4,7 @@ import 'package:ordin/services/error_log_service.dart';
 import 'package:ordin/services/local_analytics.dart';
 import 'package:ordin/services/personal_insights_service.dart';
 import 'package:ordin/ui/home_shell.dart';
+import 'package:ordin/ui/hubs/life_hub.dart';
 import 'package:ordin/ui/screens/insights_screen.dart';
 
 import 'helpers/test_db.dart';
@@ -68,36 +69,14 @@ void main() {
       expect(find.byType(NavigationBar), findsOneWidget);
     }
 
-    // Finance is nested under Life rather than occupying a primary tab.
-    await tester.tap(
+    // Finance is no longer a primary navigation destination.
+    expect(
       find.descendant(
         of: find.byType(NavigationBar),
-        matching: find.text('Life'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.text('Life'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Finance'), findsWidgets);
-    await tester.tap(find.text('Finance').first);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
         matching: find.text('Finance'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
-    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
 
     await tester.tap(find.text('Today').last);
     await tester.pump();
@@ -111,6 +90,44 @@ void main() {
     );
 
     // Unmount the stateful shell so no route animation survives the test.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  testWidgets('Life hub opens Finance as a nested destination', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: LifeHub(
+            goals: const [],
+            habits: const [],
+            onOpenTasks: () {},
+            notes: const [],
+            projects: const [],
+            routines: const [],
+            onChanged: () async {},
+            finance: const Center(child: Text('Finance contents')),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.text('Finance').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.text('Finance'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Finance contents'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
   });
