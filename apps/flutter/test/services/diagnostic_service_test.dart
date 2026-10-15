@@ -32,7 +32,8 @@ void main() {
         'reason': List<String>.filled(500, 'x').join(),
       });
 
-      expect((safe['reason'] as String).length, 120);
+      // Matches DiagnosticService._safeDetails string cap (richer release errors).
+      expect((safe['reason'] as String).length, 160);
     });
 
     test('drops unrecognized values and object payloads', () {
