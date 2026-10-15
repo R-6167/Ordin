@@ -133,6 +133,8 @@ void main() {
   });
 
   testWidgets('Life hub uses an accessible compact grid on a narrow phone', (tester) async {
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
