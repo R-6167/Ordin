@@ -127,7 +127,6 @@ void main() {
     );
     expect(find.text('Finance contents'), findsOneWidget);
     expect(tester.takeException(), isNull);
-    semantics.dispose();
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
@@ -167,6 +166,7 @@ void main() {
     expect(find.text('Practical life'), findsOneWidget);
     expect(find.bySemanticsLabel(RegExp(r'Finance\. Budgets, bills and transactions')), findsOneWidget);
     expect(tester.takeException(), isNull);
+    semantics.dispose();
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
