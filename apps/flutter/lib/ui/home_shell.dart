@@ -86,7 +86,7 @@ class _HomeShellState extends State<HomeShell> {
   int _freeMinutes = 0;
   int _monthSpendMinor = 0;
 
-  static const _titles = ['Today', 'Tasks', 'Life', 'Finance', 'Timeline'];
+  static const _titles = ['Today', 'Insights', 'Life', 'Finance', 'Timeline'];
 
   @override
   void initState() {
@@ -552,9 +552,9 @@ class _HomeShellState extends State<HomeShell> {
                 selectedIcon: Icon(Icons.today),
                 label: 'Today'),
             NavigationDestination(
-                icon: Icon(Icons.check_box_outlined),
-                selectedIcon: Icon(Icons.check_box),
-                label: 'Tasks'),
+                icon: Icon(Icons.insights_outlined),
+                selectedIcon: Icon(Icons.insights),
+                label: 'Insights'),
             NavigationDestination(
                 icon: Icon(Icons.favorite_outline),
                 selectedIcon: Icon(Icons.favorite),
@@ -578,9 +578,14 @@ class _HomeShellState extends State<HomeShell> {
       index: _tab,
       children: [
         KeyedSubtree(key: const ValueKey('tab-today'), child: _today()),
-        KeyedSubtree(key: const ValueKey('tab-tasks'), child: _tasksView()),
+        const InsightsScreen(key: ValueKey('tab-insights')),
         LifeHub(
           key: const ValueKey('tab-life'),
+          onOpenTasks: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => _tasksView()),
+            );
+          },
           goals: _goalList,
           habits: _habitList,
           notes: _noteList,
