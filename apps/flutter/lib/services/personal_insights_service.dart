@@ -65,7 +65,7 @@ class PersonalInsightsService {
   Future<PersonalInsightsSummary> load({int days = 7}) async {
     final db = await _db.database;
     final ownerId = await _db.requireOwnerId();
-    final safeDays = days.clamp(1, 30);
+    final safeDays = days.clamp(1, 30).toInt();
     final now = DateTime.fromMillisecondsSinceEpoch(AppDatabase.nowMs()).toLocal();
     final today = DateTime(now.year, now.month, now.day);
     final currentStartDate = DateTime(today.year, today.month, today.day - safeDays + 1);
@@ -97,9 +97,9 @@ class PersonalInsightsService {
       [ownerId, currentStart, currentEnd],
     );
 
-    int tasks = 0;
-    int habits = 0;
-    int money = 0;
+    var tasks = 0;
+    var habits = 0;
+    var money = 0;
     final bucketByDate = <String, Map<String, int>>{};
     for (var i = 0; i < safeDays; i++) {
       final date = DateTime(today.year, today.month, today.day - safeDays + 1 + i);
@@ -165,7 +165,7 @@ class PersonalInsightsService {
   ) async {
     final rows = await db.rawQuery(
       '''
-      SELECT id, title, kind, completed, total FROM (
+      SELECT id, title, kind, completed, total, sort_order FROM (
         SELECT
           g.id AS id,
           g.title AS title,
@@ -230,5 +230,5 @@ class PersonalInsightsService {
   };
 
   static String _dateKey(DateTime value) =>
-      '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+      "${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}";
 }
