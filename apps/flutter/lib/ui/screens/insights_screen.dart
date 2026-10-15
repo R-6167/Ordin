@@ -5,19 +5,22 @@ import '../theme.dart';
 import '../widgets/glass.dart';
 
 class InsightsScreen extends StatefulWidget {
-  const InsightsScreen({super.key});
+  const InsightsScreen({super.key, this.service});
+
+  final PersonalInsightsService? service;
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
 }
 
 class _InsightsScreenState extends State<InsightsScreen> {
-  final _service = PersonalInsightsService();
+  late final PersonalInsightsService _service;
   late Future<PersonalInsightsSummary> _summary;
 
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? PersonalInsightsService();
     _summary = _service.load();
   }
 
@@ -157,19 +160,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
 /// Compact personal-progress summary for the Today screen. This uses life
 /// activity events, not app usage or diagnostic telemetry.
 class HomeInsightsCard extends StatefulWidget {
-  const HomeInsightsCard({super.key});
+  const HomeInsightsCard({super.key, this.service});
+
+  final PersonalInsightsService? service;
 
   @override
   State<HomeInsightsCard> createState() => _HomeInsightsCardState();
 }
 
 class _HomeInsightsCardState extends State<HomeInsightsCard> {
-  final _service = PersonalInsightsService();
+  late final PersonalInsightsService _service;
   late Future<PersonalInsightsSummary> _summary;
 
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? PersonalInsightsService();
     _summary = _service.load();
   }
 
@@ -177,7 +183,7 @@ class _HomeInsightsCardState extends State<HomeInsightsCard> {
   Widget build(BuildContext context) {
     return GlassCard(
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const InsightsScreen()),
+        MaterialPageRoute(builder: (_) => InsightsScreen(service: _service)),
       ),
       padding: const EdgeInsets.all(14),
       child: FutureBuilder<PersonalInsightsSummary>(
