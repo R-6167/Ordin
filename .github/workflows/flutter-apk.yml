@@ -7,6 +7,8 @@ on:
       - 'apps/flutter/**'
       - '.github/workflows/flutter-apk.yml'
   push:
+    branches:
+      - main
     paths:
       - 'apps/flutter/**'
       - '.github/workflows/flutter-apk.yml'

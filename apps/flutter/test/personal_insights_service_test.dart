@@ -47,6 +47,39 @@ void main() {
     expect(summary.dailyActivity.fold<int>(0, (sum, day) => sum + day.moneyEvents), 1);
   });
 
+  test('daily buckets use local midnight boundaries with an exclusive next-day end', () async {
+    final db = await AppDatabase.instance.database;
+    final ownerId = await AppDatabase.instance.requireOwnerId();
+    final now = DateTime.fromMillisecondsSinceEpoch(AppDatabase.nowMs()).toLocal();
+    final today = DateTime(now.year, now.month, now.day);
+    final currentStart = DateTime(today.year, today.month, today.day - 6);
+    final previousBoundary = currentStart.millisecondsSinceEpoch;
+    final tomorrow = DateTime(today.year, today.month, today.day + 1);
+
+    Future<void> event(int at) async {
+      await db.insert('activity_events', {
+        'id': AppDatabase.newId(),
+        'owner_id': ownerId,
+        'event_type': 'TASK_COMPLETED',
+        'entity_type': 'TASK',
+        'entity_id': AppDatabase.newId(),
+        'occurred_at': at,
+        'recorded_at': AppDatabase.nowMs(),
+        'source': 'boundary-test',
+      });
+    }
+
+    await event(previousBoundary - 1);
+    await event(previousBoundary);
+    await event(tomorrow.millisecondsSinceEpoch);
+
+    final summary = await PersonalInsightsService().load();
+    expect(summary.previousCompletedTasks, 1);
+    expect(summary.completedTasks, 1);
+    expect(summary.dailyActivity.first.date, currentStart);
+    expect(summary.dailyActivity.first.completedTasks, 1);
+  });
+
   test('linked goal and project progress uses completed versus total non-archived tasks', () async {
     final db = await AppDatabase.instance.database;
     final ownerId = await AppDatabase.instance.requireOwnerId();
