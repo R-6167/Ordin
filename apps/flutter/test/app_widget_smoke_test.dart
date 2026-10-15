@@ -70,6 +70,30 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
+  testWidgets('Today insights card opens personal insights', (tester) async {
+    tester.view.physicalSize = const Size(1080, 1920);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(home: HomeShell()));
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    final card = find.text('Your week at a glance');
+    await tester.ensureVisible(card);
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Insights'), findsOneWidget);
+    expect(find.text('Your last 7 days'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
   testWidgets('primary navigation remains usable at narrow phone width',
       (tester) async {
     tester.view.physicalSize = const Size(360, 800);
