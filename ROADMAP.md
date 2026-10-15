@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Phase 3 — Insights trends and linked-work progress
+**Current work:** Phase 4 — Life hub layout and discoverability
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -62,26 +62,31 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 3 — Real analytics and progress visualization
 
-**Status: Implemented on branch `feat/insights-trends-progress`; CI and review pending. Do not mark complete until the branch's tests, analysis and APK workflow pass.**
+**Status: Complete; merged in PR #101.** Merge commit `ef8ec080b9ce3793d8485b511f67d12e37244d86`; successful Flutter APK workflow run [38699081253](https://github.com/R-6167/Ordin/actions/runs/38699081253), including unit/smoke tests, analysis, release APK build and artifact upload. Artifact SHA-256: `baaa4b44573e1325dd72b28775a32163377f18a6c7207b00f1e24612044a9a0c`.
 
 - [x] Add daily buckets for the last seven local calendar days, based on owner-scoped `activity_events`.
 - [x] Show a real daily trend chart for task completions, habit completions, and money-related events; zero-activity days remain visible.
 - [x] Add linked-work progress bars for goals and projects only when at least one non-archived linked task gives a meaningful denominator.
 - [x] Keep counts and chart values local, owner-scoped, and separate from app-usage events and diagnostics.
 - [x] Add tests for daily bucket totals, prior-period comparison, owner isolation, and goal/project progress calculations excluding archived tasks.
-- [ ] Run Flutter unit/smoke tests, static analysis, and release APK build on the exact final Phase 3 commit.
-- [ ] Review workflow logs, fix any failures, and rerun until green.
-- [ ] Check narrow-phone layout, screen-reader descriptions, empty history, and date-boundary behavior.
-- [ ] Merge only after required checks pass.
+- [x] Flutter unit/smoke tests, static analysis, release APK build, and artifact upload passed on final PR head; PR #101 merged.
+- [x] Review screen-reader chart descriptions, empty-history state, and local calendar-day bucketing; add explicit local-midnight / exclusive-end regression coverage in the Phase 4 validation branch.
+- [x] Add a narrow-phone Life hub grid and semantics smoke test as part of Phase 4.
+- [ ] Manual device review of chart readability and larger system text remains in release-readiness checks.
 
 ### Phase 4 — Life hub layout and discoverability
 
-- [ ] Replace long navigation-card stacks with a responsive compact grid for major Life areas and tools.
-- [ ] Keep Finance within Life and ensure it remains reachable with accessible labels and large tap targets.
-- [ ] Keep actual records (goals, projects, habits, routines, notes) in readable lists/cards where useful; grids are primarily for navigation/categories.
-- [ ] Check project pages expose connected goals, milestones, tasks, progress, and relevant activity.
-- [ ] Check task/project/milestone/goal linking and empty states through UI-level flows.
-- [ ] Avoid unrelated data refreshes or changes to the deferred screen-refresh behavior.
+**Status: In progress on branch `feat/life-hub-grid-discoverability`.**
+
+- [x] Replace the long stack of navigation cards with a compact responsive two-column grid, expanding to three columns when width supports it.
+- [x] Keep Finance inside Life with an accessible semantic label and a full card-sized tap target.
+- [x] Keep goals, projects, habits, routines, and notes in readable record lists below the navigation grid.
+- [x] Review project workspace flow: the workspace loader is owner-scoped and loads the linked goal, milestones, non-archived/non-cancelled tasks, progress totals, next action, schedule, notes, resources, and activity; existing repository/workspace contract tests cover linked relationships.
+- [x] Add narrow-phone grid and semantics smoke coverage, plus explicit Insights local-day boundary regression coverage.
+- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on the final Phase 4 commit.
+- [ ] Review CI logs and fix any failures before merge.
+- [ ] Confirm project empty states and connected goal/milestone/task/progress are visible in the widget flow; extend tests if needed.
+- [ ] Keep the deferred screen-refresh investigation untouched.
 
 ### Phase 5 — Timeline and copy/visual cleanup
 
