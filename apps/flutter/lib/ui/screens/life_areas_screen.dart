@@ -82,7 +82,7 @@ class _LifeAreasScreenState extends State<LifeAreasScreen> {
         backgroundColor: AppTheme.metalDeep,
         title: const Text('Archive life area?', style: TextStyle(color: AppTheme.silver)),
         content: Text(
-          '"${area.title}" will be hidden. Linked goals and projects keep their data.',
+          '${area.title} will be hidden. Linked goals and projects keep their data.',
           style: const TextStyle(color: AppTheme.silverMuted),
         ),
         actions: [

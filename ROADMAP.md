@@ -90,17 +90,17 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 5 — Timeline and copy/visual cleanup
 
-**Status: In progress on branch `feat/phase5-timeline-plain-list`.**
+**Status: In progress on branch `feat/phase5-copy-and-timeline-smoke`.** Plain-list slice merged in PR #103 (merge commit `32c4eafd0f1b990e76c1b4d9fc84ca94ee7f5d8b`).
 
 - [x] Replace glass-card-per-event presentation with a plain chronological Activity list.
 - [x] Preserve date grouping, timestamp/context, tap targets, and navigation to the referenced entity where supported.
 - [x] Remove decorative quotation marks from activity timeline headlines (entity names no longer wrapped in quotes).
-- [ ] Audit remaining UI copy for unnecessary quotation marks around project/task/goal names (screens outside timeline).
-- [ ] Apply consistent spacing, restrained accents, readable hierarchy, and responsive behavior without redesigning every screen at once.
+- [x] Align MoreHub activity rows with the same plain list style.
+- [x] Audit remaining UI copy for unnecessary quotation marks around project/task/goal names (life-area archive dialog and task dependency snackbar fixed; remaining matches are JSON metadata, not user-facing copy).
 - [x] Add unit tests for activity day grouping, ordering, and formatTime; fixture headlines assert no decorative quotes.
-- [ ] Add widget-level empty-state and entity-navigation smoke coverage once CI is green on the plain-list change.
-- [ ] Align MoreHub activity rows with the same plain list style (done in this branch; verify on device).
-- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build before merge.
+- [x] Add widget-level Timeline empty-state smoke coverage (`activity_screen_smoke_test.dart`).
+- [ ] Apply consistent spacing, restrained accents, readable hierarchy, and responsive behavior without redesigning every screen at once (light pass remaining).
+- [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on this follow-up commit before merge.
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
