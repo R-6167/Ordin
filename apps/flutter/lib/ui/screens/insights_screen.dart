@@ -154,6 +154,81 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 }
 
+/// Compact personal-progress summary for the Today screen. This uses life
+/// activity events, not app usage or diagnostic telemetry.
+class HomeInsightsCard extends StatefulWidget {
+  const HomeInsightsCard({super.key});
+
+  @override
+  State<HomeInsightsCard> createState() => _HomeInsightsCardState();
+}
+
+class _HomeInsightsCardState extends State<HomeInsightsCard> {
+  final _service = PersonalInsightsService();
+  late Future<PersonalInsightsSummary> _summary;
+
+  @override
+  void initState() {
+    super.initState();
+    _summary = _service.load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const InsightsScreen()),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: FutureBuilder<PersonalInsightsSummary>(
+        future: _summary,
+        builder: (context, snapshot) {
+          final summary = snapshot.data;
+          return Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.brandBlueContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.insights_outlined, color: AppTheme.brandBlue),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Your week at a glance',
+                        style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(
+                      snapshot.hasError
+                          ? 'Personal insights are temporarily unavailable'
+                          : summary == null
+                              ? 'Building your personal insights…'
+                              : '${summary.completedTasks} tasks · ${summary.completedHabits} habits completed in 7 days',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppTheme.silver.withValues(alpha: 0.58),
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.icon,
