@@ -104,13 +104,14 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-**Status: In progress on branch `feat/phase6-start`.**
+**Status: In progress on branch `feat/phase6-first-run-tip`.** Release-signing doc merged (PR #106).
 
 - [ ] Run flutter analyze, all unit/widget tests, and release APK build for each implementation phase (ongoing via CI).
 - [ ] Keep smoke coverage for primary navigation, Insights, nested Finance, import/export, bill payment, and habit completion.
 - [ ] Complete device checks for Day Plan empty-state/build behavior and Finance expense visibility in Recent ledger.
 - [ ] Add empty states across hubs, test large text/semantics, and check narrow-device layout.
-- [ ] Replace the placeholder app icon with a real branded icon and add a short first-run onboarding tip.
+- [x] Add a short first-run onboarding tip on Today (dismissible; persisted via documents flag file).
+- [ ] Replace the placeholder app icon with a real branded icon.
 - [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`).
 - [ ] Keep cloud sync, multi-device live merge, and biometrics out of scope for v1 unless explicitly reprioritized.
 
