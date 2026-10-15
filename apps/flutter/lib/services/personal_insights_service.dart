@@ -33,7 +33,8 @@ class PersonalProgressItem {
   final int completed;
   final int total;
 
-  double get fraction => total <= 0 ? 0 : (completed / total).clamp(0.0, 1.0);
+  double get fraction =>
+      total <= 0 ? 0.0 : (completed / total).clamp(0.0, 1.0).toDouble();
 }
 
 class PersonalInsightsSummary {
