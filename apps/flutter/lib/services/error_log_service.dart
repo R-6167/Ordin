@@ -28,7 +28,7 @@ class ErrorLogService {
         stack: stack.toString(),
         level: 'ZONE',
       );
-      return false; // let Flutter also handle
+      return false;
     };
   }
 
@@ -39,8 +39,6 @@ class ErrorLogService {
     String level = 'ERROR',
   }) async {
     if (!enabled) return;
-    // Detailed exception text and stack traces are development-only. Release
-    // builds keep the structured, redacted error type in DiagnosticService.
     if (!kReleaseMode) {
       try {
         final db = await AppDatabase.instance.database;
@@ -65,28 +63,43 @@ class ErrorLogService {
           [500],
         );
       } catch (_) {}
-  
     }
+
+    final op = _operationForTesting(message, fallback: level);
+    final errType = _errorTypeForTesting(message);
+    // Redacted snippet so release exports show *why* (e.g. invalid resource).
+    final snippet = _safeSnippet(message);
+
     await DiagnosticService.instance.record(
       'uncaught_exception',
       category: 'error',
       severity: 'error',
       details: {
-        // `softFuture` prefixes exceptions with a stable operation label
-        // (for example, `tasks.open: DatabaseException(...)`). Preserve that
-        // label, not just the broad SOFT/ZONE handler, for release diagnosis.
-        'operation': _operationForTesting(message, fallback: level),
-        'error_type': _errorTypeForTesting(message),
+        'operation': op,
+        'error_type': errType,
+        if (snippet != null) 'message': snippet,
+        if (context != null && context.isNotEmpty) 'source': context,
       },
     );
   }
+
+  static String? _safeSnippet(String message) {
+    // Strip SQL / long payloads; keep short platform codes.
+    var m = message.trim();
+    if (m.length > 160) m = m.substring(0, 160);
+    // Avoid free-text task titles if present after colon-heavy payloads.
+    if (m.toLowerCase().contains('select ') || m.toLowerCase().contains('insert ')) {
+      return errTypeOnly(m);
+    }
+    return m;
+  }
+
+  static String errTypeOnly(String message) => _errorTypeForTesting(message);
 
   @visibleForTesting
   static String errorTypeForTesting(String message) => _errorTypeForTesting(message);
 
   static String _errorTypeForTesting(String message) {
-    // Error wrappers such as softFuture prepend `tasks.open: `, so look for
-    // the exception class at the start or immediately after a wrapper label.
     final match = RegExp(
       r'(?:^|:\s*)([A-Za-z_][A-Za-z0-9_.]*(?:Exception|Error))\b',
     ).firstMatch(message.trim());
@@ -100,10 +113,7 @@ class ErrorLogService {
   static String _operationForTesting(String message, {required String fallback}) {
     final match = RegExp(r'^([A-Za-z][A-Za-z0-9_.-]{0,79}):\s+').firstMatch(message.trim());
     if (match == null) return fallback;
-    final label = match.group(1)!;
-    // Only keep compact, source-code-like operation labels, never arbitrary
-    // exception text or SQL statements.
-    return label;
+    return match.group(1)!;
   }
 
   Future<List<Map<String, Object?>>> recent({int limit = 50}) async {
