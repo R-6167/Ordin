@@ -106,61 +106,62 @@ class ActivityTimelineService {
     return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
+  /// Human headline without decorative quotation marks around entity names.
   String _headline(String type, String? title) {
-    final q = title == null || title.isEmpty ? null : '"$title"';
+    final t = (title == null || title.isEmpty) ? null : title;
     switch (type) {
       case 'TASK_COMPLETED':
-        return q == null ? 'Completed a task' : 'Completed $q';
+        return t == null ? 'Completed a task' : 'Completed $t';
       case 'TASK_CREATED':
-        return q == null ? 'Added a task' : 'Added task $q';
+        return t == null ? 'Added a task' : 'Added task $t';
       case 'TASK_OCCURRENCE_SPAWNED':
-        return q == null
+        return t == null
             ? 'Next occurrence planned'
-            : 'Next occurrence of $q planned';
+            : 'Next occurrence of $t planned';
       case 'TASK_SCHEDULED':
-        return q == null ? 'Scheduled work' : 'Scheduled $q';
+        return t == null ? 'Scheduled work' : 'Scheduled $t';
       case 'TASK_RESCHEDULED':
-        return q == null ? 'Rescheduled a task' : 'Rescheduled $q';
+        return t == null ? 'Rescheduled a task' : 'Rescheduled $t';
       case 'TASK_UPDATED':
-        return q == null ? 'Updated a task' : 'Updated $q';
+        return t == null ? 'Updated a task' : 'Updated $t';
       case 'TASK_REOPENED':
-        return q == null ? 'Reopened a task' : 'Reopened $q';
+        return t == null ? 'Reopened a task' : 'Reopened $t';
       case 'TASK_DELETED':
       case 'TASK_CANCELLED':
-        return q == null ? 'Removed a task' : 'Removed $q';
+        return t == null ? 'Removed a task' : 'Removed $t';
       case 'WORK_STARTED':
-        return q == null ? 'Started working' : 'Started work on $q';
+        return t == null ? 'Started working' : 'Started work on $t';
       case 'WORK_ENDED':
       case 'WORK_COMPLETED':
-        return q == null ? 'Finished a work session' : 'Finished work on $q';
+        return t == null ? 'Finished a work session' : 'Finished work on $t';
       case 'EXPENSE_RECORDED':
-        return q == null ? 'Recorded an expense' : 'Spent on $q';
+        return t == null ? 'Recorded an expense' : 'Spent on $t';
       case 'INCOME_RECORDED':
-        return q == null ? 'Recorded income' : 'Income: $q';
+        return t == null ? 'Recorded income' : 'Income: $t';
       case 'BILL_PAID':
-        return q == null ? 'Paid a bill' : 'Paid $q';
+        return t == null ? 'Paid a bill' : 'Paid $t';
       case 'DEBT_PAYMENT_RECORDED':
-        return q == null ? 'Made a debt payment' : 'Debt payment: $q';
+        return t == null ? 'Made a debt payment' : 'Debt payment: $t';
       case 'SAVINGS_CONTRIBUTION_RECORDED':
-        return q == null ? 'Saved toward a goal' : 'Saved toward $q';
+        return t == null ? 'Saved toward a goal' : 'Saved toward $t';
       case 'SAVINGS_GOAL_REACHED':
-        return q == null ? 'Reached a savings goal' : 'Reached $q';
+        return t == null ? 'Reached a savings goal' : 'Reached $t';
       case 'SUBSCRIPTION_RENEWED':
-        return q == null ? 'Subscription renewed' : 'Renewed $q';
+        return t == null ? 'Subscription renewed' : 'Renewed $t';
       case 'HABIT_COMPLETED':
-        return q == null ? 'Completed a habit' : 'Habit: $q';
+        return t == null ? 'Completed a habit' : 'Habit: $t';
       case 'NOTE_CREATED':
-        return q == null ? 'Wrote a note' : 'Note: $q';
+        return t == null ? 'Wrote a note' : 'Note: $t';
       case 'GOAL_CREATED':
-        return q == null ? 'Set a goal' : 'Goal: $q';
+        return t == null ? 'Set a goal' : 'Goal: $t';
       case 'PROJECT_CREATED':
-        return q == null ? 'Started a project' : 'Project: $q';
+        return t == null ? 'Started a project' : 'Project: $t';
       default:
         if (type.contains('COMPLETED')) {
-          return q == null ? 'Completed something' : 'Completed $q';
+          return t == null ? 'Completed something' : 'Completed $t';
         }
         if (type.contains('CREATED')) {
-          return q == null ? 'Created something' : 'Created $q';
+          return t == null ? 'Created something' : 'Created $t';
         }
         return type.replaceAll('_', ' ').toLowerCase();
     }
