@@ -52,7 +52,7 @@ void main() {
     expect(find.text('Today'), findsWidgets);
 
     // W5: bottom tab "More" renamed to "Timeline".
-    for (final destination in ['Tasks', 'Life', 'Finance', 'Timeline']) {
+    for (final destination in ['Insights', 'Life', 'Finance', 'Timeline']) {
       await tester.tap(find.text(destination).last);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
