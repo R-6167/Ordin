@@ -85,7 +85,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [x] Add narrow-phone grid and semantics smoke coverage, plus explicit Insights local-day boundary regression coverage.
 - [ ] Run full Flutter unit/smoke tests, static analysis, and release APK build on the final Phase 4 commit.
 - [ ] Review CI logs and fix any failures before merge.
-- [ ] Confirm project empty states and connected goal/milestone/task/progress are visible in the widget flow; extend tests if needed.
+- [x] Add a project-detail widget regression test proving the connected goal, milestone, linked task, and progress summary are visible. Empty-project messaging is already present in the workspace sections and remains part of final visual review.
 - [ ] Keep the deferred screen-refresh investigation untouched.
 
 ### Phase 5 — Timeline and copy/visual cleanup
