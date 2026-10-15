@@ -104,14 +104,14 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-**Status: In progress on branch `feat/phase6-onboarding-tip`.** Release-signing doc merged (PR #106).
+**Status: In progress on branch `feat/phase6-empty-state-widget`.** Onboarding tip merged in PR #107 (`9d8a818`); release-signing doc in PR #106.
 
 - [ ] Run flutter analyze, all unit/widget tests, and release APK build for each implementation phase (ongoing via CI).
 - [ ] Keep smoke coverage for primary navigation, Insights, nested Finance, import/export, bill payment, and habit completion.
 - [ ] Complete device checks for Day Plan empty-state/build behavior and Finance expense visibility in Recent ledger.
-- [ ] Add empty states across hubs, test large text/semantics, and check narrow-device layout.
-- [x] Add a short first-run onboarding tip (Welcome dialog after unlock; dismiss persisted via documents flag file).
-- [ ] Replace the placeholder app icon with a real branded icon.
+- [x] Add shared `EmptyState` widget + tests; align `SectionHeader` to silverMuted (hub roll-out of EmptyState continues).
+- [x] Add a short first-run onboarding tip (Welcome dialog after unlock; dismiss persisted via documents flag file) — PR #107.
+- [ ] Replace the placeholder app icon with a real branded icon (use `assets/ordin_logo.png.png` as source when generating mipmaps).
 - [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`).
 - [ ] Keep cloud sync, multi-device live merge, and biometrics out of scope for v1 unless explicitly reprioritized.
 
