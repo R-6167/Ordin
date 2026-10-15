@@ -7,6 +7,18 @@ import 'package:ordin/ui/screens/insights_screen.dart';
 
 import 'helpers/test_db.dart';
 
+class _ImmediateInsightsService extends PersonalInsightsService {
+  @override
+  Future<PersonalInsightsSummary> load({int days = 7}) async =>
+      const PersonalInsightsSummary(
+        activityCount: 3,
+        completedTasks: 2,
+        completedHabits: 1,
+        moneyEvents: 0,
+        previousCompletedTasks: 1,
+      );
+}
+
 void main() {
   setUp(() async {
     // Widget smoke tests should exercise app navigation, not start background
@@ -82,7 +94,7 @@ void main() {
     // dependencies are covered separately by the shell smoke test.
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(body: HomeInsightsCard()),
+        home: Scaffold(body: HomeInsightsCard(service: _ImmediateInsightsService())),
       ),
     );
     await tester.pump();
