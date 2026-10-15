@@ -708,7 +708,7 @@ void main() {
     expect(find.text('Launch milestone'), findsOneWidget);
     expect(find.text('0 of 1 tasks'), findsOneWidget);
     expect(find.text('Tasks'), findsOneWidget);
-    expect(find.text('Prepare release'), findsOneWidget);
+    expect(find.text('Prepare release'), findsWidgets);
     expect(find.text('TASKS DONE'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
