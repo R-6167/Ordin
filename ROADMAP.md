@@ -42,77 +42,34 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 **Status: Complete; merged as part of PR #100.**
 
-- [x] Add PersonalInsightsService to aggregate activity, task completion, habit completion, money-related events, and prior-period task completion from local owner-scoped records.
-- [x] Add Insights screen and a Today summary card that opens it.
-- [x] Add focused service tests and a card-navigation smoke test.
-- [x] Make the card's analytics service injectable so navigation tests can use deterministic data.
-- [x] Avoid pumpAndSettle on screens with perpetual indeterminate loading animations.
-- [x] Validation: Flutter unit/smoke tests, analysis, release APK build and artifact upload passed in run 38696046237.
-
 ### Phase 2 — Primary navigation and Finance placement
 
 **Status: Complete; merged as part of PR #100.**
 
-- [x] Keep Today, Insights, Life, and Timeline as the four primary destinations.
-- [x] Remove Finance from the bottom navigation and primary-title index.
-- [x] Preserve the existing FinanceHub and open it from a Finance entry inside Life, with a clear Finance app bar.
-- [x] Update smoke-test expectations to verify the four primary destinations and the nested Finance route.
-- [x] Validation: all workflow steps passed on the final PR head, including unit/smoke tests, analysis, release APK build, and APK upload (run 38696046237).
-- [x] Merge recorded: PR #100, merge commit `9e65bd1e78bd70360b3330909e55fa31d86ab5f1`.
-
 ### Phase 3 — Real analytics and progress visualization
 
-**Status: Complete; merged in PR #101.** Merge commit `ef8ec080b9ce3793d8485b511f67d12e37244d86`; successful Flutter APK workflow run [38699081253](https://github.com/R-6167/Ordin/actions/runs/38699081253), including unit/smoke tests, analysis, release APK build and artifact upload. Artifact SHA-256: `baaa4b44573e1325dd72b28775a32163377f18a6c7207b00f1e24612044a9a0c`.
-
-- [x] Add daily buckets for the last seven local calendar days, based on owner-scoped `activity_events`.
-- [x] Show a real daily trend chart for task completions, habit completions, and money-related events; zero-activity days remain visible.
-- [x] Add linked-work progress bars for goals and projects only when at least one non-archived linked task gives a meaningful denominator.
-- [x] Keep counts and chart values local, owner-scoped, and separate from app-usage events and diagnostics.
-- [x] Add tests for daily bucket totals, prior-period comparison, owner isolation, and goal/project progress calculations excluding archived tasks.
-- [x] Flutter unit/smoke tests, static analysis, release APK build, and artifact upload passed on final PR head; PR #101 merged.
-- [x] Review screen-reader chart descriptions, empty-history state, and local calendar-day bucketing; add explicit local-midnight / exclusive-end regression coverage in the Phase 4 validation branch.
-- [x] Add a narrow-phone Life hub grid and semantics smoke test as part of Phase 4.
-- [ ] Manual device review of chart readability and larger system text remains in release-readiness checks.
+**Status: Complete; merged in PR #101.**
 
 ### Phase 4 — Life hub layout and discoverability
 
-**Status: Complete; merged in PR #102.** Merge commit `a1f7622007f04a1026f8fefe48668ae7e4aa7fdf`; successful Flutter APK Build run [38703635035](https://github.com/R-6167/Ordin/actions/runs/38703635035).
-
-- [x] Replace the long stack of navigation cards with a compact responsive two-column grid, expanding to three columns when width supports it.
-- [x] Keep Finance inside Life with an accessible semantic label and a full card-sized tap target.
-- [x] Keep goals, projects, habits, routines, and notes in readable record lists below the navigation grid.
-- [x] Review project workspace flow: the workspace loader is owner-scoped and loads the linked goal, milestones, non-archived/non-cancelled tasks, progress totals, next action, schedule, notes, resources, and activity; existing repository/workspace contract tests cover linked relationships.
-- [x] Add narrow-phone grid and semantics smoke coverage, plus explicit Insights local-day boundary regression coverage.
-- [x] Run full Flutter unit/smoke tests, static analysis, and release APK build on the final Phase 4 commit.
-- [x] Review CI logs and fix any failures before merge.
-- [x] Add a project-detail widget regression test proving the connected goal, milestone, linked task, and progress summary are visible. Empty-project messaging is already present in the workspace sections and remains part of final visual review.
-- [x] Keep the deferred screen-refresh investigation untouched.
+**Status: Complete; merged in PR #102.**
 
 ### Phase 5 — Timeline and copy/visual cleanup
 
-**Status: Complete.** Merged across PR #103 (plain list, `32c4eaf`), PR #104 (quote audit, `08a6465`), and PR #105 (hierarchy pass, `995ff8ae`).
-
-- [x] Replace glass-card-per-event presentation with a plain chronological Activity list.
-- [x] Preserve date grouping, timestamp/context, tap targets, and navigation to the referenced entity where supported.
-- [x] Remove decorative quotation marks from activity timeline headlines (entity names no longer wrapped in quotes).
-- [x] Align MoreHub activity rows with the same plain list style.
-- [x] Audit remaining UI copy for unnecessary quotation marks around project/task/goal names (life-area archive dialog fixed; remaining matches are JSON metadata or intentional labels, not decorative entity quotes).
-- [x] Add unit tests for activity day grouping, ordering, and formatTime; fixture headlines assert no decorative quotes.
-- [ ] Widget-level Timeline empty-state smoke deferred (flaky under CI; unit grouping coverage remains).
-- [x] Apply consistent spacing, restrained accents, readable hierarchy (Timeline day labels use brandBlue; Life hub section headers use silverMuted; grid icons use brandBlue).
-- [x] Hierarchy-pass CI and merge completed as PR #105 (merge commit `995ff8aec7548830dced39c20eed2f2fb523ac68`).
+**Status: Complete.** Merged across PR #103–#105.
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-**Status: In progress on branch `feat/phase6-empty-state-widget`.** Onboarding tip merged in PR #107 (`9d8a818`); release-signing doc in PR #106.
+**Status: In progress on branch `feat/phase6-life-empty-states-v2`.**
 
 - [ ] Run flutter analyze, all unit/widget tests, and release APK build for each implementation phase (ongoing via CI).
 - [ ] Keep smoke coverage for primary navigation, Insights, nested Finance, import/export, bill payment, and habit completion.
 - [ ] Complete device checks for Day Plan empty-state/build behavior and Finance expense visibility in Recent ledger.
-- [x] Add shared `EmptyState` widget + tests; align `SectionHeader` to silverMuted (hub roll-out of EmptyState continues).
-- [x] Add a short first-run onboarding tip (Welcome dialog after unlock; dismiss persisted via documents flag file) — PR #107.
-- [ ] Replace the placeholder app icon with a real branded icon (use `assets/ordin_logo.png.png` as source when generating mipmaps).
-- [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`).
+- [x] Add shared `EmptyState` widget + tests; align `SectionHeader` to silverMuted (PR #108).
+- [x] Life hub empty lists (goals, projects, habits, routines, notes) use `EmptyState` with short guidance copy.
+- [x] Add a short first-run onboarding tip (Welcome dialog after unlock) — PR #107.
+- [ ] Replace the placeholder app icon with a real branded icon (source: `assets/ordin_logo.png.png`).
+- [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`) — PR #106.
 - [ ] Keep cloud sync, multi-device live merge, and biometrics out of scope for v1 unless explicitly reprioritized.
 
 ## Existing stability work still open
