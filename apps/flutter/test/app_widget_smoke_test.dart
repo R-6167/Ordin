@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ordin/services/error_log_service.dart';
 import 'package:ordin/services/local_analytics.dart';
 import 'package:ordin/ui/home_shell.dart';
+import 'package:ordin/ui/screens/insights_screen.dart';
 
 import 'helpers/test_db.dart';
 
@@ -76,10 +77,16 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const MaterialApp(home: HomeShell()));
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
+    // Exercise the card's navigation in isolation. HomeShell's startup also
+    // initializes platform-backed preferences and notifications; those boot
+    // dependencies are covered separately by the shell smoke test.
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: HomeInsightsCard()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     final card = find.text('Your week at a glance');
     await tester.ensureVisible(card);
