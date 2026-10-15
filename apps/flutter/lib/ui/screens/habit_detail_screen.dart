@@ -5,6 +5,7 @@ import '../../data/habit_repository.dart';
 import '../../domain/models.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/empty_state.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   const HabitDetailScreen({super.key, required this.habitId});
@@ -186,7 +187,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Schedule', style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
+            const Text('Schedule', style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -200,10 +201,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
               }).toList(),
             ),
             const SizedBox(height: 16),
-            const Text('Recent', style: TextStyle(color: AppTheme.woodLight, fontWeight: FontWeight.w600)),
+            const Text('Recent', style: TextStyle(color: AppTheme.silverMuted, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             if (_recent.isEmpty)
-              Text('No history yet', style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.4)))
+              EmptyState(
+                title: 'No history yet',
+                detail: 'Completions and skips will show up here.',
+                icon: Icons.history,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              )
             else
               ..._recent.map((r) {
                 final d = DateTime.fromMillisecondsSinceEpoch(r['scheduled_date'] as int);
