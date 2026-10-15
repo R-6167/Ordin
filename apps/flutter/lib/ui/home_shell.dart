@@ -29,6 +29,7 @@ import 'forms/create_forms.dart';
 import 'hubs/finance_hub.dart';
 import 'hubs/life_hub.dart';
 import 'screens/activity_screen.dart';
+import 'screens/insights_screen.dart';
 import 'screens/planning_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/project_detail_screen.dart';
@@ -733,6 +734,8 @@ class _HomeShellState extends State<HomeShell> {
               ],
             ),
           ),
+          const HomeInsightsCard(),
+          const SizedBox(height: 8),
           if (_scheduledToday.isNotEmpty) ...[
             SectionHeader(
               'On the clock',
