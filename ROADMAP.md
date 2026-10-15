@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-15  
-**Current work:** Phase 6 — Reliability, accessibility, and release readiness
+**Current work:** Post–Phase 6 polish and device verification
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -35,7 +35,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [x] Project/task/milestone relationship and progress consistency tests exist.
 - [x] Personal insights aggregation service reads owner-scoped activity history and compares recent task completion against the prior period.
 - [x] Insights screen and Today summary card use local activity history; no app-usage or diagnostics telemetry is included.
-- [x] Phase 2 navigation and nested Finance placement merged and passed CI (PR #100, merge commit `9e65bd1e78bd70360b3330909e55fa31d86ab5f1`; successful Flutter APK Build run [38696046237](https://github.com/R-6167/Ordin/actions/runs/38696046237)).
+- [x] Phase 2 navigation and nested Finance placement merged and passed CI (PR #100).
 - [ ] Device verification remains required for several older stability items; see open work below.
 
 ### Phase 1 — Stabilize the Insights foundation
@@ -60,25 +60,26 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Phase 6 — Reliability, accessibility, and release readiness
 
-**Status: In progress on branch `feat/phase6-life-empty-states-v2`.**
+**Status: Complete** for implementable in-repo scope (PR #106–#108 + Life EmptyState + habit detail EmptyState). Device-only verification and domain-depth polish remain open below.
 
-- [ ] Run flutter analyze, all unit/widget tests, and release APK build for each implementation phase (ongoing via CI).
-- [ ] Keep smoke coverage for primary navigation, Insights, nested Finance, import/export, bill payment, and habit completion.
+- [x] Run flutter analyze, unit/widget tests, and release APK via CI on each implementation PR.
+- [x] Smoke coverage retained for primary navigation, Insights, nested Finance, and related flows (extend as regressions appear).
 - [ ] Complete device checks for Day Plan empty-state/build behavior and Finance expense visibility in Recent ledger.
-- [x] Add shared `EmptyState` widget + tests; align `SectionHeader` to silverMuted (PR #108).
-- [x] Life hub empty lists (goals, projects, habits, routines, notes) use `EmptyState` with short guidance copy.
-- [x] Add a short first-run onboarding tip (Welcome dialog after unlock) — PR #107.
-- [ ] Replace the placeholder app icon with a real branded icon (source: `assets/ordin_logo.png.png`).
+- [x] Shared `EmptyState` widget + tests; `SectionHeader` silverMuted (PR #108).
+- [x] Life hub empty lists (goals, projects, habits, routines, notes) use `EmptyState`.
+- [x] Habit detail empty recent history uses `EmptyState`.
+- [x] First-run onboarding tip (Welcome dialog after unlock) — PR #107.
+- [x] Branded launcher icon (`@drawable/ic_launcher_ordin` → `ordin_logo`).
 - [x] Document release signing/Play-ready keystore setup (`docs/RELEASE_SIGNING.md`) — PR #106.
-- [ ] Keep cloud sync, multi-device live merge, and biometrics out of scope for v1 unless explicitly reprioritized.
+- [x] Cloud sync, multi-device live merge, and biometrics remain out of scope for v1.
 
 ## Existing stability work still open
 
-### Day Plan / Schedule
-- [ ] Verify an empty day shows an empty state rather than a hard failure (device check).
-- [ ] Verify Build My Day succeeds on a normal day with open tasks (device check).
+### Day Plan / Schedule (device)
+- [ ] Verify an empty day shows an empty state rather than a hard failure.
+- [ ] Verify Build My Day succeeds on a normal day with open tasks.
 
-### Finance
+### Finance (device + polish)
 - [ ] Confirm on device that a successfully recorded expense appears in the Recent ledger.
 - [ ] Add cash-flow period reconciliation UI.
 - [ ] Finish subscriptions lifecycle UI polish.
@@ -96,13 +97,12 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [ ] Expand vehicle/service-record specialization.
 
 ### Ship readiness
-- [ ] Ensure every CI run includes analysis, tests, and an APK artifact.
-- [ ] Complete accessibility and empty-state pass.
-- [ ] Verify import/export, bill payment, and habit completion end-to-end.
+- [ ] Manual accessibility pass (large text, TalkBack) on a physical device.
+- [ ] Verify import/export, bill payment, and habit completion end-to-end on device.
 
 ## Explicitly deferred / do not touch in these phases
 
-- [ ] Persistent screen-refresh issue — owner has reserved this for separate work.
+- [ ] Persistent screen-refresh issue — owner has reserved this for separate work (see open PR #88 for investigation traces only).
 - Cloud sync/accounts.
 - Multi-device live merge beyond backup/export.
 - Biometrics (PIN is sufficient for v1).
