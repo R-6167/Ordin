@@ -3,7 +3,7 @@
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
 **Roadmap updated:** 2026-10-16  
-**Current work:** Life areas-first navigation (Life tab)
+**Current work:** Soft life-area assign on create (habit/routine/goal/project/task)
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -11,7 +11,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 - **Today** remains the immediate action surface.
 - **Insights** replaces the old top-level Tasks destination and becomes the home for measured progress, trends, charts, and useful summaries. Task access remains available from Life and Today.
-- **Life** is **areas-first**: the Life tab maps life domains; goals/projects/tasks open under an area. Tools (finance, schedule, practical life, …) stay as a secondary strip. Habits/routines/notes remain creatable via Add until linked to areas in a later slice.
+- **Life** is **areas-first**: the Life tab maps life domains; goals/projects/tasks/habits/routines/notes open under an area. Tools (finance, schedule, practical life, …) stay as a secondary strip.
 - **Timeline** remains a chronological activity feed.
 - Use compact, responsive two-column grids (three columns only when the available width supports them) for navigation/categories rather than endless stacks of navigation cards. Keep real records readable and accessible.
 - Activity should be a plain chronological list, not a glass card for every event.
@@ -32,31 +32,18 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [x] Expense entry validation and save feedback were added; finance refresh occurs only after successful save.
 - [x] More was repurposed as tools/suggestions, not a second activity dump.
 
-### Phase 1 — Stabilize the Insights foundation
-- [x] Insights tab exists and loads personal progress from local activity.
-
-### Phase 2 — Primary navigation and Finance placement
-- [x] Bottom nav: Today · Insights · Life · Timeline.
-- [x] Finance reachable from Life.
-
-### Phase 3 — Real analytics and progress visualization
-- [x] Insights charts and linked-work progress from local data.
-
-### Phase 4 — Life hub layout and discoverability
-- [x] Life hub navigation and empty states.
-
-### Phase 5 — Timeline and copy/visual cleanup
-- [x] Plain activity list; headline resolution; hierarchy polish.
-
-### Phase 6 — Reliability, accessibility, and release readiness
-- [x] Empty states, text scale clamp, release notes / signing notes as applicable.
+### Phase 1–6
+- [x] Insights, navigation, analytics, Life hub, Timeline cleanup, reliability/a11y as previously recorded.
 
 ## Post–Phase 6 polish
 
-- [x] Notification deep-linking for task/project/goal/habit/routine (PR #111).
-- [x] Timeline intelligence suggestions from local data (overdue, due today, open bills, pending habits) — does not replace the chronological feed.
-- [x] Related links section: ROUTINE open, EmptyState, hierarchy accents.
-- [x] Life tab **areas-first**: domain cards primary; global goals/projects/habits/routines/notes lists removed from Life home; tools strip secondary; unassigned goals/projects called out.
+- [x] Notification deep-linking for task/project/goal/habit/routine.
+- [x] Timeline intelligence suggestions from local data.
+- [x] Related links / EmptyState / hierarchy accents.
+- [x] Life tab **areas-first** (domain cards primary; tools strip secondary).
+- [x] Area detail: EmptyState, FAB/section quick-add (goal/project/task/habit/routine/note).
+- [x] Link habits / routines / notes to life areas (schema v31 + area detail + listByLifeArea).
+- [x] Soft assign area on create: optional Life area dropdown (goal/project/task/habit/routine); preselect via `showCreateForm(..., lifeAreaId:)`.
 
 ## Existing stability work still open
 
@@ -71,11 +58,6 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 ### Timeline / reminders
 - [ ] Soften remaining notification plugin PlatformExceptions where possible.
-
-### Life areas (next)
-- [ ] Link habits / routines / notes to life areas (schema + UI).
-- [ ] Soft prompt to assign area on create for goals/projects.
-- [ ] Area detail: richer empty states and quick-add into that area.
 
 ## Phase completion rule
 
