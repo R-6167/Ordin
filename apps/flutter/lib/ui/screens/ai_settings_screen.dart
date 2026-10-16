@@ -81,6 +81,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   }
 
   Future<void> _save() async {
+    // Low-RAM defaults (Nokia C32-class): small context, few threads, short replies.
     await AiSettingsStore.instance.save(AiSettings(
       mode: _mode,
       baseUrl: _baseUrl.text.trim(),
@@ -88,6 +89,9 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       model: _model.text.trim().isEmpty ? 'gpt-4o-mini' : _model.text.trim(),
       localModelPath: _localPath,
       localModelLabel: _localLabel,
+      contextSize: 1024,
+      threads: 2,
+      maxTokens: 256,
     ));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -156,10 +160,23 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     }
     setState(() {
       _busy = true;
-      _engineStatus = 'Loading into RAM (may take a minute)…';
+      _engineStatus =
+          'Loading CPU-only (low RAM). Close other apps — if the app exits, try a Q3 quant.';
     });
     await _save();
-    final settings = await AiSettingsStore.instance.load();
+    // Explicit low-RAM settings so a stale store cannot request 4 threads / 2048 ctx.
+    final settings = AiSettings(
+      mode: _mode,
+      baseUrl: _baseUrl.text.trim(),
+      apiKey: _apiKey.text.trim(),
+      model: _model.text.trim().isEmpty ? 'gpt-4o-mini' : _model.text.trim(),
+      localModelPath: _localPath,
+      localModelLabel: _localLabel,
+      contextSize: 1024,
+      threads: 2,
+      maxTokens: 256,
+    );
+    await AiSettingsStore.instance.save(settings);
     final ok = await LocalLlmEngine.instance.ensureLoaded(settings);
     if (!mounted) return;
     setState(() {
@@ -169,6 +186,16 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
         _engineStatus = LocalLlmEngine.instance.lastError ?? 'Load failed';
       }
     });
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            LocalLlmEngine.instance.lastError ??
+                'Load failed. Try Q3 quant or mode “on-device with fallback”.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _unload() async {
@@ -300,6 +327,15 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                             padding: EdgeInsets.only(top: 12),
                             child: LinearProgressIndicator(),
                           ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'On 4GB phones use 1B Q4 or Q3, CPU-only load. '
+                          'If the app closes, the OS killed it for memory — try a smaller quant.',
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.5),
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
                   ),
