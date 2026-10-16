@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../services/app_data_bus.dart';
 import '../../services/personal_insights_service.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
@@ -17,12 +18,29 @@ class InsightsScreen extends StatefulWidget {
 class _InsightsScreenState extends State<InsightsScreen> {
   late final PersonalInsightsService _service;
   late Future<PersonalInsightsSummary> _summary;
+  int _busGen = -1;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? PersonalInsightsService();
     _summary = _service.load();
+    _busGen = AppDataBus.instance.generation;
+    AppDataBus.instance.addListener(_onBus);
+  }
+
+  @override
+  void dispose() {
+    AppDataBus.instance.removeListener(_onBus);
+    super.dispose();
+  }
+
+  void _onBus() {
+    if (!mounted) return;
+    final gen = AppDataBus.instance.generation;
+    if (gen == _busGen) return;
+    _busGen = gen;
+    _reload();
   }
 
   Future<void> _reload() async {
@@ -163,8 +181,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 }
 
-/// Compact personal-progress summary for the Today screen. This uses life
-/// activity events, not app usage or diagnostic telemetry.
 class HomeInsightsCard extends StatefulWidget {
   const HomeInsightsCard({super.key, this.service});
 
@@ -177,12 +193,29 @@ class HomeInsightsCard extends StatefulWidget {
 class _HomeInsightsCardState extends State<HomeInsightsCard> {
   late final PersonalInsightsService _service;
   late Future<PersonalInsightsSummary> _summary;
+  int _busGen = -1;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? PersonalInsightsService();
     _summary = _service.load();
+    _busGen = AppDataBus.instance.generation;
+    AppDataBus.instance.addListener(_onBus);
+  }
+
+  @override
+  void dispose() {
+    AppDataBus.instance.removeListener(_onBus);
+    super.dispose();
+  }
+
+  void _onBus() {
+    if (!mounted) return;
+    final gen = AppDataBus.instance.generation;
+    if (gen == _busGen) return;
+    _busGen = gen;
+    setState(() => _summary = _service.load());
   }
 
   @override
@@ -393,7 +426,7 @@ class _LinkedWorkProgress extends StatelessWidget {
             const SizedBox(height: 14),
             if (items.isEmpty)
               Text(
-                'Link tasks to a goal or project to see progress here. Items without linked work are not assigned an invented percentage.',
+                'Link tasks to a goal or project to see progress here.',
                 style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.62), height: 1.4),
               )
             else
@@ -414,7 +447,6 @@ class _LinkedWorkProgress extends StatelessWidget {
                               style: const TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w600),
                             ),
                           ),
-                          const SizedBox(width: 8),
                           Text(
                             '$percent%',
                             style: TextStyle(
