@@ -307,10 +307,16 @@ Future<bool> _taskForm(BuildContext context, {String? initialLifeAreaId}) async 
 Future<bool> _moneyForm(BuildContext context, {required bool isIncome}) async {
   final label = TextEditingController();
   final amount = TextEditingController();
-  final accounts = await AccountRepository(AppDatabase.instance).list();
-  final categories = isIncome
-      ? <Map<String, Object?>>[]
-      : await CategoryRepository(AppDatabase.instance).listExpense();
+  List<Map<String, Object?>> accounts = const [];
+  List<Map<String, Object?>> categories = const [];
+  try {
+    accounts = await AccountRepository(AppDatabase.instance).list();
+  } catch (_) {}
+  if (!isIncome) {
+    try {
+      categories = await CategoryRepository(AppDatabase.instance).listExpense();
+    } catch (_) {}
+  }
   String? accountId;
   String? categoryId = categories.isEmpty ? null : categories.first['id'] as String?;
 
