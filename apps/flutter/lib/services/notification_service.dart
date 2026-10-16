@@ -57,43 +57,167 @@ class NotificationService {
       notificationCategories: [
         DarwinNotificationCategory(
           _iosCategory,
-          actions: [
+          actions: <DarwinNotificationAction>[
             DarwinNotificationAction.plain(actionSnooze15, 'Snooze 15m'),
             DarwinNotificationAction.plain(actionSnooze60, 'Snooze 1h'),
-            DarwinNotificationAction.plain(actionDelete, 'Delete'),
+            DarwinNotificationAction.plain(
+              actionDelete,
+              'Delete',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.destructive,
+              },
+            ),
           ],
         ),
       ],
     );
-    const settings = InitializationSettings(android: android, iOS: ios);
+
+    await _plugin.initialize(
+      InitializationSettings(android: android, iOS: ios),
+      onDidReceiveNotificationResponse: _onResponse,
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+    );
+
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    await androidPlugin?.requestNotificationsPermission();
+    try {
+      await androidPlugin?.requestExactAlarmsPermission();
+    } catch (_) {}
+
+    await androidPlugin?.createNotificationChannel(
+      AndroidNotificationChannel(
+        _channelId,
+        _channelName,
+        description: _channelDesc,
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: _vibeHigh,
+        showBadge: true,
+      ),
+    );
+
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    if (launch?.didNotificationLaunchApp == true) {
+      final response = launch!.notificationResponse;
+      if (response != null) {
+        Future<void>.delayed(const Duration(milliseconds: 600), () {
+          _handleResponse(response);
+        });
+      }
+    }
+
+    _ready = true;
+  }
+
+  void _onResponse(NotificationResponse response) {
+    _handleResponse(response);
+  }
+
+  static Future<void> _handleResponse(NotificationResponse response) async {
+    final action = response.actionId;
+    final payload = response.payload;
+
+    if (action == actionSnooze15 || action == actionSnooze60 || action == actionDelete) {
+      await handleNotificationAction(
+        actionId: action!,
+        payload: payload,
+        notificationId: response.id,
+      );
+      return;
+    }
+
+    await NotificationRouter.handle(payload);
+  }
+
+  static Future<void> handleNotificationAction({
+    required String actionId,
+    String? payload,
+    int? notificationId,
+  }) async {
+    final parsed = NotificationPayload.tryParse(payload);
+    final reminderId = parsed?.reminderId;
 
     try {
-      await _plugin.initialize(
-        settings,
-        onDidReceiveNotificationResponse: _handleResponse,
-        onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
-      );
-      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.createNotificationChannel(
-        const AndroidNotificationChannel(
-          _channelId,
-          _channelName,
-          description: _channelDesc,
-          importance: Importance.max,
-          playSound: true,
-          enableVibration: true,
-        ),
-      );
-      await androidPlugin?.requestNotificationsPermission();
-      try {
-        await androidPlugin?.requestExactAlarmsPermission();
-      } catch (_) {}
-      _ready = true;
+      if (notificationId != null) {
+        await instance._plugin.cancel(notificationId);
+      }
     } catch (error, stackTrace) {
-      await NotificationDiagnostics.record('init', error, stackTrace: stackTrace);
-      // Stay unready so later sync can retry; do not rethrow — boot must continue.
+      await NotificationDiagnostics.record('cancel_action_notification', error, stackTrace: stackTrace);
     }
+
+    if (reminderId == null || reminderId.isEmpty) {
+      if (actionId == actionSnooze15 || actionId == actionSnooze60) {
+        final mins = actionId == actionSnooze15 ? 15 : 60;
+        try {
+          await instance._schedule(
+            id: notificationId ?? instance._stableId('snooze', payload ?? 'x'),
+            title: 'Snoozed reminder',
+            body: 'Back in ${mins}m',
+            when: DateTime.now().add(Duration(minutes: mins)),
+            payload: payload,
+          );
+        } catch (error, stackTrace) {
+          await NotificationDiagnostics.record('schedule_anonymous_snooze', error, stackTrace: stackTrace);
+        }
+      }
+      return;
+    }
+
+    try {
+      await AppDatabase.instance.database;
+      final ext = ExtendedRepository(AppDatabase.instance);
+
+      if (actionId == actionSnooze15 || actionId == actionSnooze60) {
+        final mins = actionId == actionSnooze15 ? 15 : 60;
+        await ext.snoozeReminder(reminderId, minutes: mins);
+        try {
+          await ReminderGeneratorService().recordResult(
+            reminderId: reminderId,
+            result: 'SNOOZED',
+            snoozeMinutes: mins,
+          );
+        } catch (error, stackTrace) {
+          await NotificationDiagnostics.record('record_snooze_result', error, stackTrace: stackTrace);
+        }
+        try {
+          await instance.syncFromDatabase();
+        } catch (error, stackTrace) {
+          await NotificationDiagnostics.record('resync_after_snooze', error, stackTrace: stackTrace);
+        }
+        return;
+      }
+
+      if (actionId == actionDelete) {
+        await _cancelReminder(reminderId);
+        try {
+          await ReminderGeneratorService().recordResult(
+            reminderId: reminderId,
+            result: 'DISMISSED',
+          );
+        } catch (error, stackTrace) {
+          await NotificationDiagnostics.record('record_dismiss_result', error, stackTrace: stackTrace);
+        }
+        try {
+          await instance.syncFromDatabase();
+        } catch (error, stackTrace) {
+          await NotificationDiagnostics.record('resync_after_dismiss', error, stackTrace: stackTrace);
+        }
+      }
+    } catch (error, stackTrace) {
+      await NotificationDiagnostics.record('handle_notification_action', error, stackTrace: stackTrace);
+    }
+  }
+
+  static Future<void> _cancelReminder(String id) async {
+    final now = AppDatabase.nowMs();
+    await (await AppDatabase.instance.database).update(
+      'reminders',
+      {'status': 'CANCELLED', 'updated_at': now},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> cancelAll() async {
@@ -184,14 +308,51 @@ class NotificationService {
     return n;
   }
 
-  // Remaining methods unchanged from main — if CI fails, restore from main
-  // and re-apply only cancelAll/cancelId/init soft-catch + budget try.
   Future<int> notifyBudgetAlerts({Duration delay = const Duration(seconds: 2)}) async {
-    return 0;
+    if (!_ready) await init();
+    if (!enabled) return 0;
+    final alerts = await BudgetRepository(AppDatabase.instance).alerts();
+    if (alerts.isEmpty) return 0;
+    var n = 0;
+    final when = DateTime.now().add(delay);
+    for (final b in alerts) {
+      final spent = (b.spentMinor / 100).toStringAsFixed(0);
+      final limit = (b.limitMinor / 100).toStringAsFixed(0);
+      final cat = b.categoryName ?? b.scopeLabel;
+      final exceeded = b.level == BudgetAlertLevel.exceeded;
+      final payload = NotificationPayload(
+        type: NotificationPayload.budget,
+        id: b.id,
+      );
+      try {
+        await _schedule(
+          id: _stableId('bud', b.id),
+          title: exceeded ? 'Budget exceeded: ${b.name}' : 'Budget warning: ${b.name}',
+          body: '$cat · $spent / $limit',
+          when: when,
+          high: exceeded,
+          payload: payload.encode(),
+        );
+        n++;
+      } catch (error, stackTrace) {
+        await NotificationDiagnostics.record('schedule_budget_alert', error, stackTrace: stackTrace);
+      }
+    }
+    return n;
   }
 
-  int _stableId(String prefix, String key) =>
-      Object.hash(prefix, key) & 0x7fffffff;
+  Future<List<BudgetStatus>> checkBudgetsNow() async {
+    final hit = await BudgetRepository(AppDatabase.instance).alerts();
+    final alerts = hit.where((s) => s.level != BudgetAlertLevel.ok).toList();
+    if (alerts.isNotEmpty) await notifyBudgetAlerts();
+    return hit;
+  }
+
+  Future<List<BudgetStatus>> checkCategoryAfterExpense(String? categoryId) async {
+    final all = await BudgetRepository(AppDatabase.instance).alerts();
+    if (categoryId == null || categoryId.isEmpty) return all;
+    return all.where((s) => s.categoryId == categoryId).toList();
+  }
 
   Future<void> _schedule({
     required int id,
@@ -202,6 +363,37 @@ class NotificationService {
     String? payload,
   }) async {
     final tzWhen = tz.TZDateTime.from(when, tz.local);
+    const actions = <AndroidNotificationAction>[
+      AndroidNotificationAction(
+        actionSnooze15,
+        'Snooze 15m',
+        showsUserInterface: false,
+        cancelNotification: true,
+      ),
+      AndroidNotificationAction(
+        actionSnooze60,
+        'Snooze 1h',
+        showsUserInterface: false,
+        cancelNotification: true,
+      ),
+      AndroidNotificationAction(
+        actionDelete,
+        'Delete',
+        showsUserInterface: false,
+        cancelNotification: true,
+      ),
+    ];
+
+    AndroidScheduleMode mode = AndroidScheduleMode.inexactAllowWhileIdle;
+    try {
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final canExact = await androidPlugin?.canScheduleExactNotifications();
+      if (canExact == true) {
+        mode = AndroidScheduleMode.exactAllowWhileIdle;
+      }
+    } catch (_) {}
+
     await _plugin.zonedSchedule(
       id,
       title,
@@ -215,22 +407,42 @@ class NotificationService {
           importance: high ? Importance.max : Importance.high,
           priority: high ? Priority.max : Priority.high,
           icon: _androidIcon,
+          actions: actions,
+          category: AndroidNotificationCategory.reminder,
+          audioAttributesUsage: AudioAttributesUsage.notificationRingtone,
+          playSound: true,
+          enableVibration: true,
+          vibrationPattern: high ? _vibeHigh : _vibeNormal,
+          ticker: title,
+          visibility: NotificationVisibility.public,
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
+          categoryIdentifier: _iosCategory,
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          sound: 'default',
+          interruptionLevel: high
+              ? InterruptionLevel.timeSensitive
+              : InterruptionLevel.active,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: mode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: payload,
     );
   }
+
+  int _stableId(String prefix, String key) {
+    var h = prefix.hashCode ^ key.hashCode;
+    h = h & 0x7fffffff;
+    if (h == 0) h = 1;
+    return h;
+  }
 }
 
 @pragma('vm:entry-point')
 void notificationTapBackground(NotificationResponse response) {
-  // Background isolate — routing handled when app resumes.
+  NotificationService._handleResponse(response);
 }
