@@ -24,6 +24,17 @@ class HabitRepository {
     return rows.map(Habit.fromMap).toList();
   }
 
+  Future<List<Habit>> listByLifeArea(String lifeAreaId) async {
+    final ownerId = await _db.requireOwnerId();
+    final rows = await (await _db.database).query(
+      'habits',
+      where: 'owner_id = ? AND life_area_id = ? AND archived_at IS NULL',
+      whereArgs: [ownerId, lifeAreaId],
+      orderBy: 'updated_at DESC',
+    );
+    return rows.map(Habit.fromMap).toList();
+  }
+
   Future<Habit?> getById(String id) async {
     final rows = await (await _db.database).query('habits', where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isEmpty) return null;
@@ -34,6 +45,7 @@ class HabitRepository {
     required String title,
     String? description,
     String frequency = 'DAILY',
+    String? lifeAreaId,
   }) async {
     final ownerId = await _db.requireOwnerId();
     final now = AppDatabase.nowMs();
@@ -43,6 +55,7 @@ class HabitRepository {
       title: title,
       status: EntityStatus.active,
       startDate: now,
+      lifeAreaId: lifeAreaId,
       createdAt: now,
       updatedAt: now,
     );
