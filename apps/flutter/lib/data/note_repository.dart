@@ -18,6 +18,17 @@ class NoteRepository {
     return rows.map(Note.fromMap).toList();
   }
 
+  Future<List<Note>> listByLifeArea(String lifeAreaId) async {
+    final ownerId = await _db.requireOwnerId();
+    final rows = await (await _db.database).query(
+      'notes',
+      where: 'owner_id = ? AND life_area_id = ? AND archived_at IS NULL',
+      whereArgs: [ownerId, lifeAreaId],
+      orderBy: 'updated_at DESC',
+    );
+    return rows.map(Note.fromMap).toList();
+  }
+
   Future<Note?> getById(String id) async {
     final db = await _db.database;
     final rows = await db.query('notes', where: 'id = ?', whereArgs: [id], limit: 1);
@@ -25,7 +36,7 @@ class NoteRepository {
     return Note.fromMap(rows.first);
   }
 
-  Future<Note> create({String? title, required String content, String? assistantActionPreview}) async {
+  Future<Note> create({String? title, required String content, String? lifeAreaId, String? assistantActionPreview}) async {
     final ownerId = await _db.requireOwnerId();
     final now = AppDatabase.nowMs();
     final note = Note(
@@ -33,6 +44,7 @@ class NoteRepository {
       ownerId: ownerId,
       title: title,
       content: content,
+      lifeAreaId: lifeAreaId,
       createdAt: now,
       updatedAt: now,
     );
@@ -45,7 +57,18 @@ class NoteRepository {
       entityType: 'NOTE',
       entityId: note.id,
       occurredAt: now,
-      additionalEvents: assistantActionPreview == null ? const [] : [AtomicEvent(eventType: 'ASSISTANT_ACTION_EXECUTED', entityType: 'NOTE', entityId: note.id, source: EventSource.system, metadata: '{"action":"addNote"}', occurredAt: now)],
+      additionalEvents: assistantActionPreview == null
+          ? const []
+          : [
+              AtomicEvent(
+                eventType: 'ASSISTANT_ACTION_EXECUTED',
+                entityType: 'NOTE',
+                entityId: note.id,
+                source: EventSource.system,
+                metadata: '{"action":"addNote"}',
+                occurredAt: now,
+              ),
+            ],
     );
     return note;
   }
