@@ -66,7 +66,6 @@ class OfflineRuntime {
     lastSuccessfulWriteAt = DateTime.now();
   }
 
-  /// Habit/routine, bills, smart practical reminders, notification schedule, integrity.
   Future<void> runMaintenance({bool force = false}) async {
     if (_running) return;
     if (!force &&
@@ -115,7 +114,8 @@ class OfflineRuntime {
       if (needIntegrity) {
         final report = await IntegrityService(db: db).run(repair: true);
         lastIntegrityAt = DateTime.now();
-        if (!report.ok || report.fixed > 0) {
+        // Successful repairs are normal maintenance, not app faults.
+        if (!report.ok) {
           await ErrorLogService.instance.log(
             message: 'Integrity: ${report.summary}',
             level: 'INTEGRITY',
