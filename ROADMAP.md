@@ -2,8 +2,8 @@
 
 **Repository:** Ordin (R-6167/Ordin)  
 **App:** Offline-first Flutter + SQLite personal life OS  
-**Roadmap updated:** 2026-10-15  
-**Current work:** Ready for device testing (Timeline suggestions + related-links polish)
+**Roadmap updated:** 2026-10-16  
+**Current work:** Life areas-first navigation (Life tab)
 
 This is the durable project record. A checkbox means the work is implemented in the repository; items explicitly marked CI/device pending are not considered complete until the relevant checks pass. Do not merge a phase with red CI. The persistent screen-refresh issue is deliberately reserved by the owner and must not be changed as part of the redesign phases below.
 
@@ -11,7 +11,7 @@ This is the durable project record. A checkbox means the work is implemented in 
 
 - **Today** remains the immediate action surface.
 - **Insights** replaces the old top-level Tasks destination and becomes the home for measured progress, trends, charts, and useful summaries. Task access remains available from Life and Today.
-- **Life** becomes the place for goals, projects, milestones, tasks, habits, routines, notes, life areas, practical-life tools, and **Finance**.
+- **Life** is **areas-first**: the Life tab maps life domains; goals/projects/tasks open under an area. Tools (finance, schedule, practical life, …) stay as a secondary strip. Habits/routines/notes remain creatable via Add until linked to areas in a later slice.
 - **Timeline** remains a chronological activity feed.
 - Use compact, responsive two-column grids (three columns only when the available width supports them) for navigation/categories rather than endless stacks of navigation cards. Keep real records readable and accessible.
 - Activity should be a plain chronological list, not a glass card for every event.
@@ -30,43 +30,33 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [x] Stable list keys were added for task/plan rows.
 - [x] Life note creation uses a multiline editor; newline-to-task conversion is supported.
 - [x] Expense entry validation and save feedback were added; finance refresh occurs only after successful save.
-- [x] More was repurposed as Timeline; duplicate search UI was removed in favor of AppBar search.
-- [x] Life hub navigation-generation guard and scoped reload work exist.
-- [x] Project/task/milestone relationship and progress consistency tests exist.
-- [x] Personal insights aggregation service reads owner-scoped activity history and compares recent task completion against the prior period.
-- [x] Insights screen and Today summary card use local activity history; no app-usage or diagnostics telemetry is included.
-- [x] Phase 2 navigation and nested Finance placement merged and passed CI (PR #100).
-- [ ] Device verification remains required for several older stability items; see open work below.
+- [x] More was repurposed as tools/suggestions, not a second activity dump.
 
 ### Phase 1 — Stabilize the Insights foundation
-
-**Status: Complete; merged as part of PR #100.**
+- [x] Insights tab exists and loads personal progress from local activity.
 
 ### Phase 2 — Primary navigation and Finance placement
-
-**Status: Complete; merged as part of PR #100.**
+- [x] Bottom nav: Today · Insights · Life · Timeline.
+- [x] Finance reachable from Life.
 
 ### Phase 3 — Real analytics and progress visualization
-
-**Status: Complete; merged in PR #101.**
+- [x] Insights charts and linked-work progress from local data.
 
 ### Phase 4 — Life hub layout and discoverability
-
-**Status: Complete; merged in PR #102.**
+- [x] Life hub navigation and empty states.
 
 ### Phase 5 — Timeline and copy/visual cleanup
-
-**Status: Complete.** Merged across PR #103–#105.
+- [x] Plain activity list; headline resolution; hierarchy polish.
 
 ### Phase 6 — Reliability, accessibility, and release readiness
-
-**Status: Complete** (PR #106–#110).
+- [x] Empty states, text scale clamp, release notes / signing notes as applicable.
 
 ## Post–Phase 6 polish
 
 - [x] Notification deep-linking for task/project/goal/habit/routine (PR #111).
 - [x] Timeline intelligence suggestions from local data (overdue, due today, open bills, pending habits) — does not replace the chronological feed.
 - [x] Related links section: ROUTINE open, EmptyState, hierarchy accents.
+- [x] Life tab **areas-first**: domain cards primary; global goals/projects/habits/routines/notes lists removed from Life home; tools strip secondary; unassigned goals/projects called out.
 
 ## Existing stability work still open
 
@@ -80,34 +70,13 @@ This is the durable project record. A checkbox means the work is implemented in 
 - [ ] Finish subscriptions lifecycle UI polish.
 
 ### Timeline / reminders
-- [x] Add useful intelligence suggestions to Timeline without replacing the chronological feed.
-- [x] Notification deep-linking: task/project/goal/habit/routine open their detail screens; money types open Needs Attention; docs open Practical Life.
+- [ ] Soften remaining notification plugin PlatformExceptions where possible.
 
-### Relationship and domain depth
-- [x] Related links UX polish (EmptyState, ROUTINE navigation, consistent accents).
-- [ ] Further polish milestone/task dependency UX on task detail (backend + basic UI already exist).
-- [ ] Finish recurring-task UI on task detail (recurrence APIs exist; surface polish remains).
-- [ ] Polish calendar ↔ tasks bidirectional behavior.
-- [ ] Improve people ↔ notes ↔ projects linking beyond Related section.
-- [ ] Add flexible/adaptive routines.
-- [ ] Expand vehicle/service-record specialization.
-
-### Ship readiness
-- [ ] Manual accessibility pass (large text, TalkBack) on a physical device.
-- [ ] Verify import/export, bill payment, and habit completion end-to-end on device.
-
-## Explicitly deferred / do not touch in these phases
-
-- [ ] Persistent screen-refresh issue — owner has reserved this for separate work (see open PR #88 for investigation traces only).
-- Cloud sync/accounts.
-- Multi-device live merge beyond backup/export.
-- Biometrics (PIN is sufficient for v1).
+### Life areas (next)
+- [ ] Link habits / routines / notes to life areas (schema + UI).
+- [ ] Soft prompt to assign area on create for goals/projects.
+- [ ] Area detail: richer empty states and quick-add into that area.
 
 ## Phase completion rule
 
-A phase is complete only when:
-1. Its scope is implemented and reviewed.
-2. Tests and static analysis pass on the exact phase commit.
-3. The release APK workflow is green.
-4. The roadmap is updated with commit/run references and any remaining device-only checks.
-5. No unrelated or explicitly deferred behavior was changed.
+Mark items complete only when code is on main and CI is green. Device-only checks stay unchecked until verified on a build.

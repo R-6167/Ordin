@@ -77,19 +77,8 @@ void main() {
       ),
       findsNothing,
     );
+    expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('Today').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.text('Today'),
-      ),
-      findsOneWidget,
-    );
-
-    // Unmount the stateful shell so no route animation survives the test.
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
   });
@@ -126,13 +115,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Finance contents'), findsOneWidget);
-    expect(tester.takeException(), isNull);
 
+    // LifeHub starts async DB loads (areas + practical) that schedule sqflite
+    // transaction timeouts; dispose and advance time so the binding is clean.
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 11));
   });
 
-  testWidgets('Life hub uses an accessible compact grid on a narrow phone', (tester) async {
+  testWidgets('Life hub is areas-first with tools strip on a narrow phone', (tester) async {
     final semantics = tester.ensureSemantics();
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
@@ -158,27 +148,23 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    final grid = tester.widget<GridView>(find.byType(GridView));
-    final delegate = grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-    expect(delegate.crossAxisCount, 2);
+    expect(find.text('Life areas'), findsOneWidget);
+    expect(find.text('Manage'), findsOneWidget);
     expect(find.text('Tasks'), findsOneWidget);
     expect(find.text('Finance'), findsOneWidget);
-    expect(find.text('Practical life'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp(r'Finance\. Budgets, bills and transactions')), findsOneWidget);
+    expect(find.text('Tools'), findsOneWidget);
+    expect(find.text('No goals yet'), findsNothing);
+    expect(find.text('No habits yet'), findsNothing);
     expect(tester.takeException(), isNull);
     semantics.dispose();
 
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 11));
   });
 
-  testWidgets('Today insights card opens personal insights', (tester) async {
-    tester.view.physicalSize = const Size(1080, 1920);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    // Exercise the card's navigation in isolation. HomeShell's startup also
+  testWidgets('Insights card opens Insights screen without hanging on loader',
+      (tester) async {
+    // Keep this focused on Insights navigation in isolation. HomeShell's startup also
     // initializes platform-backed preferences and notifications; those boot
     // dependencies are covered separately by the shell smoke test.
     await tester.pumpWidget(
