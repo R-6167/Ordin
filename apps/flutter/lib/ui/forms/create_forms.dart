@@ -164,6 +164,7 @@ Future<bool> showCreateForm(BuildContext context, AddKind kind) async {
         },
       );
     case AddKind.note:
+      // Full note editor (multiline + links + turn-to-tasks), not a one-line dialog.
       return _openNewNoteEditor(context);
     case AddKind.expense:
       return _moneyForm(context, isIncome: false);
@@ -194,6 +195,7 @@ Future<bool> showCreateForm(BuildContext context, AddKind kind) async {
       );
   }
 }
+
 
 Future<bool> _openNewNoteEditor(BuildContext context) async {
   final note = await NoteRepository(AppDatabase.instance).create(content: '');
@@ -313,6 +315,344 @@ Future<bool> _taskForm(BuildContext context) async {
   return true;
 }
 
-// NOTE: Remaining helpers (_moneyForm, _billForm, _simpleText, _entityWithLifeAreaForm)
-// must match main. If this commit is incomplete, replace this file from main:
-//   git checkout main -- apps/flutter/lib/ui/forms/create_forms.dart
+Future<bool> _moneyForm(BuildContext context, {required bool isIncome}) async {
+  final label = TextEditingController();
+  final amount = TextEditingController();
+  final accounts = await AccountRepository(AppDatabase.instance).list();
+  final categories = isIncome
+      ? <Map<String, Object?>>[]
+      : await CategoryRepository(AppDatabase.instance).listExpense();
+  String? accountId;
+  String? categoryId = categories.isEmpty ? null : categories.first['id'] as String?;
+
+  if (!context.mounted) return false;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        backgroundColor: AppTheme.metal,
+        title: Text(
+          isIncome ? 'Record income' : 'Record expense',
+          style: const TextStyle(color: AppTheme.silver),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: label,
+                autofocus: true,
+                style: const TextStyle(color: AppTheme.silver),
+                decoration: InputDecoration(
+                  labelText: isIncome ? 'Source *' : 'What for? *',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: amount,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(color: AppTheme.silver),
+                decoration: InputDecoration(
+                  labelText: 'Amount (${UserPrefs.instance.currency}) *',
+                ),
+              ),
+              if (!isIncome && categories.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  value: categoryId,
+                  dropdownColor: AppTheme.metal,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('None')),
+                    ...categories.map(
+                      (c) => DropdownMenuItem(
+                        value: c['id'] as String,
+                        child: Text('${c['name']}'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) => setLocal(() => categoryId = v),
+                ),
+              ],
+              if (accounts.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String?>(
+                  value: accountId,
+                  dropdownColor: AppTheme.metal,
+                  decoration: const InputDecoration(labelText: 'Account (optional)'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('None')),
+                    ...accounts.map(
+                      (a) => DropdownMenuItem(
+                        value: a['id'] as String,
+                        child: Text('${a['name']}'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) => setLocal(() => accountId = v),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (label.text.trim().isEmpty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  SnackBar(content: Text(isIncome ? 'Enter a source' : 'Enter what the expense is for')),
+                );
+                return;
+              }
+              final parsed = double.tryParse(amount.text.trim().replaceAll(',', ''));
+              if (parsed == null || parsed <= 0) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid amount greater than 0')),
+                );
+                return;
+              }
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return false;
+  final a = double.tryParse(amount.text.trim().replaceAll(',', ''));
+  if (a == null || a <= 0) return false;
+  try {
+    if (isIncome) {
+      await IncomeRepository(AppDatabase.instance).create(
+        source: label.text.trim(),
+        amountMajor: a,
+        accountId: accountId,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Income recorded: ${label.text.trim()}')),
+        );
+      }
+    } else {
+      await ExpenseRepository(AppDatabase.instance).create(
+        description: label.text.trim(),
+        amountMajor: a,
+        accountId: accountId,
+        categoryId: categoryId,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Expense saved: ${label.text.trim()}')),
+        );
+      }
+      final alerts =
+          await NotificationService.instance.checkCategoryAfterExpense(categoryId);
+      if (alerts.isNotEmpty && context.mounted) {
+        final b = alerts.first;
+        final exceeded = b.level == BudgetAlertLevel.exceeded;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              exceeded
+                  ? 'Budget exceeded: ${b.categoryName ?? b.name}'
+                  : 'Budget warning: ${b.categoryName ?? b.name}',
+            ),
+            backgroundColor: exceeded ? Colors.redAccent : Colors.orangeAccent,
+          ),
+        );
+      }
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not save: $e')),
+      );
+    }
+    return false;
+  }
+  return true;
+}
+
+Future<bool> _billForm(BuildContext context) async {
+  final name = TextEditingController();
+  final amount = TextEditingController();
+  var dueInDays = 7;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        backgroundColor: AppTheme.metal,
+        title: const Text('New bill', style: TextStyle(color: AppTheme.silver)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              autofocus: true,
+              style: const TextStyle(color: AppTheme.silver),
+              decoration: const InputDecoration(labelText: 'Name *'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: amount,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: AppTheme.silver),
+              decoration: InputDecoration(
+                labelText: 'Expected amount (${Defaults.currency})',
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: dueInDays,
+              dropdownColor: AppTheme.metal,
+              decoration: const InputDecoration(labelText: 'Due in'),
+              items: const [
+                DropdownMenuItem(value: 1, child: Text('1 day')),
+                DropdownMenuItem(value: 3, child: Text('3 days')),
+                DropdownMenuItem(value: 7, child: Text('1 week')),
+                DropdownMenuItem(value: 14, child: Text('2 weeks')),
+                DropdownMenuItem(value: 30, child: Text('1 month')),
+              ],
+              onChanged: (v) => setLocal(() => dueInDays = v ?? 7),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (name.text.trim().isEmpty) return;
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return false;
+  final major = double.tryParse(amount.text.trim().replaceAll(',', ''));
+  await BillRepository(AppDatabase.instance).create(
+    name: name.text.trim(),
+    expectedMajor: major,
+    dueInDays: dueInDays,
+  );
+  return true;
+}
+
+Future<bool> _simpleText(
+  BuildContext context, {
+  required String title,
+  required List<String> fields,
+  required Future<void> Function(List<String>) onSave,
+}) async {
+  final ctrls = List.generate(fields.length, (_) => TextEditingController());
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AppTheme.metal,
+      title: Text(title, style: const TextStyle(color: AppTheme.silver)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < fields.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            TextField(
+              controller: ctrls[i],
+              autofocus: i == 0,
+              style: const TextStyle(color: AppTheme.silver),
+              decoration: InputDecoration(labelText: fields[i]),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () {
+            if (ctrls.first.text.trim().isEmpty) return;
+            Navigator.pop(ctx, true);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return false;
+  await onSave(ctrls.map((c) => c.text.trim()).toList());
+  return true;
+}
+
+Future<bool> _entityWithLifeAreaForm(
+  BuildContext context, {
+  required String title,
+  required Future<void> Function(String title, String? description, String? lifeAreaId) onSave,
+}) async {
+  final titleCtrl = TextEditingController();
+  final descCtrl = TextEditingController();
+  String? lifeAreaId;
+  final areaRepo = LifeAreaRepository(AppDatabase.instance);
+  await areaRepo.seedDefaultsIfEmpty();
+  final areas = await areaRepo.listActive();
+
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setLocal) => AlertDialog(
+        backgroundColor: AppTheme.metal,
+        title: Text(title, style: const TextStyle(color: AppTheme.silver)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleCtrl,
+              autofocus: true,
+              style: const TextStyle(color: AppTheme.silver),
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descCtrl,
+              style: const TextStyle(color: AppTheme.silver),
+              decoration: const InputDecoration(labelText: 'Description (optional)'),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String?>(
+              value: lifeAreaId,
+              dropdownColor: AppTheme.metal,
+              decoration: const InputDecoration(labelText: 'Life area (optional)'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('None')),
+                ...areas.map(
+                  (a) => DropdownMenuItem(value: a.id, child: Text(a.title)),
+                ),
+              ],
+              onChanged: (v) => setLocal(() => lifeAreaId = v),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              if (titleCtrl.text.trim().isEmpty) return;
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return false;
+  final desc = descCtrl.text.trim();
+  await onSave(
+    titleCtrl.text.trim(),
+    desc.isEmpty ? null : desc,
+    lifeAreaId,
+  );
+  return true;
+}
+
