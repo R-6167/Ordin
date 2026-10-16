@@ -104,17 +104,16 @@ class LocalLlmEngine {
     try {
       await unload(silent: true);
       final llama = bridge.createLlamaController();
-      int? gpuLayers;
-      try {
-        final gpu = await llama.detectGpu();
-        gpuLayers = gpu.recommendedGpuLayers as int?;
-      } catch (_) {
-        gpuLayers = null;
-      }
+      // Always CPU on mobile: GPU offload OOMs / SIGKILL on low-RAM
+      // devices (e.g. Nokia C32 4GB). Native kills cannot be caught in Dart.
+      const gpuLayers = 0;
+      // Tight defaults for 4GB phones; callers can still pass lower values.
+      final safeThreads = threads.clamp(1, 3);
+      final safeCtx = contextSize.clamp(512, 1536);
       await llama.loadModel(
         modelPath: path,
-        threads: threads.clamp(1, 8),
-        contextSize: contextSize.clamp(512, 4096),
+        threads: safeThreads,
+        contextSize: safeCtx,
         gpuLayers: gpuLayers,
       );
       _controller = llama;

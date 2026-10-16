@@ -46,9 +46,9 @@ class AiSettings {
     this.model = 'gpt-4o-mini',
     this.localModelPath = '',
     this.localModelLabel = '',
-    this.contextSize = 2048,
-    this.threads = 4,
-    this.maxTokens = 512,
+    this.contextSize = 1024,
+    this.threads = 2,
+    this.maxTokens = 256,
     this.systemPreamble =
         'You are the offline Personal Life OS assistant. Use only the provided personal context. Be concise, practical, and honest. Never invent calendar events or balances.',
   });
@@ -121,9 +121,9 @@ class AiSettings {
       model: '${m['model'] ?? 'gpt-4o-mini'}',
       localModelPath: '${m['localModelPath'] ?? ''}',
       localModelLabel: '${m['localModelLabel'] ?? ''}',
-      contextSize: (m['contextSize'] as int?) ?? 2048,
-      threads: (m['threads'] as int?) ?? 4,
-      maxTokens: (m['maxTokens'] as int?) ?? 512,
+      contextSize: (m['contextSize'] as int?) ?? 1024,
+      threads: (m['threads'] as int?) ?? 2,
+      maxTokens: (m['maxTokens'] as int?) ?? 256,
       systemPreamble: '${m['systemPreamble'] ?? AiSettings().systemPreamble}',
     );
   }
