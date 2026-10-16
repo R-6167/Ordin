@@ -600,30 +600,24 @@ class _PlanningScreenState extends State<PlanningScreen> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: FilledButton.icon(
-                                    onPressed: _building ? null : _rebuild,
-                                    icon: const Icon(Icons.auto_awesome, size: 18),
-                                    label: const Text('Build My Day'),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () async {
-                                      final ok = await showCreateForm(
-                                        context,
-                                        AddKind.task,
-                                      );
-                                      if (ok) await _load();
-                                    },
-                                    icon: const Icon(Icons.add_task, size: 18),
-                                    label: const Text('New task'),
-                                  ),
-                                ),
-                              ],
+                            OutlinedButton.icon(
+                              onPressed: () async {
+                                final ok = await showCreateForm(
+                                  context,
+                                  AddKind.task,
+                                );
+                                if (ok) await _load();
+                              },
+                              icon: const Icon(Icons.add_task, size: 18),
+                              label: const Text('New task'),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Use Build My Day below to place open work into free hours.',
+                              style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.45),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -654,11 +648,13 @@ class _PlanningScreenState extends State<PlanningScreen> {
                                 fontSize: 13,
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            FilledButton.icon(
-                              onPressed: _building ? null : _rebuild,
-                              icon: const Icon(Icons.auto_awesome, size: 18),
-                              label: const Text('Build My Day'),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Use the Build My Day button below to place them into free hours.',
+                              style: TextStyle(
+                                color: AppTheme.silver.withValues(alpha: 0.45),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),

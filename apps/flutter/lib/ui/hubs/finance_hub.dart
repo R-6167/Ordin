@@ -621,20 +621,86 @@ class _FinanceHubState extends State<FinanceHub> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
         GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('This month',
-                  style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              Text('In $incomeStr · Out $spendStr',
-                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.7))),
+              const Text(
+                'This month',
+                style: TextStyle(
+                  color: AppTheme.silver,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'In',
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          incomeStr,
+                          style: const TextStyle(
+                            color: Color(0xFF6BCB77),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Out',
+                          style: TextStyle(
+                            color: AppTheme.silver.withValues(alpha: 0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          spendStr,
+                          style: const TextStyle(
+                            color: Colors.orangeAccent,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
               Text(
-                'Net ${_money(netMinor)} · Balances $bal',
+                'Net ${_money(netMinor)}',
                 style: TextStyle(
                   color: netMinor >= 0
                       ? const Color(0xFF6BCB77)
                       : Colors.orangeAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Balances $bal',
+                style: TextStyle(
+                  color: AppTheme.silver.withValues(alpha: 0.65),
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -642,17 +708,35 @@ class _FinanceHubState extends State<FinanceHub> {
         ),
         const SizedBox(height: 10),
         GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('30-day outlook',
-                  style: TextStyle(color: AppTheme.silver, fontWeight: FontWeight.w700)),
+              const Text(
+                '30-day outlook',
+                style: TextStyle(
+                  color: AppTheme.silver,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 17,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Obligations ${_money(_outlook['obligations_minor'])}',
+                style: const TextStyle(
+                  color: AppTheme.silver,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(height: 6),
               Text(
-                'Obligations ${_money(_outlook['obligations_minor'])} · '
                 'Runway ${_money(_outlook['runway_minor'])}'
                 '${(_outlook['covered'] == true) ? '' : ' · shortfall ${_money(_outlook['shortfall_minor'])}'}',
-                style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.55), fontSize: 12),
+                style: TextStyle(
+                  color: AppTheme.silver.withValues(alpha: 0.65),
+                  fontSize: 14,
+                ),
               ),
               if (_outlook['covered'] != true)
                 Padding(
@@ -714,10 +798,25 @@ class _FinanceHubState extends State<FinanceHub> {
           ..._accounts.map((a) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: GlassCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   child: ListTile(
-                    title: Text('${a['name']}', style: const TextStyle(color: AppTheme.silver)),
-                    trailing: Text(_money(a['current_balance_minor']),
-                        style: const TextStyle(color: AppTheme.amber)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    title: Text(
+                      '${a['name']}',
+                      style: const TextStyle(
+                        color: AppTheme.silver,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    trailing: Text(
+                      _money(a['current_balance_minor']),
+                      style: const TextStyle(
+                        color: AppTheme.amber,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ),
               )),
@@ -869,10 +968,22 @@ class _FinanceHubState extends State<FinanceHub> {
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: () async {
-            final ok = await showCreateForm(context, AddKind.expense);
-            if (!mounted) return;
-            if (ok) {
-              await _refresh();
+            try {
+              final ok = await showCreateForm(context, AddKind.expense);
+              if (!mounted) return;
+              if (ok) {
+                await _refresh();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Expense recorded')),
+                  );
+                }
+              }
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not open expense form: $e')),
+              );
             }
           },
           icon: const Icon(Icons.add),
