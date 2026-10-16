@@ -37,6 +37,7 @@ import 'screens/task_detail_screen.dart';
 import 'settings_screen.dart';
 import 'theme.dart';
 import 'widgets/glass.dart';
+import 'widgets/empty_state.dart';
 import 'widgets/pay_bill_dialog.dart';
 import 'widgets/section_header.dart';
 
@@ -547,22 +548,10 @@ class _HomeShellState extends State<HomeShell> {
           selectedIndex: _tab,
           onDestinationSelected: _onTab,
           destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.today_outlined),
-                selectedIcon: Icon(Icons.today),
-                label: 'Today'),
-            NavigationDestination(
-                icon: Icon(Icons.insights_outlined),
-                selectedIcon: Icon(Icons.insights),
-                label: 'Insights'),
-            NavigationDestination(
-                icon: Icon(Icons.favorite_outline),
-                selectedIcon: Icon(Icons.favorite),
-                label: 'Life'),
-            NavigationDestination(
-                icon: Icon(Icons.view_timeline_outlined),
-                selectedIcon: Icon(Icons.view_timeline),
-                label: 'Timeline'),
+            NavigationDestination(icon: Icon(Icons.today_outlined), selectedIcon: Icon(Icons.today), label: 'Today'),
+            NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Insights'),
+            NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Life'),
+            NavigationDestination(icon: Icon(Icons.timeline_outlined), selectedIcon: Icon(Icons.timeline), label: 'Timeline'),
           ],
         ),
       ),
@@ -570,337 +559,100 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _body() {
-    return IndexedStack(
-      index: _tab,
-      children: [
-        KeyedSubtree(key: const ValueKey('tab-today'), child: _today()),
-        const InsightsScreen(key: ValueKey('tab-insights')),
-        LifeHub(
-          key: const ValueKey('tab-life'),
-          onOpenTasks: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => _tasksView()),
-            );
-          },
+    switch (_tab) {
+      case 0:
+        return _today();
+      case 1:
+        return const InsightsScreen();
+      case 2:
+        return LifeHub(
           goals: _goalList,
           habits: _habitList,
           notes: _noteList,
           projects: _projectList,
           routines: _routineList,
+          onOpenTasks: () => setState(() => _tab = 0),
+          onChanged: () => _reload(domains: {DataDomain.life, DataDomain.today}),
           finance: FinanceHub(
-            key: const ValueKey('life-finance'),
             expenses: _expenseList,
+            bills: _billOcc,
             income: _incomeList,
-            billOcc: _billOcc,
             monthSpendMinor: _monthSpendMinor,
-            onChanged: () async {
-              AppDataBus.instance.financeChanged();
-            },
-            onPayBill: (o) async {
-              await promptAndPayBill(context, o);
-              AppDataBus.instance.financeChanged();
-            },
+            currency: _currency,
+            onChanged: () => _reload(domains: {DataDomain.finance, DataDomain.today}),
           ),
-          onChanged: () async {
-            AppDataBus.instance.lifeChanged();
-          },
-        ),
-        const ActivityScreen(key: ValueKey('tab-timeline')),
-      ],
-    );
+        );
+      case 3:
+        return ActivityScreen(onChanged: () => _reload(domains: {DataDomain.timeline, DataDomain.today}));
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   Widget _today() {
-    final spend = (_monthSpendMinor / 100).toStringAsFixed(2);
     return RefreshIndicator(
       color: AppTheme.amber,
       onRefresh: () => _reload(
         domains: {
           DataDomain.tasks,
-          DataDomain.life,
-          DataDomain.finance,
           DataDomain.today,
+          DataDomain.finance,
         },
         runMaintenance: true,
       ),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          GlassCard(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _greeting,
-                            style: TextStyle(
-                              color: AppTheme.silver.withValues(alpha: 0.65),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'What needs attention',
-                            style: TextStyle(
-                              color: AppTheme.silver,
-                              fontSize: 22,
-                              height: 1.15,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.brandBlueContainer,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.wb_sunny_outlined,
-                        color: AppTheme.brandBlue,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _TodayMetric(
-                        icon: Icons.schedule_rounded,
-                        label: 'TIME AVAILABLE',
-                        value: '~${_freeMinutes ~/ 60}h',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _TodayMetric(
-                        icon: Icons.account_balance_wallet_outlined,
-                        label: 'SPENT THIS MONTH',
-                        value: '$_currency $spend',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const PlanningScreen()),
-                          );
-                        },
-                        icon: const Icon(Icons.auto_awesome, size: 18),
-                        label: const Text('Plan my day'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton.filledTonal(
-                      tooltip: 'Refresh today',
-                      onPressed: () => _reload(
-                        domains: {
-                          DataDomain.tasks,
-                          DataDomain.life,
-                          DataDomain.finance,
-                          DataDomain.today,
-                        },
-                        runMaintenance: true,
-                      ),
-                      icon: const Icon(Icons.refresh_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Pull down to refresh your overview.',
-                  style: TextStyle(
-                    color: AppTheme.silver.withValues(alpha: 0.42),
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
           const HomeInsightsCard(),
-          const SizedBox(height: 8),
-          if (_scheduledToday.isNotEmpty) ...[
-            SectionHeader(
-              'On the clock',
-              trailing: TextButton(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PlanningScreen()),
-                  );
-                },
-                child: const Text('Plan'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _TodayMetric(
+                  icon: Icons.checklist,
+                  label: 'OPEN',
+                  value: '${_taskList.length}',
+                ),
               ),
-            ),
-            ..._scheduledToday.map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GlassCard(
-                    key: ValueKey('task-${t.id}'),
-                    onTap: () => _openTask(t),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    child: ListTile(
-                      dense: true,
-                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-                      subtitle: Text(
-                        _scheduledLabel(t),
-                        style: TextStyle(
-                          color: AppTheme.silver.withValues(alpha: 0.45),
-                          fontSize: 11,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
-                        tooltip: 'Complete',
-                        onPressed: () async {
-                          await _tasks.complete(t.id);
-                          AppDataBus.instance.tasksChanged();
-                        },
-                      ),
-                    ),
-                  ),
-                )),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: _TodayMetric(
+                  icon: Icons.warning_amber_rounded,
+                  label: 'OVERDUE',
+                  value: '${_overdue.length}',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _TodayMetric(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'SPEND',
+                  value: '$_currency ${(_monthSpendMinor / 100).toStringAsFixed(0)}',
+                ),
+              ),
+            ],
+          ),
           if (_plan.isNotEmpty) ...[
-            const SectionHeader('Focus now'),
+            const SectionHeader('Suggested plan'),
             ..._plan.map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
-                    key: ValueKey('plan-${p.id}'),
                     onTap: () => _openPlanItem(p),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(p.title,
-                            style: const TextStyle(
-                                color: AppTheme.silver, fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 2),
-                        Text(
-                          p.reason,
-                          style: TextStyle(
-                            color: AppTheme.silver.withValues(alpha: 0.45),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )),
-          ],
-          if (_overdue.isNotEmpty) ...[
-            const SectionHeader('Overdue'),
-            ..._overdue.take(5).map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GlassCard(
-                    key: ValueKey('task-${t.id}'),
-                    onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
                       dense: true,
-                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-                      subtitle: Text(
-                        _taskStatusLine(t),
-                        style: TextStyle(
-                          color: t.isOverdue
-                              ? Colors.redAccent
-                              : (_blockedIds.contains(t.id)
-                                  ? Colors.orangeAccent
-                                  : AppTheme.silver.withValues(alpha: 0.4)),
-                          fontSize: 11,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
-                        tooltip: 'Complete',
-                        onPressed: () async {
-                          await _tasks.complete(t.id);
-                          AppDataBus.instance.tasksChanged();
-                        },
-                      ),
+                      title: Text(p.title, style: const TextStyle(color: AppTheme.silver)),
+                      subtitle: Text(p.reason, style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.45), fontSize: 11)),
+                      trailing: const Icon(Icons.chevron_right, color: AppTheme.silverMuted),
                     ),
                   ),
                 )),
           ],
-          if (_taskList.isNotEmpty) ...[
-            const SectionHeader('Open work'),
-            ..._taskList.take(8).map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GlassCard(
-                    key: ValueKey('task-${t.id}'),
-                    onTap: () => _openTask(t),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    child: ListTile(
-                      dense: true,
-                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-                      subtitle: Text(
-                        _taskStatusLine(t),
-                        style: TextStyle(
-                          color: t.isOverdue
-                              ? Colors.redAccent
-                              : (_blockedIds.contains(t.id)
-                                  ? Colors.orangeAccent
-                                  : AppTheme.silver.withValues(alpha: 0.4)),
-                          fontSize: 11,
-                        ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
-                        tooltip: 'Complete',
-                        onPressed: () async {
-                          await _tasks.complete(t.id);
-                          AppDataBus.instance.tasksChanged();
-                        },
-                      ),
-                    ),
-                  ),
-                )),
-          ],
-        ],
-      ),
-    );
-  }
-
-  String _scheduledLabel(Task t) {
-    final start = t.scheduledStart;
-    if (start == null) return t.status;
-    final dt = DateTime.fromMillisecondsSinceEpoch(start);
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mm = dt.minute.toString().padLeft(2, '0');
-    final blocked = _blockedIds.contains(t.id) ? ' · Blocked' : '';
-    return '$hh:$mm$blocked · ${t.status}';
-  }
-
-  Widget _tasksView() {
-    return RefreshIndicator(
-      color: AppTheme.amber,
-      onRefresh: _reloadTasks,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
           if (_overdue.isNotEmpty) ...[
             const SectionHeader('Overdue'),
             ..._overdue.map((t) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: GlassCard(
-                    key: ValueKey('task-${t.id}'),
                     onTap: () => _openTask(t),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: ListTile(
@@ -923,9 +675,11 @@ class _HomeShellState extends State<HomeShell> {
           ],
           const SectionHeader('All open'),
           if (_taskList.isEmpty)
-            GlassCard(
-              child: Text('No open tasks',
-                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.5))),
+            const EmptyState(
+              title: 'No open tasks',
+              detail: 'Tap + to add one, or clear filters above if you expect items here.',
+              icon: Icons.checklist_rounded,
+              padding: EdgeInsets.symmetric(vertical: 24, horizontal: 12),
             )
           else
             ..._taskList.map((t) => Padding(
