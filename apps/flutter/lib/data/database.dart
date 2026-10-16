@@ -15,7 +15,7 @@ class AppDatabase {
   static const _uuid = Uuid();
 
   // Bump whenever the database schema/migration contract changes.
-  static const schemaVersion = 30;
+  static const schemaVersion = 31;
 
   Future<Database> get database async {
     if (_db != null) return _db!;
@@ -115,6 +115,7 @@ class AppDatabase {
         if (oldVersion < 28) await _migrateToV28(db);
         if (oldVersion < 29) await _migrateToV29(db);
         if (oldVersion < 30) await _migrateToV30(db);
+        if (oldVersion < 31) await _migrateToV31(db);
         await _verifySchemaContract(db);
       },
       onOpen: (db) async {
@@ -186,6 +187,9 @@ CREATE TABLE IF NOT EXISTS users (
       'ALTER TABLE habits ADD COLUMN archived_at INTEGER',
       'ALTER TABLE routines ADD COLUMN archived_at INTEGER',
       'ALTER TABLE habits ADD COLUMN goal_id TEXT',
+      'ALTER TABLE habits ADD COLUMN life_area_id TEXT',
+      'ALTER TABLE routines ADD COLUMN life_area_id TEXT',
+      'ALTER TABLE notes ADD COLUMN life_area_id TEXT',
       'ALTER TABLE milestones ADD COLUMN completed_at INTEGER',
       'ALTER TABLE milestones ADD COLUMN position INTEGER DEFAULT 0',
       'ALTER TABLE tasks ADD COLUMN description TEXT',
@@ -352,6 +356,12 @@ CREATE TABLE IF NOT EXISTS life_areas (
   Future<void> _migrateToV30(Database db) async {
     // Idempotently create the bounded local diagnostics table and indexes.
     await _applySchema(db);
+  }
+
+  Future<void> _migrateToV31(Database db) async {
+    await _executeIgnoringDuplicateColumn(db, 'ALTER TABLE habits ADD COLUMN life_area_id TEXT');
+    await _executeIgnoringDuplicateColumn(db, 'ALTER TABLE routines ADD COLUMN life_area_id TEXT');
+    await _executeIgnoringDuplicateColumn(db, 'ALTER TABLE notes ADD COLUMN life_area_id TEXT');
   }
 
   Future<void> _migrateToV24(Database db) async {
