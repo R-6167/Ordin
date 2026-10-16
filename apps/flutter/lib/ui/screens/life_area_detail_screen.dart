@@ -89,16 +89,56 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
   }
 
   Future<void> _quickAdd(AddKind kind) async {
-    final ok = await showCreateForm(
-      context,
-      kind,
-      lifeAreaId: widget.lifeAreaId,
+    final label = switch (kind) {
+      AddKind.goal => 'Goal title',
+      AddKind.project => 'Project title',
+      AddKind.task => 'Task title',
+      _ => 'Title',
+    };
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceRaised,
+        title: Text(
+          'Add to ${_area?.title ?? 'area'}',
+          style: const TextStyle(color: AppTheme.silver),
+        ),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          style: const TextStyle(color: AppTheme.silver),
+          decoration: InputDecoration(labelText: label),
+          onSubmitted: (_) => Navigator.pop(ctx, true),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
-    if (!mounted) return;
-    if (ok) {
-      AppDataBus.instance.lifeChanged();
-      await _load();
+    if (ok != true || !mounted) return;
+    final title = ctrl.text.trim();
+    if (title.isEmpty) return;
+    switch (kind) {
+      case AddKind.goal:
+        await _goals.create(title: title, lifeAreaId: widget.lifeAreaId);
+      case AddKind.project:
+        await _projects.create(title: title, lifeAreaId: widget.lifeAreaId);
+      case AddKind.task:
+        await _tasks.create(title: title, lifeAreaId: widget.lifeAreaId);
+      default:
+        break;
     }
+    if (!mounted) return;
+    AppDataBus.instance.lifeChanged();
+    await _load();
   }
 
   bool _isOpen(Task t) {
@@ -165,7 +205,8 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
                   context: context,
                   backgroundColor: AppTheme.surfaceRaised,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(18)),
                   ),
                   builder: (ctx) => SafeArea(
                     child: Column(
@@ -183,18 +224,24 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
                           ),
                         ),
                         ListTile(
-                          leading: const Icon(Icons.flag_outlined, color: AppTheme.brandBlue),
-                          title: const Text('Goal', style: TextStyle(color: AppTheme.silver)),
+                          leading: const Icon(Icons.flag_outlined,
+                              color: AppTheme.brandBlue),
+                          title: const Text('Goal',
+                              style: TextStyle(color: AppTheme.silver)),
                           onTap: () => Navigator.pop(ctx, AddKind.goal),
                         ),
                         ListTile(
-                          leading: const Icon(Icons.folder_outlined, color: AppTheme.brandBlue),
-                          title: const Text('Project', style: TextStyle(color: AppTheme.silver)),
+                          leading: const Icon(Icons.folder_outlined,
+                              color: AppTheme.brandBlue),
+                          title: const Text('Project',
+                              style: TextStyle(color: AppTheme.silver)),
                           onTap: () => Navigator.pop(ctx, AddKind.project),
                         ),
                         ListTile(
-                          leading: const Icon(Icons.check_box_outlined, color: AppTheme.brandBlue),
-                          title: const Text('Task', style: TextStyle(color: AppTheme.silver)),
+                          leading: const Icon(Icons.check_box_outlined,
+                              color: AppTheme.brandBlue),
+                          title: const Text('Task',
+                              style: TextStyle(color: AppTheme.silver)),
                           onTap: () => Navigator.pop(ctx, AddKind.task),
                         ),
                         const SizedBox(height: 8),
@@ -209,8 +256,7 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
             ),
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.amber),
-            )
+              child: CircularProgressIndicator(color: AppTheme.amber))
           : _error != null
               ? Center(
                   child: Padding(
