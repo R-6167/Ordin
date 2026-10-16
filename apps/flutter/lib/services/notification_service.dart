@@ -220,9 +220,26 @@ class NotificationService {
     );
   }
 
-  Future<void> cancelAll() => _plugin.cancelAll();
+  Future<void> cancelAll() async {
+    try {
+      await _plugin.cancelAll();
+    } catch (error, stackTrace) {
+      await NotificationDiagnostics.record('cancel_all', error, stackTrace: stackTrace);
+    }
+  }
 
-  Future<void> cancelId(int id) => _plugin.cancel(id);
+  Future<void> cancelId(int id) async {
+    try {
+      await _plugin.cancel(id);
+    } catch (error, stackTrace) {
+      await NotificationDiagnostics.record(
+        'cancel_id',
+        error,
+        stackTrace: stackTrace,
+        details: {'id': id},
+      );
+    }
+  }
 
   Future<int> syncFromDatabase() async {
     if (!_ready) await init();
@@ -283,7 +300,11 @@ class NotificationService {
       }
     }
 
-    n += await notifyBudgetAlerts(delay: const Duration(seconds: 2));
+    try {
+      n += await notifyBudgetAlerts(delay: const Duration(seconds: 2));
+    } catch (error, stackTrace) {
+      await NotificationDiagnostics.record('notify_budget_alerts', error, stackTrace: stackTrace);
+    }
     return n;
   }
 
