@@ -115,6 +115,11 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Finance contents'), findsOneWidget);
+
+    // LifeHub starts async DB loads (areas + practical) that schedule sqflite
+    // transaction timeouts; dispose and advance time so the binding is clean.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 11));
   });
 
   testWidgets('Life hub is areas-first with tools strip on a narrow phone', (tester) async {
@@ -154,7 +159,7 @@ void main() {
     semantics.dispose();
 
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 11));
   });
 
   testWidgets('Insights card opens Insights screen without hanging on loader',
