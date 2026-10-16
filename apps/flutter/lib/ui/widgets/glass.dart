@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 
 /// Restrained frosted surface with a cool, blue-led edge.
+/// Slightly stronger fill so cards read on near-black scaffolds.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -36,16 +37,16 @@ class GlassCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.silver.withValues(alpha: 0.075),
-                AppTheme.brandBlue.withValues(alpha: 0.035),
-                AppTheme.silver.withValues(alpha: 0.025),
+                AppTheme.silver.withValues(alpha: 0.10),
+                AppTheme.brandBlue.withValues(alpha: 0.06),
+                AppTheme.surfaceRaised.withValues(alpha: 0.55),
               ],
             ),
             border: Border.all(color: AppTheme.glassBorder),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.22),
-                blurRadius: 14,
+                color: Colors.black.withValues(alpha: 0.28),
+                blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
             ],
@@ -82,7 +83,7 @@ class GlassBackground extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             AppTheme.metalDeep,
-            Color(0xFF172333),
+            Color(0xFF1A2534),
             AppTheme.metal,
           ],
           stops: [0.0, 0.48, 1.0],
@@ -93,12 +94,12 @@ class GlassBackground extends StatelessWidget {
           Positioned(
             top: -90,
             right: -50,
-            child: _blob(AppTheme.brandBlue, 220, 0.10),
+            child: _blob(AppTheme.brandBlue, 220, 0.12),
           ),
           Positioned(
             bottom: 100,
             left: -70,
-            child: _blob(AppTheme.brandBlueDeep, 190, 0.08),
+            child: _blob(AppTheme.brandBlueDeep, 190, 0.10),
           ),
           child,
         ],
