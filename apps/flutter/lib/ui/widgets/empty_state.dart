@@ -26,41 +26,46 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Explicit sizes so accessibility scale cannot turn this into a banner.
-    return Padding(
-      padding: padding,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 36, color: AppTheme.silver.withValues(alpha: 0.32)),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppTheme.silver.withValues(alpha: 0.72),
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-              height: 1.25,
-            ),
-          ),
-          if (detail != null && detail!.isNotEmpty) ...[
-            const SizedBox(height: 6),
+    // Fixed scale so system font size cannot turn this into a full-screen banner.
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(1.0),
+      ),
+      child: Padding(
+        padding: padding,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 40, color: AppTheme.brandBlue.withValues(alpha: 0.55)),
+            const SizedBox(height: 12),
             Text(
-              detail!,
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.silver.withValues(alpha: 0.45),
-                fontSize: 13,
-                height: 1.35,
+              style: const TextStyle(
+                color: AppTheme.silver,
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                height: 1.25,
               ),
             ),
+            if (detail != null && detail!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                detail!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.silver.withValues(alpha: 0.65),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+            ],
           ],
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 14),
-            TextButton(onPressed: onAction, child: Text(actionLabel!)),
-          ],
-        ],
+        ),
       ),
     );
   }
