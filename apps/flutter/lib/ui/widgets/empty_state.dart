@@ -26,13 +26,14 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Explicit sizes so accessibility scale cannot turn this into a banner.
     return Padding(
       padding: padding,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 40, color: AppTheme.silver.withValues(alpha: 0.32)),
-          const SizedBox(height: 12),
+          Icon(icon, size: 36, color: AppTheme.silver.withValues(alpha: 0.32)),
+          const SizedBox(height: 10),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -40,6 +41,7 @@ class EmptyState extends StatelessWidget {
               color: AppTheme.silver.withValues(alpha: 0.72),
               fontWeight: FontWeight.w600,
               fontSize: 15,
+              height: 1.25,
             ),
           ),
           if (detail != null && detail!.isNotEmpty) ...[
