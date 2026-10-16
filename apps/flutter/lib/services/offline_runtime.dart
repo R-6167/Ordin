@@ -115,7 +115,9 @@ class OfflineRuntime {
       if (needIntegrity) {
         final report = await IntegrityService(db: db).run(repair: true);
         lastIntegrityAt = DateTime.now();
-        if (!report.ok || report.fixed > 0) {
+        // Only surface integrity as an error when checks failed.
+        // Successful repairs are normal maintenance, not app faults.
+        if (!report.ok) {
           await ErrorLogService.instance.log(
             message: 'Integrity: ${report.summary}',
             level: 'INTEGRITY',

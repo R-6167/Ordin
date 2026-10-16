@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../services/app_data_bus.dart';
 import '../../services/personal_insights_service.dart';
 import '../theme.dart';
 import '../widgets/glass.dart';
@@ -17,12 +18,29 @@ class InsightsScreen extends StatefulWidget {
 class _InsightsScreenState extends State<InsightsScreen> {
   late final PersonalInsightsService _service;
   late Future<PersonalInsightsSummary> _summary;
+  int _busGen = -1;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? PersonalInsightsService();
     _summary = _service.load();
+    _busGen = AppDataBus.instance.generation;
+    AppDataBus.instance.addListener(_onBus);
+  }
+
+  @override
+  void dispose() {
+    AppDataBus.instance.removeListener(_onBus);
+    super.dispose();
+  }
+
+  void _onBus() {
+    if (!mounted) return;
+    final gen = AppDataBus.instance.generation;
+    if (gen == _busGen) return;
+    _busGen = gen;
+    _reload();
   }
 
   Future<void> _reload() async {
@@ -163,8 +181,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 }
 
-/// Compact personal-progress summary for the Today screen. This uses life
-/// activity events, not app usage or diagnostic telemetry.
+/// Compact personal-progress summary for the Today screen.
 class HomeInsightsCard extends StatefulWidget {
   const HomeInsightsCard({super.key, this.service});
 
@@ -177,12 +194,29 @@ class HomeInsightsCard extends StatefulWidget {
 class _HomeInsightsCardState extends State<HomeInsightsCard> {
   late final PersonalInsightsService _service;
   late Future<PersonalInsightsSummary> _summary;
+  int _busGen = -1;
 
   @override
   void initState() {
     super.initState();
     _service = widget.service ?? PersonalInsightsService();
     _summary = _service.load();
+    _busGen = AppDataBus.instance.generation;
+    AppDataBus.instance.addListener(_onBus);
+  }
+
+  @override
+  void dispose() {
+    AppDataBus.instance.removeListener(_onBus);
+    super.dispose();
+  }
+
+  void _onBus() {
+    if (!mounted) return;
+    final gen = AppDataBus.instance.generation;
+    if (gen == _busGen) return;
+    _busGen = gen;
+    setState(() => _summary = _service.load());
   }
 
   @override
