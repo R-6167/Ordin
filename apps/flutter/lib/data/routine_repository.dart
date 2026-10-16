@@ -23,6 +23,17 @@ class RoutineRepository {
     return rows.map(Routine.fromMap).toList();
   }
 
+  Future<List<Routine>> listByLifeArea(String lifeAreaId) async {
+    final ownerId = await _db.requireOwnerId();
+    final rows = await (await _db.database).query(
+      'routines',
+      where: 'owner_id = ? AND life_area_id = ? AND archived_at IS NULL',
+      whereArgs: [ownerId, lifeAreaId],
+      orderBy: 'name ASC',
+    );
+    return rows.map(Routine.fromMap).toList();
+  }
+
   Future<Routine?> getById(String id) async {
     final rows = await (await _db.database).query('routines', where: 'id = ?', whereArgs: [id], limit: 1);
     if (rows.isEmpty) return null;
@@ -33,6 +44,7 @@ class RoutineRepository {
     required String name,
     String? description,
     int? estimatedMinutes,
+    String? lifeAreaId,
   }) async {
     final ownerId = await _db.requireOwnerId();
     final now = AppDatabase.nowMs();
@@ -42,6 +54,7 @@ class RoutineRepository {
       'owner_id': ownerId,
       'name': name,
       'status': EntityStatus.active,
+      'life_area_id': lifeAreaId,
       'created_at': now,
       'updated_at': now,
     });
@@ -51,6 +64,7 @@ class RoutineRepository {
       name: name,
       status: EntityStatus.active,
       estimatedMinutes: estimatedMinutes,
+      lifeAreaId: lifeAreaId,
       createdAt: now,
       updatedAt: now,
     );
