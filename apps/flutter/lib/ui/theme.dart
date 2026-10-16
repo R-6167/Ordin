@@ -13,12 +13,13 @@ class AppTheme {
   static const brandBlueContainer = Color(0x336EA8FF);
   static const brandBlueSoft = Color(0xFFB9D5FF);
 
-  /// Cool metallic grey / silver neutrals.
-  static const silver = Color(0xFFC5CBD3);
-  static const silverMuted = Color(0xFF9AA3AD);
-  static const metal = Color(0xFF252D39);
-  static const metalDeep = Color(0xFF111923);
-  static const surfaceRaised = Color(0xFF202B39);
+  /// Cool metallic grey / silver neutrals — slightly lifted vs pure black
+  /// so cards and lists read clearly on OLED without looking washed out.
+  static const silver = Color(0xFFD0D5DC);
+  static const silverMuted = Color(0xFFA4ADB8);
+  static const metal = Color(0xFF2A3340);
+  static const metalDeep = Color(0xFF151D28);
+  static const surfaceRaised = Color(0xFF273240);
 
   /// Warm wood is retained only for legacy surfaces; avoid using it as a
   /// primary interaction color in new UI.
@@ -34,8 +35,9 @@ class AppTheme {
   static const seed = brandBlue;
   static const bgDeep = metalDeep;
   static const bgMid = metal;
-  static const glassFill = Color(0x182F5F9E);
-  static const glassBorder = Color(0x334E83C4);
+  /// Stronger glass fill so cards separate from the near-black scaffold.
+  static const glassFill = Color(0x2A355F96);
+  static const glassBorder = Color(0x445F96D0);
 
   static ThemeData dark() {
     final scheme = ColorScheme.fromSeed(
@@ -95,14 +97,14 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceRaised.withValues(alpha: 0.78),
+        fillColor: surfaceRaised.withValues(alpha: 0.88),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: silver.withValues(alpha: 0.18)),
+          borderSide: BorderSide(color: silver.withValues(alpha: 0.22)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: silver.withValues(alpha: 0.18)),
+          borderSide: BorderSide(color: silver.withValues(alpha: 0.22)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -114,7 +116,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: surfaceRaised,
         selectedColor: brandBlueContainer,
-        side: BorderSide(color: silver.withValues(alpha: 0.18)),
+        side: BorderSide(color: silver.withValues(alpha: 0.22)),
         labelStyle: const TextStyle(color: silver),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -147,7 +149,7 @@ class AppTheme {
         textColor: silver,
       ),
       dividerTheme: DividerThemeData(
-        color: silver.withValues(alpha: 0.12),
+        color: silver.withValues(alpha: 0.14),
         thickness: 1,
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
