@@ -889,79 +889,111 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _tasksView() {
-    return RefreshIndicator(
-      color: AppTheme.amber,
-      onRefresh: _reloadTasks,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          if (_overdue.isNotEmpty) ...[
-            const SectionHeader('Overdue'),
-            ..._overdue.map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GlassCard(
-                    key: ValueKey('task-${t.id}'),
-                    onTap: () => _openTask(t),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    child: ListTile(
-                      dense: true,
-                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-                      subtitle: Text(
-                        _taskStatusLine(t),
-                        style: const TextStyle(color: Colors.redAccent, fontSize: 11),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
-                        onPressed: () async {
-                          await _tasks.complete(t.id);
-                          AppDataBus.instance.tasksChanged();
-                        },
-                      ),
-                    ),
-                  ),
-                )),
-          ],
-          const SectionHeader('All open'),
-          if (_taskList.isEmpty)
-            const EmptyState(
-              title: 'No open tasks',
-              detail: 'Tap + to add one, or clear filters above if you expect items here.',
-              icon: Icons.checklist_rounded,
-              padding: EdgeInsets.symmetric(vertical: 24, horizontal: 12),
-            )
-          else
-            ..._taskList.map((t) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GlassCard(
-                    key: ValueKey('task-${t.id}'),
-                    onTap: () => _openTask(t),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    child: ListTile(
-                      dense: true,
-                      title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
-                      subtitle: Text(
-                        _taskStatusLine(t),
-                        style: TextStyle(
-                          color: t.isOverdue
-                              ? Colors.redAccent
-                              : (_blockedIds.contains(t.id)
-                                  ? Colors.orangeAccent
-                                  : AppTheme.silver.withValues(alpha: 0.4)),
-                          fontSize: 11,
+    // Must be a full route (Scaffold + GlassBackground). Pushing a bare
+    // ListView left the screen pure black with no app bar or backdrop.
+    return GlassBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Tasks'),
+        ),
+        floatingActionButton: FloatingActionButton(
+          tooltip: 'New task',
+          onPressed: () async {
+            final ok = await showCreateForm(context, AddKind.task);
+            if (ok) {
+              AppDataBus.instance.tasksChanged();
+              await _reloadTasks();
+            }
+          },
+          child: const Icon(Icons.add),
+        ),
+        body: RefreshIndicator(
+          color: AppTheme.amber,
+          onRefresh: _reloadTasks,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              if (_overdue.isNotEmpty) ...[
+                const SectionHeader('Overdue'),
+                ..._overdue.map((t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GlassCard(
+                        key: ValueKey('task-${t.id}'),
+                        onTap: () => _openTask(t),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        child: ListTile(
+                          dense: true,
+                          title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                          subtitle: Text(
+                            _taskStatusLine(t),
+                            style: const TextStyle(color: Colors.redAccent, fontSize: 11),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                            onPressed: () async {
+                              await _tasks.complete(t.id);
+                              AppDataBus.instance.tasksChanged();
+                            },
+                          ),
                         ),
                       ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
-                        onPressed: () async {
-                          await _tasks.complete(t.id);
-                          AppDataBus.instance.tasksChanged();
-                        },
-                      ),
-                    ),
+                    )),
+              ],
+              const SectionHeader('All open'),
+              if (_taskList.isEmpty)
+                GlassCard(
+                  child: EmptyState(
+                    title: 'No open tasks',
+                    detail:
+                        'Tap + to add one. Tasks also show under Life areas when assigned.',
+                    icon: Icons.checklist_rounded,
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+                    actionLabel: 'New task',
+                    onAction: () async {
+                      final ok = await showCreateForm(context, AddKind.task);
+                      if (ok) {
+                        AppDataBus.instance.tasksChanged();
+                        await _reloadTasks();
+                      }
+                    },
                   ),
-                )),
-        ],
+                )
+              else
+                ..._taskList.map((t) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GlassCard(
+                        key: ValueKey('task-${t.id}'),
+                        onTap: () => _openTask(t),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        child: ListTile(
+                          dense: true,
+                          title: Text(t.title, style: const TextStyle(color: AppTheme.silver)),
+                          subtitle: Text(
+                            _taskStatusLine(t),
+                            style: TextStyle(
+                              color: t.isOverdue
+                                  ? Colors.redAccent
+                                  : (_blockedIds.contains(t.id)
+                                      ? Colors.orangeAccent
+                                      : AppTheme.silver.withValues(alpha: 0.4)),
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.check_circle_outline, color: AppTheme.amber),
+                            onPressed: () async {
+                              await _tasks.complete(t.id);
+                              AppDataBus.instance.tasksChanged();
+                            },
+                          ),
+                        ),
+                      ),
+                    )),
+            ],
+          ),
+        ),
       ),
     );
   }
