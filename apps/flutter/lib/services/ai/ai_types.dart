@@ -16,26 +16,28 @@ class AiReply {
   final String? model;
   final bool usedSituation;
   final String? error;
-  /// Structured actions for the approve → execute loop (OrdinOperator).
   final List<OrdinActionProposal> proposals;
 
   bool get ok => error == null && text.isNotEmpty;
-  bool get hasActions => proposals.isNotEmpty;
 }
 
-enum AiSource { local, onDevice, remote, hybrid }
+enum AiSource { localRules, onDevice, remote }
 
 enum AiMode {
-  /// Personal Context + rule engine only (default, offline).
+  /// Deterministic offline rules only (always available).
   localOnly,
-  /// On-device GGUF (llama.cpp) grounded in Personal Context.
+
+  /// On-device GGUF when configured.
   onDeviceLlm,
-  /// On-device LLM with rule-engine fallback if model missing/fails.
+
+  /// Try GGUF, fall back to local rules on failure.
   onDeviceWithFallback,
-  /// Try remote with situation prompt; fall back to local on failure.
+
+  /// Optional cloud/OpenAI-compatible endpoint.
+  remote,
+
+  /// Remote first, then local rules.
   remoteWithFallback,
-  /// Remote only (fails closed to a short error if unreachable).
-  remoteOnly,
 }
 
 class AiSettings {
@@ -46,9 +48,9 @@ class AiSettings {
     this.model = 'gpt-4o-mini',
     this.localModelPath = '',
     this.localModelLabel = '',
-    this.contextSize = 2048,
-    this.threads = 4,
-    this.maxTokens = 512,
+    this.contextSize = 1024,
+    this.threads = 2,
+    this.maxTokens = 256,
     this.systemPreamble =
         'You are the offline Personal Life OS assistant. Use only the provided personal context. Be concise, practical, and honest. Never invent calendar events or balances.',
   });
@@ -121,9 +123,9 @@ class AiSettings {
       model: '${m['model'] ?? 'gpt-4o-mini'}',
       localModelPath: '${m['localModelPath'] ?? ''}',
       localModelLabel: '${m['localModelLabel'] ?? ''}',
-      contextSize: (m['contextSize'] as int?) ?? 2048,
-      threads: (m['threads'] as int?) ?? 4,
-      maxTokens: (m['maxTokens'] as int?) ?? 512,
+      contextSize: (m['contextSize'] as int?) ?? 1024,
+      threads: (m['threads'] as int?) ?? 2,
+      maxTokens: (m['maxTokens'] as int?) ?? 256,
       systemPreamble: '${m['systemPreamble'] ?? AiSettings().systemPreamble}',
     );
   }
