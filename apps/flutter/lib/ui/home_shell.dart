@@ -37,6 +37,7 @@ import 'screens/task_detail_screen.dart';
 import 'settings_screen.dart';
 import 'theme.dart';
 import 'widgets/glass.dart';
+import 'widgets/empty_state.dart';
 import 'widgets/pay_bill_dialog.dart';
 import 'widgets/section_header.dart';
 
@@ -923,9 +924,11 @@ class _HomeShellState extends State<HomeShell> {
           ],
           const SectionHeader('All open'),
           if (_taskList.isEmpty)
-            GlassCard(
-              child: Text('No open tasks',
-                  style: TextStyle(color: AppTheme.silver.withValues(alpha: 0.5))),
+            const EmptyState(
+              title: 'No open tasks',
+              detail: 'Tap + to add one, or clear filters above if you expect items here.',
+              icon: Icons.checklist_rounded,
+              padding: EdgeInsets.symmetric(vertical: 24, horizontal: 12),
             )
           else
             ..._taskList.map((t) => Padding(
