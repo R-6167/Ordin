@@ -115,6 +115,19 @@ class _OrdinAppState extends State<OrdinApp> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
       navigatorKey: NotificationRouter.navigatorKey,
+      // Cap extreme accessibility text scale so empty states / cards stay usable
+      // (system 2.0x was rendering "No open tasks" as a full-screen headline).
+      builder: (context, child) {
+        final mq = MediaQuery.of(context);
+        final clamped = mq.textScaler.clamp(
+          minScaleFactor: 0.9,
+          maxScaleFactor: 1.35,
+        );
+        return MediaQuery(
+          data: mq.copyWith(textScaler: clamped),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: _unlocked
           ? const HomeShell()
           : LockScreen(
