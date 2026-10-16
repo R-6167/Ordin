@@ -16,28 +16,26 @@ class AiReply {
   final String? model;
   final bool usedSituation;
   final String? error;
+  /// Structured actions for the approve → execute loop (OrdinOperator).
   final List<OrdinActionProposal> proposals;
 
   bool get ok => error == null && text.isNotEmpty;
+  bool get hasActions => proposals.isNotEmpty;
 }
 
-enum AiSource { localRules, onDevice, remote }
+enum AiSource { local, onDevice, remote, hybrid }
 
 enum AiMode {
-  /// Deterministic offline rules only (always available).
+  /// Personal Context + rule engine only (default, offline).
   localOnly,
-
-  /// On-device GGUF when configured.
+  /// On-device GGUF (llama.cpp) grounded in Personal Context.
   onDeviceLlm,
-
-  /// Try GGUF, fall back to local rules on failure.
+  /// On-device LLM with rule-engine fallback if model missing/fails.
   onDeviceWithFallback,
-
-  /// Optional cloud/OpenAI-compatible endpoint.
-  remote,
-
-  /// Remote first, then local rules.
+  /// Try remote with situation prompt; fall back to local on failure.
   remoteWithFallback,
+  /// Remote only (fails closed to a short error if unreachable).
+  remoteOnly,
 }
 
 class AiSettings {
