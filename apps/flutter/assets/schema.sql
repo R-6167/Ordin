@@ -79,7 +79,8 @@ CREATE TABLE IF NOT EXISTS task_recurrences (
 CREATE TABLE IF NOT EXISTS habits (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, title TEXT NOT NULL,
   description TEXT, status TEXT, target_count INTEGER DEFAULT 1,
-  start_date INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+  start_date INTEGER, life_area_id TEXT,
+  created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -96,7 +97,7 @@ CREATE TABLE IF NOT EXISTS habit_occurrences (
 CREATE TABLE IF NOT EXISTS routines (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, name TEXT NOT NULL,
   estimated_minutes INTEGER, status TEXT,
-  archived_at INTEGER,
+  archived_at INTEGER, life_area_id TEXT,
   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -139,6 +140,7 @@ CREATE TABLE IF NOT EXISTS reminders (
 
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, title TEXT, content TEXT,
+  life_area_id TEXT,
   created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
   FOREIGN KEY(owner_id) REFERENCES users(id) ON DELETE CASCADE
 );

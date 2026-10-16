@@ -5,6 +5,9 @@ import '../../data/goal_repository.dart';
 import '../../data/life_area_repository.dart';
 import '../../data/project_repository.dart';
 import '../../data/task_repository.dart';
+import '../../data/habit_repository.dart';
+import '../../data/note_repository.dart';
+import '../../data/routine_repository.dart';
 import '../../domain/life_area.dart';
 import '../../domain/models.dart';
 import '../../services/app_data_bus.dart';
@@ -15,6 +18,9 @@ import '../widgets/glass.dart';
 import 'goal_detail_screen.dart';
 import 'project_detail_screen.dart';
 import 'task_detail_screen.dart';
+import 'habit_detail_screen.dart';
+import 'note_detail_screen.dart';
+import 'routine_detail_screen.dart';
 
 /// Overview for one life area: snapshot, attention, next actions, goals/projects/tasks.
 class LifeAreaDetailScreen extends StatefulWidget {
@@ -30,11 +36,17 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
   final _goals = GoalRepository(AppDatabase.instance);
   final _projects = ProjectRepository(AppDatabase.instance);
   final _tasks = TaskRepository(AppDatabase.instance);
+  final _habits = HabitRepository(AppDatabase.instance);
+  final _notes = NoteRepository(AppDatabase.instance);
+  final _routines = RoutineRepository(AppDatabase.instance);
 
   LifeArea? _area;
   List<Goal> _goalList = [];
   List<Project> _projectList = [];
   List<Task> _taskList = [];
+  List<Habit> _habitList = [];
+  List<Note> _noteList = [];
+  List<Routine> _routineList = [];
   Set<String> _blockedIds = {};
   bool _loading = true;
   String? _error;
@@ -66,6 +78,9 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
       final goals = await _goals.listByLifeArea(widget.lifeAreaId);
       final projects = await _projects.listByLifeArea(widget.lifeAreaId);
       final tasks = await _tasks.listByLifeArea(widget.lifeAreaId);
+      final habits = await _habits.listByLifeArea(widget.lifeAreaId);
+      final notes = await _notes.listByLifeArea(widget.lifeAreaId);
+      final routines = await _routines.listByLifeArea(widget.lifeAreaId);
       Set<String> blocked = {};
       try {
         blocked = await _tasks.listBlockedTaskIds();
@@ -76,6 +91,9 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
         _goalList = goals;
         _projectList = projects;
         _taskList = tasks;
+        _habitList = habits;
+        _noteList = notes;
+        _routineList = routines;
         _blockedIds = blocked;
         _loading = false;
       });
@@ -133,6 +151,12 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
         await _projects.create(title: title, lifeAreaId: widget.lifeAreaId);
       case AddKind.task:
         await _tasks.create(title: title, lifeAreaId: widget.lifeAreaId);
+      case AddKind.habit:
+        await _habits.create(title: title, lifeAreaId: widget.lifeAreaId);
+      case AddKind.routine:
+        await _routines.create(name: title, lifeAreaId: widget.lifeAreaId);
+      case AddKind.note:
+        await _notes.create(content: title, lifeAreaId: widget.lifeAreaId);
       default:
         break;
     }
@@ -180,7 +204,12 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
   }
 
   bool get _isEmptyArea =>
-      _goalList.isEmpty && _projectList.isEmpty && _openTasks.isEmpty;
+      _goalList.isEmpty &&
+      _projectList.isEmpty &&
+      _openTasks.isEmpty &&
+      _habitList.isEmpty &&
+      _noteList.isEmpty &&
+      _routineList.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -243,6 +272,27 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
                           title: const Text('Task',
                               style: TextStyle(color: AppTheme.silver)),
                           onTap: () => Navigator.pop(ctx, AddKind.task),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.repeat,
+                              color: AppTheme.brandBlue),
+                          title: const Text('Habit',
+                              style: TextStyle(color: AppTheme.silver)),
+                          onTap: () => Navigator.pop(ctx, AddKind.habit),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.playlist_play,
+                              color: AppTheme.brandBlue),
+                          title: const Text('Routine',
+                              style: TextStyle(color: AppTheme.silver)),
+                          onTap: () => Navigator.pop(ctx, AddKind.routine),
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.note_outlined,
+                              color: AppTheme.brandBlue),
+                          title: const Text('Note',
+                              style: TextStyle(color: AppTheme.silver)),
+                          onTap: () => Navigator.pop(ctx, AddKind.note),
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -383,6 +433,74 @@ class _LifeAreaDetailScreenState extends State<LifeAreaDetailScreen> {
                                       MaterialPageRoute(
                                         builder: (_) => ProjectDetailScreen(
                                             projectId: p.id),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        _section(
+                          'Habits',
+                          empty: 'No habits linked to this area.',
+                          onAdd: () => _quickAdd(AddKind.habit),
+                          children: _habitList
+                              .map(
+                                (h) => _tile(
+                                  title: h.title,
+                                  subtitle: h.status,
+                                  onTap: () => _openAfterMaybeReload(() async {
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            HabitDetailScreen(habitId: h.id),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        _section(
+                          'Routines',
+                          empty: 'No routines linked to this area.',
+                          onAdd: () => _quickAdd(AddKind.routine),
+                          children: _routineList
+                              .map(
+                                (r) => _tile(
+                                  title: r.name,
+                                  subtitle: r.status,
+                                  onTap: () => _openAfterMaybeReload(() async {
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => RoutineDetailScreen(
+                                            routineId: r.id),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                        _section(
+                          'Notes',
+                          empty: 'No notes linked to this area.',
+                          onAdd: () => _quickAdd(AddKind.note),
+                          children: _noteList
+                              .map(
+                                (n) => _tile(
+                                  title: (n.title != null &&
+                                          n.title!.trim().isNotEmpty)
+                                      ? n.title!
+                                      : (n.content.trim().isEmpty
+                                          ? 'Untitled note'
+                                          : n.content),
+                                  subtitle: 'Note',
+                                  onTap: () => _openAfterMaybeReload(() async {
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            NoteDetailScreen(noteId: n.id),
                                       ),
                                     );
                                   }),

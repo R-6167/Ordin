@@ -225,6 +225,7 @@ class Habit {
   final String status;
   final int targetCount;
   final int startDate;
+  final String? lifeAreaId;
   final int createdAt;
   final int updatedAt;
 
@@ -235,6 +236,7 @@ class Habit {
     required this.status,
     this.targetCount = 1,
     required this.startDate,
+    this.lifeAreaId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -246,6 +248,7 @@ class Habit {
         status: dbStr(m['status'], 'ACTIVE'),
         targetCount: dbIntOr(m['target_count'], 1),
         startDate: dbIntOr(m['start_date']),
+        lifeAreaId: dbStrOrNull(m['life_area_id']),
         createdAt: dbIntOr(m['created_at']),
         updatedAt: dbIntOr(m['updated_at']),
       );
@@ -257,6 +260,7 @@ class Habit {
         'status': status,
         'target_count': targetCount,
         'start_date': startDate,
+        'life_area_id': lifeAreaId,
         'created_at': createdAt,
         'updated_at': updatedAt,
       };
@@ -267,6 +271,7 @@ class Note {
   final String ownerId;
   final String? title;
   final String content;
+  final String? lifeAreaId;
   final int createdAt;
   final int updatedAt;
 
@@ -275,6 +280,7 @@ class Note {
     required this.ownerId,
     this.title,
     required this.content,
+    this.lifeAreaId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -284,6 +290,7 @@ class Note {
         ownerId: dbStr(m['owner_id']),
         title: dbStrOrNull(m['title']),
         content: dbStr(m['content']),
+        lifeAreaId: dbStrOrNull(m['life_area_id']),
         createdAt: dbIntOr(m['created_at']),
         updatedAt: dbIntOr(m['updated_at']),
       );
@@ -293,6 +300,7 @@ class Note {
         'owner_id': ownerId,
         'title': title,
         'content': content,
+        'life_area_id': lifeAreaId,
         'created_at': createdAt,
         'updated_at': updatedAt,
       };
@@ -421,6 +429,7 @@ class Routine {
   final String name;
   final String status;
   final int? estimatedMinutes;
+  final String? lifeAreaId;
   final int createdAt;
   final int updatedAt;
 
@@ -430,6 +439,7 @@ class Routine {
     required this.name,
     required this.status,
     this.estimatedMinutes,
+    this.lifeAreaId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -440,6 +450,7 @@ class Routine {
         name: dbStr(m['name']),
         status: dbStr(m['status'], 'ACTIVE'),
         estimatedMinutes: dbInt(m['estimated_minutes']),
+        lifeAreaId: dbStrOrNull(m['life_area_id']),
         createdAt: dbIntOr(m['created_at']),
         updatedAt: dbIntOr(m['updated_at']),
       );
