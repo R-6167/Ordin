@@ -114,18 +114,7 @@ Future<bool> showCreateForm(
     case AddKind.task:
       return _taskForm(context, initialLifeAreaId: lifeAreaId);
     case AddKind.project:
-      return _entityWithLifeAreaForm(
-        context,
-        title: 'New project',
-        initialLifeAreaId: lifeAreaId,
-        onSave: (title, description, areaId) async {
-          await ProjectRepository(AppDatabase.instance).create(
-            title: title,
-            description: description,
-            lifeAreaId: areaId,
-          );
-        },
-      );
+      return _projectForm(context, initialLifeAreaId: lifeAreaId);
     case AddKind.goal:
       return _entityWithLifeAreaForm(
         context,
@@ -195,15 +184,17 @@ Future<bool> _openNewNoteEditor(BuildContext context) async {
   return true;
 }
 
-Future<bool> _taskForm(BuildContext context, {String? initialLifeAreaId}) async {
+Future<bool> _taskForm(BuildContext context, {String? initialLifeAreaId, String? initialProjectId}) async {
   final title = TextEditingController();
   final desc = TextEditingController();
   var priority = 0;
   DateTime? due;
   String? lifeAreaId = initialLifeAreaId;
+  String? projectId = initialProjectId;
   final areaRepo = LifeAreaRepository(AppDatabase.instance);
   await areaRepo.seedDefaultsIfEmpty();
   final areas = await areaRepo.listActive();
+  final projects = await ProjectRepository(AppDatabase.instance).listActive();
 
   final ok = await showDialog<bool>(
     context: context,
@@ -240,6 +231,22 @@ Future<bool> _taskForm(BuildContext context, {String? initialLifeAreaId}) async 
                   ),
                 ],
                 onChanged: (v) => setLocal(() => lifeAreaId = v),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String?>(
+                value: projectId,
+                dropdownColor: AppTheme.metal,
+                decoration: const InputDecoration(
+                  labelText: 'Project (optional)',
+                  helperText: 'Links into Goal → Project → Task',
+                ),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('None')),
+                  ...projects.map(
+                    (p) => DropdownMenuItem(value: p.id, child: Text(p.title)),
+                  ),
+                ],
+                onChanged: (v) => setLocal(() => projectId = v),
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
@@ -294,12 +301,26 @@ Future<bool> _taskForm(BuildContext context, {String? initialLifeAreaId}) async 
   final dueMs = due == null
       ? null
       : DateTime(due!.year, due!.month, due!.day, 23, 59).millisecondsSinceEpoch;
+  String? goalId;
+  if (projectId != null) {
+    try {
+      final projects = await ProjectRepository(AppDatabase.instance).listActive();
+      for (final p in projects) {
+        if (p.id == projectId) {
+          goalId = p.goalId;
+          break;
+        }
+      }
+    } catch (_) {}
+  }
   await TaskRepository(AppDatabase.instance).create(
     title: title.text.trim(),
     dueAt: dueMs,
     priority: priority,
     description: desc.text.trim().isEmpty ? null : desc.text.trim(),
     lifeAreaId: lifeAreaId,
+    projectId: projectId,
+    goalId: goalId,
   );
   return true;
 }
