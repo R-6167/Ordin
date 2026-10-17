@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/activity_timeline.dart';
+import '../../services/app_data_bus.dart';
 import '../../services/timeline_suggestions.dart';
 import '../screens/goal_detail_screen.dart';
 import '../screens/habit_detail_screen.dart';
@@ -26,10 +27,27 @@ class _ActivityScreenState extends State<ActivityScreen> {
   List<TimelineSuggestion> _suggestions = [];
   bool _loading = true;
   bool _hasLoaded = false;
+  int _busGen = 0;
 
   @override
   void initState() {
     super.initState();
+    _busGen = AppDataBus.instance.generation;
+    AppDataBus.instance.addListener(_onBus);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    AppDataBus.instance.removeListener(_onBus);
+    super.dispose();
+  }
+
+  void _onBus() {
+    if (!mounted) return;
+    final gen = AppDataBus.instance.generation;
+    if (gen == _busGen) return;
+    _busGen = gen;
     _load();
   }
 

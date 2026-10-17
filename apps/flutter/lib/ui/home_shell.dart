@@ -118,6 +118,14 @@ class _HomeShellState extends State<HomeShell> {
 
   void _onBus() => _consumeDirtyFromBus();
 
+  /// After a pushed route returns: always refresh the given domains.
+  Future<void> _afterRouteReturn(Set<DataDomain> domains) async {
+    if (!mounted || domains.isEmpty) return;
+    _consumeDirtyFromBus();
+    await _reload(domains: domains);
+  }
+
+
   /// Debounce + single-flight so bursts of notifyDomains do not thrash UI.
   void _scheduleReload() {
     if (_reloadQueued) return;
@@ -362,6 +370,7 @@ class _HomeShellState extends State<HomeShell> {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: t.id)),
     );
+    await _afterRouteReturn({DataDomain.tasks, DataDomain.today, DataDomain.timeline});
   }
 
   Future<void> _openPlanItem(PlanItem p) async {
@@ -369,14 +378,10 @@ class _HomeShellState extends State<HomeShell> {
       case PlanItemKind.overdueTask:
       case PlanItemKind.dueTodayTask:
       case PlanItemKind.openTask:
-        final generationBefore = AppDataBus.instance.generation;
         await Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => TaskDetailScreen(taskId: p.id)),
         );
-        if (!mounted) return;
-        if (AppDataBus.instance.generation != generationBefore) {
-          await _reload(domains: {DataDomain.tasks, DataDomain.today});
-        }
+        await _afterRouteReturn({DataDomain.tasks, DataDomain.today, DataDomain.timeline});
         break;
       default:
         break;
@@ -396,22 +401,16 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Future<void> _openAssistant() async {
-    final generationBefore = AppDataBus.instance.generation;
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const AssistantScreen()),
     );
-    if (!mounted) return;
-    if (AppDataBus.instance.generation == generationBefore) return;
-    // The bus listener may already have consumed dirty domains into
-    // [_pendingDomains] while the assistant route was open. Never invent a
-    // full-domain reload when the residual dirty set is empty.
-    _consumeDirtyFromBus();
-    if (_pendingDomains.isNotEmpty) {
-      _scheduleReload();
-    }
-    if (_reloadInFlight != null) {
-      await _reloadInFlight;
-    }
+    await _afterRouteReturn({
+      DataDomain.tasks,
+      DataDomain.life,
+      DataDomain.finance,
+      DataDomain.today,
+      DataDomain.timeline,
+    });
   }
 
   Future<void> _openSettings() async {
@@ -419,7 +418,12 @@ class _HomeShellState extends State<HomeShell> {
       MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
     await UserPrefs.instance.load();
-    if (mounted) setState(() {});
+    await _afterRouteReturn({
+      DataDomain.tasks,
+      DataDomain.life,
+      DataDomain.finance,
+      DataDomain.today,
+    });
   }
 
   Future<void> _add() async {
@@ -578,10 +582,11 @@ class _HomeShellState extends State<HomeShell> {
         const InsightsScreen(key: ValueKey('tab-insights')),
         LifeHub(
           key: const ValueKey('tab-life'),
-          onOpenTasks: () {
-            Navigator.of(context).push(
+          onOpenTasks: () async {
+            await Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => _tasksView()),
             );
+            await _afterRouteReturn({DataDomain.tasks, DataDomain.today});
           },
           goals: _goalList,
           habits: _habitList,
