@@ -13,12 +13,12 @@ enum DataDomain {
 /// only the screens that need to refresh — not the whole HomeShell tree.
 ///
 /// Flow:
-///   Repository write → AppDataBus.notify({DataDomain.tasks})
-///   Tasks tab / Today tab listeners rebuild only their slice.
+///   UI mutation → AppDataBus.tasksChanged() / lifeChanged() / …
+///   HomeShell + Insights + Activity listeners reload their slices.
 ///
 /// Dirty consumption is centralized in HomeShell ([takeDirty] once per
-/// generation). Route-return handlers must not invent a full-domain reload
-/// when the residual set is empty — use [domainsAfterRouteReturn].
+/// generation). Route-return handlers should still call a scoped reload
+/// so UI cannot stay stale if dirty was already consumed.
 class AppDataBus extends ChangeNotifier {
   AppDataBus._();
   static final instance = AppDataBus._();
@@ -43,14 +43,16 @@ class AppDataBus extends ChangeNotifier {
   /// Convenience for a single domain.
   void notifyDomain(DataDomain domain) => notifyDomains({domain});
 
-  /// Tasks + Today summary (open/overdue/plan). Does not dirty life/timeline.
-  void tasksChanged() => notifyDomains({DataDomain.tasks, DataDomain.today});
+  /// Tasks + Today + Timeline activity feed.
+  void tasksChanged() =>
+      notifyDomains({DataDomain.tasks, DataDomain.today, DataDomain.timeline});
 
-  /// Life hub data + Today bits that surface life items.
-  void lifeChanged() => notifyDomains({DataDomain.life, DataDomain.today});
+  /// Life hub data + Today bits + Timeline.
+  void lifeChanged() =>
+      notifyDomains({DataDomain.life, DataDomain.today, DataDomain.timeline});
 
   void financeChanged() =>
-      notifyDomains({DataDomain.finance, DataDomain.today});
+      notifyDomains({DataDomain.finance, DataDomain.today, DataDomain.timeline});
 
   void allChanged() => notifyDomains(DataDomain.values.toSet());
 
