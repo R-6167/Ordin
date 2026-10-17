@@ -9,6 +9,7 @@ import '../../services/app_data_bus.dart';
 import '../screens/calendar_screen.dart';
 import '../screens/life_area_detail_screen.dart';
 import '../screens/life_areas_screen.dart';
+import '../screens/unassigned_items_screen.dart';
 import '../screens/needs_attention_screen.dart';
 import '../screens/planning_screen.dart';
 import '../screens/practical_life_screen.dart';
@@ -68,7 +69,6 @@ class _LifeHubState extends State<LifeHub> {
   @override
   void didUpdateWidget(covariant LifeHub oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Parent reload may change goal/project membership; rebuild counts.
     if (oldWidget.goals != widget.goals || oldWidget.projects != widget.projects) {
       setState(() {});
     }
@@ -106,7 +106,6 @@ class _LifeHubState extends State<LifeHub> {
     if (!mounted) return;
     if (reloadPractical) await _loadPractical();
     await _loadAreas();
-    // Always ask parent to reload life data — generation checks miss consumed bus dirty.
     await widget.onChanged();
   }
 
@@ -312,7 +311,12 @@ class _LifeHubState extends State<LifeHub> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
-        onTap: () => _open(const LifeAreasScreen()),
+        onTap: () => _open(
+          UnassignedItemsScreen(
+            goals: _unassignedGoals,
+            projects: _unassignedProjects,
+          ),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         child: ListTile(
           contentPadding: EdgeInsets.zero,
@@ -356,7 +360,6 @@ class _LifeHubState extends State<LifeHub> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
       children: [
-        // —— Areas map (primary) ——
         Row(
           children: [
             const Expanded(
@@ -401,8 +404,6 @@ class _LifeHubState extends State<LifeHub> {
           ..._areas.map(_areaCard),
         _unassignedCard(),
         const SizedBox(height: 8),
-
-        // —— Heads-up ——
         if (attention.isNotEmpty) ...[
           GlassCard(
             child: Column(
@@ -424,8 +425,6 @@ class _LifeHubState extends State<LifeHub> {
           ),
           const SizedBox(height: 16),
         ],
-
-        // —— Tools (secondary) ——
         Text(
           'Tools',
           style: TextStyle(
