@@ -102,14 +102,12 @@ class _LifeHubState extends State<LifeHub> {
   }
 
   Future<void> _open(Widget page, {bool reloadPractical = false}) async {
-    final gen = AppDataBus.instance.generation;
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
     if (!mounted) return;
     if (reloadPractical) await _loadPractical();
     await _loadAreas();
-    if (AppDataBus.instance.generation != gen) {
-      await widget.onChanged();
-    }
+    // Always ask parent to reload life data — generation checks miss consumed bus dirty.
+    await widget.onChanged();
   }
 
   Future<void> _openArea(LifeArea area) async {
